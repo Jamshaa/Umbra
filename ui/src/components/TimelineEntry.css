@@ -1,0 +1,82 @@
+/* Agent timeline entry: 3px left rail colored by status (blue/green/red),
+   VT323 text, DM Mono args. Collapsible result, hard square borders. */
+
+.timeline-entry {
+  border-left: 3px solid var(--info);
+  padding-left: var(--sp-2);
+  margin-left: 4px; /* half of the 8px rhythm; rails align, grid holds */
+}
+
+.timeline-entry.success {
+  border-left-color: var(--ok);
+}
+
+.timeline-entry.error {
+  border-left-color: var(--error);
+}
+
+.timeline-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  cursor: pointer;
+  list-style: none; /* keep our own chevron */
+}
+
+.timeline-summary::-webkit-details-marker {
+  display: none;
+}
+
+.timeline-glyph {
+  width: 8px;
+  height: 8px;
+  background: var(--info);
+  box-shadow: 2px 2px 0 var(--hard-shadow);
+  flex: none;
+}
+
+.timeline-entry.success .timeline-glyph {
+  background: var(--ok);
+}
+
+.timeline-entry.error .timeline-glyph {
+  background: var(--error);
+}
+
+.timeline-tool {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
+.timeline-chevron {
+  font-family: var(--font-body);
+  font-size: 18px;
+  color: var(--info);
+}
+
+.timeline-args {
+  display: block;
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--info);
+  padding: 4px 0 0 var(--sp-2);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.timeline-result {
+  font-family: var(--font-body);
+  font-size: 20px;
+  color: var(--ink);
+  padding: 4px 0 4px var(--sp-2);
+  overflow-x: auto;
+}
+
+.timeline-entry.success .timeline-result {
+  color: var(--ok);
+}
+
+.timeline-entry.error .timeline-result {
+  color: var(--error);
+}

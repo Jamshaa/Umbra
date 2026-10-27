@@ -1,0 +1,22 @@
+# Normalize line endings: repo is checked out & pushed on Windows, CI is Linux.
+* text=auto
+
+# Source files: always LF
+*.py text eol=lf
+*.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+# Windows-only files may need CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binaries — never diff or merge them
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.exe binary

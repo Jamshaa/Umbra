@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# security.yml — secrets scanning for the Umbra repository
+#
+# POLICY (SECURITY.md §4): this repo must never contain credentials,
+# kubeconfigs, cloud keys or any private context. This workflow is the
+# enforcement layer.
+#
+# Design notes for maintainers:
+#   * fetch-depth: 0 → gitleaks scans the FULL history of the pushed ref,
+#     not just the new commits, so a bad merge cannot hide an old secret.
+#   * persist-credentials: false → the GITHUB_TOKEN the checkout provides is
+#     not left behind in .git/config for later steps to trip on.
+#   * A failed scan is treated as a REAL LEAK until proven otherwise.
+#     Rotate first (SECURITY.md §6), in a PR arguing allowlists second.
+# ─────────────────────────────────────────────────────────────────────────────
+name: security
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly re-scan of the merged history — catches leaks that arrived on
+    # refs nobody has pushed to for days (e.g. dormant feature branches
+    # that merge later).
+    - cron: "0 3 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: secrets-scan (gitleaks, full history)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run gitleaks
+        # Ruleset: .gitleaks.toml (extends the upstream default rules).
+        # License note: gitleaks-action is free for public repositories;
+        # it only requires GITLEAKS_LICENSE on org-tier installs.
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  denied-filenames:
+    name: prohibited-filename scan (SECURITY.md §4)
+    runs-on: ubuntu-latest
+    # Defense in depth: gitleaks is content-based and excellent, but a file
+    # can also be dangerous merely by being tracked (a committed kubeconfig
+    # *file without the token inlined*, a dumped log attachment, etc.).
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Fail on tracked files matching prohibited globs
+        run: |
+          set -euo pipefail
+          forbidden='(^|/)\.env(\..*)?$|(^|/)kubeconfig(\..*)?$|(^|/).+-credentials\.(yaml|yml|json)$|\.pem$|\.key$|\.p12$|\.pfx$|\.kdbx$|(^|/)id_(rsa|ed25519|ecdsa)(\..*)?$|(^|/)(gitleaks|trufflehog)-report\.(json|txt)$|\.tfstate(\..*)?$'
+          offenders=$(git ls-files | grep -E -i "$forbidden" | grep -v '^\.env\.example$' || true)
+          if [ -n "$offenders" ]; then
+            echo "::error::Prohibited file(s) tracked in git (SECURITY.md §4):"
+            echo "$offenders"
+            exit 1
+          fi
+          echo "ok: no prohibited filenames tracked"
+
+  # NOTE: intentionally a running list. When new entry points to the repo
+  # appear (release artifacts, action outputs), add their guards here.

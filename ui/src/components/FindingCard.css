@@ -1,0 +1,123 @@
+/* Finding card: 3px hard border + 4px hard shadow; 6px severity bar on the
+   left edge (red/gold/green). Selected card loses its shadow offset (pressed
+   look) instead of changing color — state is read through one channel only. */
+
+.finding-card {
+  display: grid;
+  grid-template-columns: 16px 32px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'dot id name state'
+    'dot kind kind kind';
+  align-items: center;
+  column-gap: var(--sp-1);
+  row-gap: 0;
+  width: 100%;
+  text-align: left;
+  background: var(--panel);
+  border: 3px solid var(--hard-shadow);
+  border-left-width: 6px;
+  box-shadow: 4px 4px 0 var(--hard-shadow);
+  padding: var(--sp-1) var(--sp-2);
+  cursor: pointer;
+  transition: none;
+  font-family: var(--font-pixel);
+}
+
+.finding-card:hover {
+  background: #324095; /* flat one-step-lighter fill of --panel */
+}
+
+.finding-card:active {
+  box-shadow: 2px 2px 0 var(--hard-shadow);
+}
+
+.finding-card.is-selected {
+  box-shadow: 1px 1px 0 var(--hard-shadow);
+  transform: translate(3px, 3px);
+  outline: 3px solid var(--info);
+  outline-offset: -6px;
+}
+
+/* severity bars */
+.finding-card.high {
+  border-left-color: var(--error);
+}
+
+.finding-card.medium {
+  border-left-color: var(--warn);
+}
+
+.finding-card.low {
+  border-left-color: var(--ok);
+}
+
+/* 8x8 pixel dot (pure box-shadow pixel art, two hard squares) */
+.finding-dot {
+  grid-area: dot;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  box-shadow: 2px 2px 0 var(--hard-shadow);
+}
+
+.finding-card.high .finding-dot {
+  color: var(--error);
+}
+
+.finding-card.medium .finding-dot {
+  color: var(--warn);
+}
+
+.finding-card.low .finding-dot {
+  color: var(--ok);
+}
+
+.finding-id {
+  grid-area: id;
+  font-size: 8px;
+  color: var(--ink);
+}
+
+.finding-name {
+  grid-area: name;
+  font-size: 8px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finding-state {
+  grid-area: state;
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
+.finding-kind {
+  grid-area: kind;
+  font-size: 8px;
+  color: var(--info);
+  margin-top: 4px; /* half-grid nudge; 8px grid stays intact below */
+}
+
+/* state colors: one channel, flat fills, no gradients */
+.finding-card .finding-state {
+  color: var(--ink);
+}
+
+.finding-card.st-detected .finding-state,
+.finding-card.st-analyzing .finding-state {
+  color: var(--info);
+}
+
+.finding-card.st-proposed .finding-state {
+  color: var(--warn);
+}
+
+.finding-card.st-verified .finding-state {
+  color: var(--ok);
+}
+
+.finding-card.st-reverted .finding-state {
+  color: var(--error);
+}

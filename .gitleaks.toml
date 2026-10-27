@@ -1,0 +1,18 @@
+# gitleaks configuration — Umbra
+#
+# POLICY: this repo must never contain credentials or private context
+# (SECURITY.md §4). This config is deliberately an EXTEND of the upstream
+# default ruleset — never a replacement — so every detector gitleaks ships
+# with stays active on top of anything we add here.
+#
+# Review process for changing this file:
+#   * An allowlist is an ACCEPTED RISK, not a convenience. Every entry needs
+#     a maintainer-reviewed comment explaining why the matched pattern
+#     cannot be a real secret here.
+#   * Do not add false-positive-fighting allowlists that match generic
+#     shapes (e.g. "anything that looks like a aws key in a comment").
+
+title = "Umbra secrets scan"
+
+[extend]
+useDefault = true

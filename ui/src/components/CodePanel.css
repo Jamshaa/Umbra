@@ -1,0 +1,49 @@
+/* Border of 2px solid (info blue unless overridden), DM Mono 12px,
+   flat --bg fill, horizontal scroll inside — squared, as everything. */
+
+.code-panel {
+  background: var(--bg);
+  border: 2px solid var(--info);
+  font-family: var(--font-code);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: var(--sp-2);
+  overflow-x: auto;
+}
+
+.code-panel-title {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--info);
+  margin-bottom: var(--sp-1);
+  letter-spacing: 1px;
+}
+
+.code-panel pre {
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.code-panel code {
+  font-family: var(--font-code);
+}
+
+/* diff rows: flat tinted fills (still zero gradients) */
+.diff-view {
+  min-width: 100%;
+}
+
+.diff-line {
+  white-space: pre;
+  padding: 0 var(--sp-1);
+}
+
+.diff-line.del {
+  color: var(--error);
+  background: rgba(239, 71, 111, 0.08);
+}
+
+.diff-line.add {
+  color: var(--ok);
+  background: rgba(95, 227, 108, 0.08);
+}

@@ -1,0 +1,155 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   Umbra UI — pixel-art design tokens & global base.
+
+   THE DESIGN CONTRACT (do not soften):
+   - dark background + saturated accents; hard palette, no color blends
+   - NO gradients / NO border-radius / NO blur → hard borders + offset shadows
+   - 8px spacing grid: margins, paddings, gaps are multiples of 8
+   - 0ms transitions: state changes render cut, not eased
+   - Press Start 2P ONLY at 8px multiples (8/16/24/32) — never body copy
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* the palette — 8 tokens, nothing else is allowed in components */
+  --bg: #1a1c2c;         /* deep navy — page background            */
+  --panel: #29366f;      /* mid blue — cards, panels, buttons      */
+  --ink: #f4f4f4;        /* bone white — primary text              */
+  --error: #ef476f;      /* red — high severity, failures          */
+  --ok: #5fe36c;         /* green — success, verification passed   */
+  --info: #3fa7ff;       /* blue — info, links, in-progress work   */
+  --warn: #ffd23f;       /* gold — warnings, production gate       */
+  --hard-shadow: #0d0e1a;/* near-black — borders & hard shadows    */
+
+  /* font stacks (Google Fonts CDN, see index.html) */
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-body: 'VT323', monospace;
+  --font-code: 'DM Mono', monospace;
+
+  /* 8px spacing grid */
+  --sp-1: 8px;
+  --sp-2: 16px;
+  --sp-3: 24px;
+  --sp-4: 32px;
+  --sp-6: 48px;
+}
+
+/* ── hard reset: nothing round, nothing soft, nothing eased ────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: 0 solid var(--hard-shadow);
+  border-radius: 0; /* belt and suspenders: nothing gets rounded, ever */
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  transition: none;
+}
+
+img,
+canvas,
+video {
+  image-rendering: pixelated;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+/* VT323 at 20px baseline per design (20–22px body) */
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 20px;
+  line-height: 1.25;
+  /* keep the pixels crisp on HiDPI */
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* scanline overlay: 2px hard lines at 5% — the one sanctioned pattern, no
+   color blending involved */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(244, 244, 244, 0.05) 0px,
+    rgba(244, 244, 244, 0.05) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* selection & keyboard focus are pixel-squared too */
+::selection {
+  background: var(--info);
+  color: var(--hard-shadow);
+}
+
+:focus-visible {
+  outline: 3px solid var(--info);
+  outline-offset: 2px;
+}
+
+/* squared scrollbars (chromium) */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--panel);
+  border: 2px solid var(--hard-shadow);
+}
+
+/* ── shared column headers & helpers ───────────────────────────────────── */
+.column-title {
+  font-family: var(--font-pixel);
+  font-size: 8px; /* 8px multiple: crisp */
+  letter-spacing: 1px;
+  color: var(--ink);
+  border-bottom: 3px solid var(--hard-shadow);
+  padding-bottom: var(--sp-1);
+  margin-bottom: var(--sp-2);
+}
+
+.empty-note {
+  color: var(--info);
+  font-size: 18px;
+}
+
+/* blinking cursor: the agent "thinking" cue — steps(1) = hard blink */
+.cursor {
+  display: inline-block;
+  width: 10px;
+  height: 18px;
+  background: var(--info);
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* respect users who need it still */
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    animation: none;
+  }
+}

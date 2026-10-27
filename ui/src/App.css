@@ -1,0 +1,68 @@
+/* App layout: pixel header + 3 columns (280px | fluid | 320px).
+   On narrow screens the columns stack (design contract: mobile de graceful). */
+
+.app-columns {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  align-items: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.scan-row,
+.filter-row {
+  display: flex;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.subject-line {
+  font-size: 22px; /* VT323 prominent subject */
+  padding: var(--sp-1) 0 0 0;
+}
+
+.subject-name {
+  color: var(--info);
+}
+
+.gate-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.gate-note {
+  font-family: var(--font-code);
+  font-size: 12px;
+  padding: var(--sp-1);
+  border: 2px solid var(--hard-shadow);
+  background: var(--panel);
+}
+
+.gate-note.is-ok {
+  color: var(--ok);
+}
+
+.gate-note.is-pending {
+  color: var(--warn);
+}
+
+/* responsive: stack the three columns */
+@media (max-width: 900px) {
+  .app-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel-diff {
+  border-color: var(--warn);
+}

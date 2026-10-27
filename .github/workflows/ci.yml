@@ -1,0 +1,96 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ci.yml — lint & test pipeline for the Umbra repository
+#
+# Current state: scaffolding phase. The jobs below are deliberately
+# self-scaling: Python checks only run against what exists, so the workflow
+# stays green while the repo grows its real code (see docs/PLAN.md).
+#
+# Contributors: do not weaken jobs to make red builds green. If a job fails,
+# either fix the commit or make the job's intent more precise — never a
+# blanket skip. (Exception: a legitimate new allowlist entry must go through
+# .gitleaks.toml review, see that file.)
+#
+# Secrets scanning is NOT here — it has its own, stricter workflow:
+# see .github/workflows/security.yml
+# ─────────────────────────────────────────────────────────────────────────────
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  python-lint:
+    name: ruff (format & lint, gates Python sources)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff
+        run: |
+          if compgen -G '**/*.py' > /dev/null; then
+            ruff check --output-format=github .
+            ruff format --check .
+          else
+            echo "no Python sources yet (scaffold phase) — nothing to lint"
+          fi
+
+  python-tests:
+    name: pytest (only when tests exist)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install pytest
+        run: pip install pytest
+      - name: Run test suite
+        run: |
+          if [ -d tests ] && compgen -G 'tests/**/*.py' > /dev/null; then
+            pytest -q
+          else
+            echo "no test suite yet (scaffold phase) — expected to exist from Day 2 (docs/PLAN.md)"
+          fi
+
+  yaml-hygiene:
+    name: YAML parse check (manifests & workflows)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Parse-check all tracked YAML
+        run: |
+          pip install pyyaml
+          python - <<'PY'
+          import glob, sys, yaml
+          files = [p for p in glob.glob("**/*.y*ml", recursive=True)
+                   if not p.startswith(("node_modules/", ".venv/"))]
+          failures = []
+          for path in files:
+              try:
+                  with open(path, "r", encoding="utf-8") as fh:
+                      list(yaml.safe_load_all(fh))
+              except Exception as exc:
+                  failures.append(f"{path}: {exc}")
+          if failures:
+              print("\n".join(failures), file=sys.stderr)
+              sys.exit(1)
+          print(f"ok: {len(files)} YAML files parse cleanly")
+          PY

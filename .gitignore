@@ -1,0 +1,120 @@
+# ============================================================================
+#  Umbra — .gitignore
+#
+#  POLICY: THIS REPO MUST NEVER CONTAIN CREDENTIALS OR PRIVATE CONTEXT.
+#  See SECURITY.md ("Prohibited material") before your first push.
+#  Secrets scanning is enforced in CI (.github/workflows/security.yml),
+#  but CI is a safety net, not a substitute for reviewing your diff.
+# ============================================================================
+
+# ---------- Secrets & credentials: ABSOLUTELY NEVER COMMIT ----------
+# Anything matching these patterns stays local, forever.
+.env
+.env.*
+!.env.example                 # the only env file allowed is the example
+*.key
+*.pem
+*.cer
+*.crt
+*.p12
+*.pfx
+*.p8
+*.kdbx
+*id_rsa*
+*id_ed25519*
+*id_ecdsa*
+*.ssh/
+.kube/
+kubeconfig
+kubeconfig.*
+kube-config*
+*-kubeconfig.yaml
+*-credentials.yaml
+*secrets.yaml
+*secrets.yml
+*secret*.json
+.secrets/
+credentials.json
+docker-credentials*
+.dockercfg
+.docker/                      # local docker client config (registry logins)
+**/vault-token*
+**/*token.json
+**/*refresh-token*
+
+# Manifests and configs that commonly embed private endpoints / CA bundles.
+# Anything you actually want to publish MUST be reviewed by hand and never
+# match these globs:
+config-*.local.yaml
+values-*.local.yaml
+*.tfstate
+*.tfstate.*
+crash-report-*.yaml
+gitleaks-report.json
+trufflehog-report.json
+# Do NOT ignore the plain `config.yaml` name: the scanner manifest lives there
+# and it must be publishable by design.
+
+# ---------- Private operational context ----------
+# Log dumps, `kubectl get -o yaml` dumps of real clusters, incident notes with
+# hostnames/IPs... keep them out of the git history.
+logs/
+*.log
+debug/
+tmp/
+local/
+sensitive/
+dump/
+out/diag*
+runs/
+reports/
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+pip-log.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.nox/
+.tox/
+
+# ---------- Tooling / IDE / OS ----------
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+.opencode/
+.pixel-agents/          # local pixel-agents board state (task JSON, patches)
+node_modules/
+ui/dist/
+
+# ---------- Local kind / kubernetes scratch state ----------
+.kind/
+scratch/
+audit-sandbox-dumps/
