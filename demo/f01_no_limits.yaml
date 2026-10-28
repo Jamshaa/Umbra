@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f01-no-limits
+  namespace: demo
+  labels:
+    umbra.io/fault: F01
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f01-no-limits
+  template:
+    metadata:
+      labels:
+        app: f01-no-limits
+        umbra.io/fault: F01
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F01: intencionadamente SIN bloque resources
+          # (ni limits ni requests). No anadir.
+          ports:
+            - containerPort: 8080
