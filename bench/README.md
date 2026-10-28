@@ -8,6 +8,10 @@ contract; the runner lands with the loop (Day 4–5).
 - `cases.yaml` — the case catalog (machine-readable). Source of truth for
   *which* cases run: 20 faults (F01–F20) + 4 trap scenarios (T1–T4).
   Human-readable contract: `docs/PLAN.md` §3 (faults) and §3.1 (traps).
+  `verifier` takes two forms while the suite grows: a Go symbol
+  (`internal/verify.VerifyFxx`, deterministic, unit-tested, no cluster) or a
+  `scripts/verify/*.sh` path for faults whose verifier still lives in shell.
+  F01–F06 already use the Go package; the rest migrate as their tasks land.
 
 ## Running policy (to be implemented by the harness)
 

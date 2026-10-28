@@ -19,42 +19,42 @@ cases:
   - id: F01
     category: Resources
     injector: scripts/injectors/f01_no_limits.sh
-    verifier: scripts/verify/f01_no_limits.sh
+    verifier: internal/verify.VerifyF01
     expected_root_cause: Deployment without resource requests/limits
     trap: false
     status: injector-ready
   - id: F02
     category: Resources
     injector: scripts/injectors/f02_low_memory.sh
-    verifier: scripts/verify/f02_low_memory.sh
+    verifier: internal/verify.VerifyF02
     expected_root_cause: Memory limit too low, repeated OOMKill
     trap: false
     status: injector-ready
   - id: F03
     category: Resources
     injector: scripts/injectors/f03_huge_requests.sh
-    verifier: scripts/verify/f03_huge_requests.sh
+    verifier: internal/verify.VerifyF03
     expected_root_cause: Unrealistic requests keep the pod Pending
     trap: false
     status: injector-ready
   - id: F04
     category: Resources
     injector: scripts/injectors/f04_no_limits_bursty.sh
-    verifier: scripts/verify/f04_no_limits_bursty.sh
+    verifier: internal/verify.VerifyF04
     expected_root_cause: Missing limits destabilize the pod under load
     trap: false
     status: planned
   - id: F05
     category: Reliability
     injector: scripts/injectors/f05_no_liveness.sh
-    verifier: scripts/verify/f05_no_liveness.sh
+    verifier: internal/verify.VerifyF05
     expected_root_cause: Missing liveness probe
     trap: false
     status: planned
   - id: F06
     category: Reliability
     injector: scripts/injectors/f06_no_readiness.sh
-    verifier: scripts/verify/f06_no_readiness.sh
+    verifier: internal/verify.VerifyF06
     expected_root_cause: Missing readiness probe
     trap: false
     status: planned
