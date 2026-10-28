@@ -1,0 +1,30 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - umbra.io
+  resources:
+  - findings
+  - remediationpolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - umbra.io
+  resources:
+  - findings/finalizers
+  - remediationpolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - umbra.io
+  resources:
+  - findings/status
+  - remediationpolicies/status
+  verbs:
+  - patch
+  - update
