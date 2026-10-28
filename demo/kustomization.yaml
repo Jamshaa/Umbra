@@ -7,3 +7,5 @@ resources:
   - f01_no_limits.yaml
   - f02_low_memory.yaml
   - f03_huge_requests.yaml
+  - f04_no_limits_bursty.yaml
+  - f05_no_liveness.yaml

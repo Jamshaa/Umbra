@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# up.sh: prepara el namespace demo para los injectores F01-F03.
+# up.sh: prepara el namespace demo para los injectores F01-F05.
 # Crea el namespace demo (si no existe) y limpia restos de
 # inyecciones anteriores dentro de ESE namespace. No toca nada mas.
 # Idempotente: re-ejecutar es seguro.
@@ -16,5 +16,5 @@ fi
 
 # Limpia restos de inyecciones anteriores: solo los Deployments
 # de fallos conocidos dentro del namespace demo. Nada mas.
-kubectl delete deployment f01-no-limits f02-low-memory f03-huge-requests \
+kubectl delete deployment f01-no-limits f02-low-memory f03-huge-requests f04-no-limits-bursty f05-no-liveness \
   --namespace "$NAMESPACE" --ignore-not-found=true

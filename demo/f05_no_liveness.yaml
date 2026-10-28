@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f05-no-liveness
+  namespace: demo
+  labels:
+    umbra.io/fault: F05
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f05-no-liveness
+  template:
+    metadata:
+      labels:
+        app: f05-no-liveness
+        umbra.io/fault: F05
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F05: intencionadamente SIN liveness probe. Si la app se
+          # cuelga, nada la reinicia. La readiness SI esta definida
+          # (el fallo es solo la falta de liveness). No anadir
+          # livenessProbe.
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
