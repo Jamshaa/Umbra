@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f03-huge-requests
+  namespace: demo
+  labels:
+    umbra.io/fault: F03
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f03-huge-requests
+  template:
+    metadata:
+      labels:
+        app: f03-huge-requests
+        umbra.io/fault: F03
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F03: requests deliberadamente imposibles de satisfacer
+          # (cpu=64, memory=1Ti) -> el Pod queda Pending sin programar nunca.
+          resources:
+            requests:
+              cpu: "64"
+              memory: 1Ti
+          ports:
+            - containerPort: 8080

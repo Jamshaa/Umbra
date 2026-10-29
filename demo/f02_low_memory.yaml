@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f02-low-memory
+  namespace: demo
+  labels:
+    umbra.io/fault: F02
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f02-low-memory
+  template:
+    metadata:
+      labels:
+        app: f02-low-memory
+        umbra.io/fault: F02
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F02: limite de memoria deliberadamente insuficiente (8Mi).
+          # El proceso crece en memoria en bucle -> OOMKilled repetido.
+          # Prefiere python3 (contrato de la imagen demo); si no existe,
+          # recurre a crecimiento exponencial de cadena en /bin/sh,
+          # que tambien agota los 8Mi en cualquier imagen con shell.
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if command -v python3 >/dev/null 2>&1; then
+                exec python3 -c 'a = []; n = 0
+              while True:
+                  a.append("X" * 1024 * 1024)
+                  n += 1'
+              else
+                a=x
+                while true; do a="$a$a$a$a$a$a$a$a"; done
+              fi
+          resources:
+            requests:
+              cpu: 10m
+              memory: 8Mi
+            limits:
+              cpu: 100m
+              memory: 8Mi
+          ports:
+            - containerPort: 8080
