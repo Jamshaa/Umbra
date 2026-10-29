@@ -1,0 +1,21 @@
+# Audit policy restrictiva para el cluster kind de Umbra.
+# Solo registra escrituras (create/update/patch) sobre workloads en
+# namespaces de demo. Todo lo demas —incluidas TODAS las operaciones de
+# solo lectura— cae en la regla final `None` y no se guarda.
+# Nivel Metadata: quien (user), que verbo y sobre que objeto, sin cuerpos
+# de request/response para que el log no crezca a gigabytes.
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages:
+  - RequestReceived
+rules:
+  - level: Metadata
+    namespaces: ["demo"]
+    verbs: ["create", "update", "patch"]
+    resources:
+      - group: "apps"
+        resources: ["deployments", "deployments/scale", "statefulsets", "daemonsets", "replicasets"]
+      - group: ""
+        resources: ["pods"]
+  # Captura todo: no registrar nada que no este arriba.
+  - level: None
