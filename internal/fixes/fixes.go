@@ -1,10 +1,35 @@
 package fixes
 
 import (
+	"regexp"
 	"strings"
 
 	v1alpha1 "github.com/Jamshaa/Umbra/api/v1alpha1"
 )
+
+// emptyResources matches a resources line with no content: the key alone
+// (null) or an empty flow map. Lines with children never match: their
+// content lives on the following lines.
+var emptyResources = regexp.MustCompile(`(?m)^[ \t]*resources:[ \t]*(\{[ \t]*\})?[ \t]*\r?$`)
+
+// portsLine matches a "ports:" mapping key, capturing its indent. Live
+// manifests and repo fixtures indent differently; the anchor adapts.
+var portsLine = regexp.MustCompile(`(?m)^([ \t]*)ports:[ \t]*\r?$`)
+
+// portsIndent reports the indent of the first "ports:" line.
+func portsIndent(s string) (string, bool) {
+	m := portsLine.FindStringSubmatch(s)
+	if m == nil {
+		return "", false
+	}
+	return m[1], true
+}
+
+// insertBeforePorts inserts block right before the first "ports:" line.
+func insertBeforePorts(s, block string) string {
+	loc := portsLine.FindStringIndex(s)
+	return s[:loc[0]] + block + s[loc[0]:]
+}
 
 // Fix applies a deterministic, template-free patch for the faults that do not
 // need model judgment. It returns the patched manifest and true when it did
@@ -25,18 +50,28 @@ func Fix(faultID string, manifest []byte) ([]byte, bool) {
 }
 
 func addResources(doc []byte, reqCPU, reqMem, limCPU, limMem string) ([]byte, bool) {
-	s := string(doc)
+	// The API server normalizes a missing block to an empty one
+	// ("resources:" / "resources: {}"): treat those as absent, otherwise
+	// live manifests could never be fixed.
+	s := emptyResources.ReplaceAllString(string(doc), "")
 	if strings.Contains(s, "resources:") {
 		return doc, false
 	}
-	// Insert a resources block right before the first "ports:" or at end of
-	// the container spec. We use a conservative anchor: the line with
-	// "image:" followed by its value.
-	out := strings.Replace(s, "          ports:\n", "          resources:\n            requests:\n              cpu: \""+reqCPU+"\"\n              memory: \""+reqMem+"\"\n            limits:\n              cpu: \""+limCPU+"\"\n              memory: \""+limMem+"\"\n          ports:\n", 1)
-	if out == s {
+	// Insert a resources block right before the first "ports:" line,
+	// at whatever indent the document uses (repo fixtures use 10
+	// spaces, kubectl output 8).
+	indent, ok := portsIndent(s)
+	if !ok {
 		return doc, false
 	}
-	return []byte(out), true
+	block := indent + "resources:\n" +
+		indent + "  requests:\n" +
+		indent + "    cpu: \"" + reqCPU + "\"\n" +
+		indent + "    memory: \"" + reqMem + "\"\n" +
+		indent + "  limits:\n" +
+		indent + "    cpu: \"" + limCPU + "\"\n" +
+		indent + "    memory: \"" + limMem + "\"\n"
+	return []byte(insertBeforePorts(s, block)), true
 }
 
 func raiseMemoryLimit(doc []byte, min string) ([]byte, bool) {
@@ -62,11 +97,16 @@ func addLivenessProbe(doc []byte) ([]byte, bool) {
 	if strings.Contains(s, "livenessProbe:") {
 		return doc, false
 	}
-	out := strings.Replace(s, "          ports:\n", "          livenessProbe:\n            tcpSocket:\n              port: 8080\n            initialDelaySeconds: 5\n            periodSeconds: 10\n          ports:\n", 1)
-	if out == s {
+	indent, ok := portsIndent(s)
+	if !ok {
 		return doc, false
 	}
-	return []byte(out), true
+	block := indent + "livenessProbe:\n" +
+		indent + "  tcpSocket:\n" +
+		indent + "    port: 8080\n" +
+		indent + "  initialDelaySeconds: 5\n" +
+		indent + "  periodSeconds: 10\n"
+	return []byte(insertBeforePorts(s, block)), true
 }
 
 func addReadinessProbe(doc []byte) ([]byte, bool) {
@@ -74,11 +114,16 @@ func addReadinessProbe(doc []byte) ([]byte, bool) {
 	if strings.Contains(s, "readinessProbe:") {
 		return doc, false
 	}
-	out := strings.Replace(s, "          ports:\n", "          readinessProbe:\n            tcpSocket:\n              port: 8080\n            initialDelaySeconds: 5\n            periodSeconds: 10\n          ports:\n", 1)
-	if out == s {
+	indent, ok := portsIndent(s)
+	if !ok {
 		return doc, false
 	}
-	return []byte(out), true
+	block := indent + "readinessProbe:\n" +
+		indent + "  tcpSocket:\n" +
+		indent + "    port: 8080\n" +
+		indent + "  initialDelaySeconds: 5\n" +
+		indent + "  periodSeconds: 10\n"
+	return []byte(insertBeforePorts(s, block)), true
 }
 
 // kept for API symmetry with the CRD vocabulary.

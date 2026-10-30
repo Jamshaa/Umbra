@@ -157,6 +157,53 @@ func TestFixF06DemoManifest(t *testing.T) {
 	}
 }
 
+// TestFixF01ServerNormalized covers the API-server form: a missing block
+// round-trips as "resources: {}" (or bare "resources:"). Both must be
+// treated as absent; a block with real content must stay untouched.
+func TestFixF01ServerNormalized(t *testing.T) {
+	for _, empty := range []string{"          resources: {}\n", "          resources:\n", "          resources: { }\n"} {
+		m := stringsReplace(f01Manifest, "          ports:\n", empty+"          ports:\n")
+		out, ok := Fix("F01", []byte(m))
+		if !ok {
+			t.Fatalf("empty form %q should be fixed", empty)
+		}
+		if !stringsContains(string(out), "memory: \"512Mi\"") {
+			t.Fatalf("limits not added for %q", empty)
+		}
+	}
+}
+
+// TestFixF01LiveIndent mirrors kubectl output (8-space indent, empty
+// resources map): the fix must apply regardless of indent.
+func TestFixF01LiveIndent(t *testing.T) {
+	m := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          resources: {}
+`
+	out, ok := Fix("F01", []byte(m))
+	if !ok {
+		t.Fatal("F01 should apply to kubectl-style manifest")
+	}
+	for _, want := range []string{"        resources:\n", "          cpu: \"500m\"", "          memory: \"512Mi\""} {
+		if !stringsContains(string(out), want) {
+			t.Fatalf("missing %q:\n%s", want, out)
+		}
+	}
+	if !stringsContains(string(out), "        ports:\n") {
+		t.Fatalf("ports anchor disturbed:\n%s", out)
+	}
+}
+
 // tiny helpers to keep the test free of import noise.
 func stringsContains(s, sub string) bool       { return strings.Contains(s, sub) }
 func stringsReplace(s, old, neu string) string { return strings.ReplaceAll(s, old, neu) }
