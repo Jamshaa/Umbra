@@ -11,3 +11,4 @@ resources:
   - f05_no_liveness.yaml
   - f06_no_readiness.yaml
   - f07_crashloop.yaml
+  - f08_readiness_mismatch.yaml

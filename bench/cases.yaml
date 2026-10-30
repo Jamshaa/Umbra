@@ -71,7 +71,7 @@ cases:
     verifier: scripts/verify/f08_readiness_mismatch.sh
     expected_root_cause: Readiness endpoint mismatch, never Ready
     trap: false
-    status: planned
+    status: injector-ready
   - id: F09
     category: Security
     injector: scripts/injectors/f09_run_as_root.sh
