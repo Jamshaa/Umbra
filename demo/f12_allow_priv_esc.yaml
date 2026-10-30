@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f12-allow-priv-esc
+  namespace: demo
+  labels:
+    umbra.io/fault: F12
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f12-allow-priv-esc
+  template:
+    metadata:
+      labels:
+        app: f12-allow-priv-esc
+        umbra.io/fault: F12
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F12: escalado de privilegios permitido + capacidad SYS_ADMIN
+          # (puerta a escape del contenedor). Resources y probes sanos
+          # para aislar el fallo. No endurecer el securityContext.
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

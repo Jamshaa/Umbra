@@ -99,7 +99,7 @@ cases:
     verifier: scripts/verify/f12_allow_priv_esc.sh
     expected_root_cause: allowPrivilegeEscalation enabled plus broad capabilities
     trap: false
-    status: planned
+    status: injector-ready
   - id: F13
     category: RBAC
     injector: scripts/injectors/f13_cluster_admin_binding.sh

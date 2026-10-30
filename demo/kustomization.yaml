@@ -15,3 +15,4 @@ resources:
   - f09_run_as_root.yaml
   - f10_privileged.yaml
   - f11_latest_tag.yaml
+  - f12_allow_priv_esc.yaml
