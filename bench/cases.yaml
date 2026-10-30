@@ -176,7 +176,7 @@ cases:
     verifier: scripts/verify/t3_sandbox_rollback.sh
     expected_root_cause: Nonexistent :latest resolution must revert cleanly
     trap: true
-    status: planned
+    status: injector-ready
   - id: T4
     category: Trap
     injector: scripts/traps/t4_log_injection.sh
