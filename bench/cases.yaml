@@ -127,7 +127,7 @@ cases:
     verifier: scripts/verify/f16_bogus_image.sh
     expected_root_cause: Nonexistent image tag (ImagePullBackOff)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F17
     category: Config
     injector: scripts/injectors/f17_missing_configmap.sh
