@@ -43,14 +43,14 @@ cases:
     verifier: internal/verify.VerifyF04
     expected_root_cause: Missing limits destabilize the pod under load
     trap: false
-    status: planned
+    status: injector-ready
   - id: F05
     category: Reliability
     injector: scripts/injectors/f05_no_liveness.sh
     verifier: internal/verify.VerifyF05
     expected_root_cause: Missing liveness probe
     trap: false
-    status: planned
+    status: injector-ready
   - id: F06
     category: Reliability
     injector: scripts/injectors/f06_no_readiness.sh
