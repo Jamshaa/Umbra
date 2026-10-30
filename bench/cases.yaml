@@ -106,7 +106,7 @@ cases:
     verifier: scripts/verify/f13_cluster_admin_binding.sh
     expected_root_cause: ServiceAccount bound to cluster-admin
     trap: false
-    status: planned
+    status: injector-ready
   - id: F14
     category: RBAC
     injector: scripts/injectors/f14_wildcard_role.sh

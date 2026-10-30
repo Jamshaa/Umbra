@@ -16,3 +16,4 @@ resources:
   - f10_privileged.yaml
   - f11_latest_tag.yaml
   - f12_allow_priv_esc.yaml
+  - f13_cluster_admin_binding.yaml

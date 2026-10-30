@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: f13-overprivileged
+  namespace: demo
+  labels:
+    umbra.io/fault: F13
+---
+# F13: esta cuenta queda atada a cluster-admin (poder total sobre el
+# cluster para una app demo). Es el fallo: no crear este binding.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: f13-overprivileged-binding
+  labels:
+    umbra.io/fault: F13
+subjects:
+  - kind: ServiceAccount
+    name: f13-overprivileged
+    namespace: demo
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
