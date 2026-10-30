@@ -1,0 +1,26 @@
+apiVersion: umbra.io/v1alpha1
+kind: ComplianceTemplate
+metadata:
+  name: api-deployment-standard
+spec:
+  appliesTo:
+    - kind: Deployment
+      matchLabels:
+        app.kubernetes.io/component: api
+  required:
+    resources:
+      limits:
+        cpu: {min: "500m"}
+        memory: {min: "512Mi"}
+        nvidia.com/gpu: {required: true}
+      requests:
+        cpu: {min: "250m"}
+        memory: {min: "256Mi"}
+    probes:
+      liveness: required
+      readiness: required
+    image:
+      tagPolicy: explicit
+  drift:
+    onViolation: pr
+    notifySlack: false
