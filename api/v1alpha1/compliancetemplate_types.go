@@ -56,7 +56,7 @@ const (
 // ProbeRequirements groups probe rules.
 type ProbeRequirements struct {
 	// +kubebuilder:validation:Enum=required;optional
-	Liveness  ProbePolicy `json:"liveness,omitempty"`
+	Liveness ProbePolicy `json:"liveness,omitempty"`
 	// +kubebuilder:validation:Enum=required;optional
 	Readiness ProbePolicy `json:"readiness,omitempty"`
 }
@@ -127,9 +127,9 @@ type ComplianceTemplateStatus struct {
 //+kubebuilder:rbac:groups=umbra.io,resources=compliancetemplates/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=umbra.io,resources=compliancetemplates/finalizers,verbs=update
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster
 // ComplianceTemplate is the Schema for the compliancetemplates API.
 type ComplianceTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
