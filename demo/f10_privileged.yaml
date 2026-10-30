@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f10-privileged
+  namespace: demo
+  labels:
+    umbra.io/fault: F10
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f10-privileged
+  template:
+    metadata:
+      labels:
+        app: f10-privileged
+        umbra.io/fault: F10
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F10: contenedor PRIVILEGIADO (acceso total al host).
+          # Resources y probes sanos para aislar el fallo.
+          # No quitar privileged:true.
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

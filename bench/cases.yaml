@@ -85,7 +85,7 @@ cases:
     verifier: scripts/verify/f10_privileged.sh
     expected_root_cause: Privileged container
     trap: false
-    status: planned
+    status: injector-ready
   - id: F11
     category: Security
     injector: scripts/injectors/f11_latest_tag.sh

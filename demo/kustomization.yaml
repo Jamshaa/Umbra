@@ -13,3 +13,4 @@ resources:
   - f07_crashloop.yaml
   - f08_readiness_mismatch.yaml
   - f09_run_as_root.yaml
+  - f10_privileged.yaml
