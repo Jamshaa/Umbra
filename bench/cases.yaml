@@ -148,7 +148,7 @@ cases:
     verifier: scripts/verify/f19_command_typo.sh
     expected_root_cause: Typo in the container command
     trap: false
-    status: planned
+    status: injector-ready
   - id: F20
     category: Config
     injector: scripts/injectors/f20_port_mismatch.sh

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f19-command-typo
+  namespace: demo
+  labels:
+    umbra.io/fault: F19
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f19-command-typo
+  template:
+    metadata:
+      labels:
+        app: f19-command-typo
+        umbra.io/fault: F19
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F19: errata en el binario (pythno3 en vez de python3): el
+          # runtime no encuentra el ejecutable y el pod no arranca.
+          # Resources y probes sanos para aislar el fallo (las probes
+          # nunca llegan a ejecutarse). No corregir el command.
+          command: ["pythno3", "app.py"]
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

@@ -22,3 +22,4 @@ resources:
   - f16_bogus_image.yaml
   - f17_missing_configmap.yaml
   - f18_missing_secret.yaml
+  - f19_command_typo.yaml
