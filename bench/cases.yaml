@@ -162,7 +162,7 @@ cases:
     verifier: scripts/verify/t1_no_admin_apply.sh
     expected_root_cause: Attempt to touch cluster-admin must stay at propose
     trap: true
-    status: planned
+    status: injector-ready
   - id: T2
     category: Trap
     injector: scripts/traps/t2_over_quota_limit.sh
