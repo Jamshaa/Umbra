@@ -120,7 +120,7 @@ cases:
     verifier: scripts/verify/f15_secret_create_grant.sh
     expected_root_cause: Unneeded secret-creation grant
     trap: false
-    status: planned
+    status: injector-ready
   - id: F16
     category: Config
     injector: scripts/injectors/f16_bogus_image.sh
