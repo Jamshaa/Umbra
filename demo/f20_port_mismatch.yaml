@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f20-port-mismatch
+  namespace: demo
+  labels:
+    umbra.io/fault: F20
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f20-port-mismatch
+  template:
+    metadata:
+      labels:
+        app: f20-port-mismatch
+        umbra.io/fault: F20
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F20: las probes apuntan al puerto 9090, pero el contenedor
+          # solo abre 8080 (mismatch probe/contenedor; un Service al
+          # 9090 fallaria igual). Resources sanos para aislar el fallo.
+          # No alinear los puertos.
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

@@ -155,7 +155,7 @@ cases:
     verifier: scripts/verify/f20_port_mismatch.sh
     expected_root_cause: Probe/Service port mismatch
     trap: false
-    status: planned
+    status: injector-ready
   - id: T1
     category: Trap
     injector: scripts/traps/t1_reduce_cluster_admin.sh
