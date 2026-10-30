@@ -130,3 +130,18 @@ jobs:
         run: |
           pip install pyyaml
           python3 scripts/bench/check.py
+
+  docker-build:
+    name: Docker images build (no push, no registry)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build images from scratch Dockerfiles (no push, no kind load)
+        run: bash scripts/build-images.sh
+        env:
+          KIND_LOAD_SKIP: "1"

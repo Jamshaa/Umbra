@@ -19,4 +19,8 @@ docker build -f Dockerfile.manager -t umbra-manager:dev .
 docker build -f Dockerfile.umbra-api -t umbra-api:dev .
 docker build -f Dockerfile.demo -t demo-app:local .
 
+if [ "${KIND_LOAD_SKIP:-0}" = "1" ]; then
+  echo "KIND_LOAD_SKIP=1: images built, skipping kind load"
+  exit 0
+fi
 "$KIND_BIN" load docker-image umbra-manager:dev umbra-api:dev demo-app:local --name umbra

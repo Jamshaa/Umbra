@@ -14,6 +14,25 @@ npm run dev      # http://localhost:5173
 npm run build    # static bundle in dist/ (base './' → relocatable)
 ```
 
+## Preview a production build (do NOT open dist/ by double-click)
+
+`dist/index.html` opened as `file://` stays blank: ES modules are blocked
+by the browser on `file://`. Serve the directory over HTTP instead —
+any static server works, e.g. from the repo root:
+
+```bash
+cd ui/dist && python3 -m http.server 8901  # → http://127.0.0.1:8901/
+```
+
+or serve it through the operator API (same bundle, plus live data):
+
+```bash
+go run ./cmd/umbra-api        # serves ui/dist at http://127.0.0.1:8082/
+```
+
+With `VITE_UMBRA_API=live npm run build`, the bundle fetches
+`GET /api/findings` from the same origin (see "Data source policy").
+
 ## Data source policy
 
 Everything is fed through [`src/api.js`](src/api.js) — **explicitly labeled

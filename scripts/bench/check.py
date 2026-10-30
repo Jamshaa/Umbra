@@ -92,6 +92,16 @@ def main():
     for path in sorted(glob.glob("demo/f*.yaml", root_dir=ROOT)):
         if os.path.basename(path) not in demo_listed:
             fail(errors, f"demo manifest not in kustomization: {path}")
+    trap_refs = set()
+    for path in sorted(glob.glob("scripts/traps/*.sh", root_dir=ROOT)):
+        with open(os.path.join(ROOT, path), encoding="utf-8") as fh:
+            trap_refs.update(re.findall(r"traps/[^\s\"']+", fh.read()))
+    for path in sorted(glob.glob("traps/*", root_dir=ROOT)):
+        rel = path.replace(os.sep, "/")
+        if rel not in trap_refs and os.path.basename(path) not in {
+            os.path.basename(r) for r in trap_refs
+        }:
+            fail(errors, f"orphan trap fixture, unreferenced by any trap script: {rel}")
 
     if errors:
         print("\n".join(errors))
