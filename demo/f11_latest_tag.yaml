@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f11-latest-tag
+  namespace: demo
+  labels:
+    umbra.io/fault: F11
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f11-latest-tag
+  template:
+    metadata:
+      labels:
+        app: f11-latest-tag
+        umbra.io/fault: F11
+    spec:
+      containers:
+        - name: app
+          # F11: imagen fijada a :latest (tag mutable: lo desplegado hoy
+          # no es lo desplegado manana). Resources y probes sanos para
+          # aislar el fallo. No fijar un tag inmutable.
+          image: ghcr.io/example/demo-app:latest
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

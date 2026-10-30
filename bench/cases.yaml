@@ -92,7 +92,7 @@ cases:
     verifier: scripts/verify/f11_latest_tag.sh
     expected_root_cause: Image pinned to :latest
     trap: false
-    status: planned
+    status: injector-ready
   - id: F12
     category: Security
     injector: scripts/injectors/f12_allow_priv_esc.sh
