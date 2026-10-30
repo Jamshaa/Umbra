@@ -1,0 +1,10 @@
+# Minimal viable policy: everything in demo needs human approval.
+# Apply with: kubectl apply -f config/samples/remediationpolicy_v1alpha1.yaml
+apiVersion: umbra.io/v1alpha1
+kind: RemediationPolicy
+metadata:
+  name: demo-require-approval
+spec:
+  targetSelector:
+    namespace: demo
+  mode: RequireApproval
