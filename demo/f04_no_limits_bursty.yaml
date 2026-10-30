@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f04-no-limits-bursty
+  namespace: demo
+  labels:
+    umbra.io/fault: F04
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f04-no-limits-bursty
+  template:
+    metadata:
+      labels:
+        app: f04-no-limits-bursty
+        umbra.io/fault: F04
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F04: intencionadamente SIN bloque resources (ni limits
+          # ni requests) + asignador a rafagas. Sin techo, el consumo
+          # de memoria es ilimitado y los reinicios escalan bajo carga.
+          # Prefiere python3 (contrato de la imagen demo); si no existe,
+          # recurre a crecimiento de cadena en /bin/sh.
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if command -v python3 >/dev/null 2>&1; then
+                exec python3 -c 'import time
+              a = []
+              while True:
+                  for _ in range(64):
+                      a.append("X" * 1024 * 1024)
+                  time.sleep(0.5)
+                  del a[:len(a)//2]'
+              else
+                a=x
+                while true; do a="$a$a$a$a$a$a$a$a"; sleep 1; done
+              fi
+          ports:
+            - containerPort: 8080
