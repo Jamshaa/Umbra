@@ -1,8 +1,12 @@
 package fixes
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Jamshaa/Umbra/internal/verify"
 )
 
 const f01Manifest = `apiVersion: apps/v1
@@ -129,6 +133,27 @@ func TestFixUnknown(t *testing.T) {
 		if ok || string(out) != f01Manifest {
 			t.Fatalf("%s: expected no-op, got ok=%v", id, ok)
 		}
+	}
+}
+
+// TestFixF06DemoManifest ties the demo manifest to the fix and the
+// verifier: the shipped F06 yaml must be patched by Fix and the
+// result must pass VerifyF06 for a Running+Ready pod.
+func TestFixF06DemoManifest(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "demo", "f06_no_readiness.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stringsContains(string(raw), "readinessProbe:") {
+		t.Fatal("demo manifest must ship without readinessProbe")
+	}
+	out, ok := Fix("F06", raw)
+	if !ok {
+		t.Fatal("F06 should apply to the demo manifest")
+	}
+	res := verify.VerifyF06(out, verify.PodStatus{Phase: "Running", Ready: true})
+	if !res.Pass {
+		t.Fatalf("patched demo manifest fails VerifyF06: %s", res.Reason)
 	}
 }
 

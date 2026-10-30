@@ -57,7 +57,7 @@ cases:
     verifier: internal/verify.VerifyF06
     expected_root_cause: Missing readiness probe
     trap: false
-    status: planned
+    status: injector-ready
   - id: F07
     category: Reliability
     injector: scripts/injectors/f07_crashloop.sh

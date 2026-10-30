@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f06-no-readiness
+  namespace: demo
+  labels:
+    umbra.io/fault: F06
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f06-no-readiness
+  template:
+    metadata:
+      labels:
+        app: f06-no-readiness
+        umbra.io/fault: F06
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F06: intencionadamente SIN readiness probe. El pod arranca
+          # pero nunca figura Ready (ni el Service lo selecciona). La
+          # liveness SI esta definida (el fallo es solo la falta de
+          # readiness). No anadir readinessProbe.
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

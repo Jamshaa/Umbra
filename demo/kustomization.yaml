@@ -9,3 +9,4 @@ resources:
   - f03_huge_requests.yaml
   - f04_no_limits_bursty.yaml
   - f05_no_liveness.yaml
+  - f06_no_readiness.yaml
