@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f09-run-as-root
+  namespace: demo
+  labels:
+    umbra.io/fault: F09
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f09-run-as-root
+  template:
+    metadata:
+      labels:
+        app: f09-run-as-root
+        umbra.io/fault: F09
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F09: SIN securityContext (ni runAsNonRoot ni runAsUser):
+          # el contenedor corre como root por defecto. Resources y
+          # probes sanos para aislar el fallo. No anadir securityContext.
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

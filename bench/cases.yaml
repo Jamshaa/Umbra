@@ -78,7 +78,7 @@ cases:
     verifier: scripts/verify/f09_run_as_root.sh
     expected_root_cause: Container runs as root
     trap: false
-    status: planned
+    status: injector-ready
   - id: F10
     category: Security
     injector: scripts/injectors/f10_privileged.sh
