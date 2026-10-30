@@ -75,7 +75,10 @@ def main():
             if not os.path.exists(os.path.join(ROOT, ver)):
                 fail(errors, f"{cid}: missing verifier script {ver!r}")
         else:
-            fail(errors, f"{cid}: verifier {ver!r} is neither internal/verify.* nor scripts/*")
+            fail(
+                errors,
+                f"{cid}: verifier {ver!r} is neither internal/verify.* nor scripts/*",
+            )
 
     for path in sorted(glob.glob("scripts/injectors/*.sh", root_dir=ROOT)):
         path = path.replace(os.sep, "/")

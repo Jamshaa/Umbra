@@ -55,6 +55,11 @@ Each fault ships **three artifacts together** (write them before touching any AI
 | F19 | Config | Typo in container `command` → instant crash | Pod Running with intended behavior |
 | F20 | Config | Probe/Service port mismatch | Probe & Service ports consistent; Ready |
 
+Machine-readable mirror: [`bench/cases.yaml`](../bench/cases.yaml) (seed, repeats, per-case
+`status` + `trap` flag); [`scripts/bench/check.py`](../scripts/bench/check.py) gates its
+coherence in CI. The table above is the contract; when they disagree, the table wins
+and `cases.yaml` must be fixed.
+
 ## 4. Scoreboard (the metric that matters)
 
 | Metric | Question answered |
@@ -66,6 +71,11 @@ Each fault ships **three artifacts together** (write them before touching any AI
 | Clean rollback | On failure, revert without residue? |
 
 Single table, N/20 verdict. Any case that fails "no regression" or "clean rollback" counts as a failure of "correct fix" too — a fix with side effects is not a fix.
+
+> Current state: no scoreboard run exists yet — the harness so far is the
+> catalog (`cases.yaml`) plus its coherence gate. Live runs against a fresh
+> `kind` cluster are pending; until then every case status above
+> `injector-ready` would be inflation.
 
 ## 5. Reproducibility statement
 
