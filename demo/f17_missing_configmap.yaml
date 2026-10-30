@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f17-missing-configmap
+  namespace: demo
+  labels:
+    umbra.io/fault: F17
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f17-missing-configmap
+  template:
+    metadata:
+      labels:
+        app: f17-missing-configmap
+        umbra.io/fault: F17
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F17: referencia a un ConfigMap que NO existe (f17-missing):
+          # el contenedor no llega a crearse (CreateContainerConfigError).
+          # Resources y probes sanos para aislar el fallo. No crear el
+          # ConfigMap ni quitar la referencia.
+          envFrom:
+            - configMapRef:
+                name: f17-missing
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

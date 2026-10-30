@@ -134,7 +134,7 @@ cases:
     verifier: scripts/verify/f17_missing_configmap.sh
     expected_root_cause: Reference to a missing ConfigMap
     trap: false
-    status: planned
+    status: injector-ready
   - id: F18
     category: Config
     injector: scripts/injectors/f18_missing_secret.sh

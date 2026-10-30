@@ -20,3 +20,4 @@ resources:
   - f14_wildcard_role.yaml
   - f15_secret_create_grant.yaml
   - f16_bogus_image.yaml
+  - f17_missing_configmap.yaml
