@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f07-crashloop
+  namespace: demo
+  labels:
+    umbra.io/fault: F07
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f07-crashloop
+  template:
+    metadata:
+      labels:
+        app: f07-crashloop
+        umbra.io/fault: F07
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F07: el proceso sale con codigo 1 nada mas arrancar:
+          # CrashLoopBackOff garantizado. Resources sanos para que el
+          # UNICO fallo sea el crashloop. No cambiar el command.
+          command: ["sh", "-c", "exit 1"]
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

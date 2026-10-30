@@ -64,7 +64,7 @@ cases:
     verifier: scripts/verify/f07_crashloop.sh
     expected_root_cause: Container crashes at boot (CrashLoopBackOff)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F08
     category: Reliability
     injector: scripts/injectors/f08_readiness_mismatch.sh
