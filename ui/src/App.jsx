@@ -4,7 +4,7 @@ import PixelButton from './components/PixelButton.jsx'
 import FindingCard from './components/FindingCard.jsx'
 import CodePanel, { DiffView } from './components/CodePanel.jsx'
 import TimelineEntry from './components/TimelineEntry.jsx'
-import { MOCK_FINDINGS, DIFF_CONTEXT } from './mock.js'
+import { MOCK_FINDINGS, DIFF_CONTEXT, TIMELINE } from './mock.js'
 import { loadFindings } from './api.js'
 import './App.css'
 
