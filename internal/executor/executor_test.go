@@ -32,7 +32,7 @@ func TestOpenPRPlanOnly(t *testing.T) {
 	// runner that records calls and never touches network
 	var calls []string
 	runner := func(name, d string, args ...string) (string, error) {
-		calls = append(calls, name+" "+stringsJoin(args))
+		calls = append(calls, name+" "+strings.Join(args, " "))
 		if name == "git" && len(args) > 0 && args[0] == "rev-parse" {
 			return "deadbeef\n", nil
 		}
@@ -116,15 +116,4 @@ func TestOpenPRWithToken(t *testing.T) {
 	if !ghCalled {
 		t.Fatal("gh was not called")
 	}
-}
-
-func stringsJoin(args []string) string {
-	out := ""
-	for i, a := range args {
-		if i > 0 {
-			out += " "
-		}
-		out += a
-	}
-	return out
 }

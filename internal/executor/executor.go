@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -91,6 +90,3 @@ func defaultRunner(name, dir string, args ...string) (string, error) {
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
-
-// keep sort import used even when files map is unordered.
-var _ = sort.Strings

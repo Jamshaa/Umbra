@@ -24,6 +24,27 @@ permissions:
   contents: read
 
 jobs:
+  go:
+    name: Go (build, vet, test, format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then echo "$out"; exit 1; fi
+      - name: build
+        run: go build ./...
+      - name: vet
+        run: go vet ./...
+      - name: test
+        run: go test ./... -count=1
+
   python-lint:
     name: ruff (format & lint, gates Python sources)
     runs-on: ubuntu-latest
