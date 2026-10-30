@@ -1,0 +1,6 @@
+# umbra-manager: static binary on scratch. Build with scripts/build-images.sh
+# (offline-safe: no base image to pull).
+FROM scratch
+COPY .build/umbra-manager /manager
+USER 65532:65532
+ENTRYPOINT ["/manager"]

@@ -1,0 +1,8 @@
+# demo-app:local — throwaway workload for live kind runs only.
+# Never referenced by demo/*.yaml (those keep the ghcr.io/example
+# placeholder); the live loop overrides the image at runtime.
+FROM scratch
+COPY .build/demo-server /demo-server
+USER 65532:65532
+ENTRYPOINT ["/demo-server"]
+EXPOSE 8080

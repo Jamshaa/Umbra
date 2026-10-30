@@ -28,3 +28,38 @@ rules:
   verbs:
   - patch
   - update
+# Sandbox objects managed by the RemediationPolicy reconciler
+# (see +kubebuilder:rbac markers on RemediationPolicyReconciler).
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - resourcequotas
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch

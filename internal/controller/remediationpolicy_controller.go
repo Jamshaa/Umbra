@@ -34,6 +34,10 @@ const (
 )
 
 // RemediationPolicyReconciler guarantees the sandbox for each policy.
+//
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch
 type RemediationPolicyReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme

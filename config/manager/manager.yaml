@@ -40,7 +40,9 @@ spec:
       serviceAccountName: umbra-manager
       containers:
         - name: manager
-          image: ghcr.io/example/umbra:dev
+          # Kind-loaded by scripts/build-images.sh (dev only, never published).
+          # The ghcr.io/example placeholder lives on in demo/* manifests.
+          image: umbra-manager:dev
           ports:
             - name: metrics
               containerPort: 8080

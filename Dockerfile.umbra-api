@@ -1,0 +1,10 @@
+# umbra-api: static binary plus the prebuilt vite bundle.
+# Build with scripts/build-images.sh (offline-safe: no base image).
+# Run with UMBRA_DIST=/ui/dist (default).
+FROM scratch
+COPY .build/umbra-api /umbra-api
+COPY ui/dist /ui/dist
+ENV UMBRA_DIST=/ui/dist
+USER 65532:65532
+ENTRYPOINT ["/umbra-api"]
+EXPOSE 8082
