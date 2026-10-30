@@ -79,6 +79,17 @@ type TimelineEntry struct {
 	// +optional
 	Result string `json:"result,omitempty"`
 
+	// ModelVersion is the version of the model (or tooling) that produced
+	// the entry. Empty for deterministic tools. Audit only.
+	// +optional
+	ModelVersion string `json:"modelVersion,omitempty"`
+
+	// EvidenceHash is the lowercase hex sha256 over the sanitized
+	// "args + \n + result" actually stored in this entry. It lets an
+	// auditor prove the entry was not altered after the fact.
+	// +optional
+	EvidenceHash string `json:"evidenceHash,omitempty"`
+
 	// Ts is the epoch-seconds timestamp of the tool call.
 	Ts int64 `json:"ts"`
 }

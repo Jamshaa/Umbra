@@ -190,6 +190,17 @@ spec:
                     args:
                       description: Args are the tool arguments.
                       type: string
+                    evidenceHash:
+                      description: EvidenceHash is the lowercase hex sha256 over the
+                        sanitized "args + \n + result" actually stored in this entry.
+                        It lets an auditor prove the entry was not altered after
+                        the fact.
+                      type: string
+                    modelVersion:
+                      description: ModelVersion is the version of the model (or tooling)
+                        that produced the entry. Empty for deterministic tools.
+                        Audit only.
+                      type: string
                     result:
                       description: Result is the tool observation.
                       type: string
