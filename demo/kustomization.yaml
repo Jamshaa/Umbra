@@ -21,3 +21,4 @@ resources:
   - f15_secret_create_grant.yaml
   - f16_bogus_image.yaml
   - f17_missing_configmap.yaml
+  - f18_missing_secret.yaml

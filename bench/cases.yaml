@@ -141,7 +141,7 @@ cases:
     verifier: scripts/verify/f18_missing_secret.sh
     expected_root_cause: Reference to a missing Secret name (placeholder only)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F19
     category: Config
     injector: scripts/injectors/f19_command_typo.sh
