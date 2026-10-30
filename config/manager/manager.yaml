@@ -1,0 +1,73 @@
+# Namespace for the Umbra manager. Standalone install only (Ola 2+):
+# kubectl apply -k config/manager (kind-umbra context).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: umbra-system
+  labels:
+    umbra.io/managed-by: umbra-manager
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: umbra-manager
+  namespace: umbra-system
+  labels:
+    umbra.io/managed-by: umbra-manager
+---
+# The operator itself follows the rules it enforces: pinned image tag
+# (never :latest), sane resources, both probes, non-root.
+# Image is a placeholder (ghcr.io/example): no real image is published
+# from this repo yet.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: umbra-manager
+  namespace: umbra-system
+  labels:
+    umbra.io/managed-by: umbra-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: umbra-manager
+  template:
+    metadata:
+      labels:
+        app: umbra-manager
+        umbra.io/managed-by: umbra-manager
+    spec:
+      serviceAccountName: umbra-manager
+      containers:
+        - name: manager
+          image: ghcr.io/example/umbra:dev
+          ports:
+            - name: metrics
+              containerPort: 8080
+            - name: probes
+              containerPort: 8081
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: probes
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: probes
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities:
+              drop: ["ALL"]
