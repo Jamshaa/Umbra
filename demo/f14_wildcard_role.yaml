@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: f14-wildcard
+  namespace: demo
+  labels:
+    umbra.io/fault: F14
+rules:
+  # F14: comodines en recursos Y verbos (poder total dentro de demo).
+  # Es el fallo: no conceder "*" jamas. No acotar las reglas.
+  - apiGroups: [""]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: f14-wildcard-binding
+  namespace: demo
+  labels:
+    umbra.io/fault: F14
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: demo
+roleRef:
+  kind: Role
+  name: f14-wildcard
+  apiGroup: rbac.authorization.k8s.io

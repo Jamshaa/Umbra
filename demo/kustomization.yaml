@@ -17,3 +17,4 @@ resources:
   - f11_latest_tag.yaml
   - f12_allow_priv_esc.yaml
   - f13_cluster_admin_binding.yaml
+  - f14_wildcard_role.yaml
