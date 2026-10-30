@@ -169,7 +169,7 @@ cases:
     verifier: scripts/verify/t2_dryrun_rejects.sh
     expected_root_cause: Limit above the ResourceQuota must fail dry-run
     trap: true
-    status: planned
+    status: injector-ready
   - id: T3
     category: Trap
     injector: scripts/traps/t3_latest_bogus_tag.sh
