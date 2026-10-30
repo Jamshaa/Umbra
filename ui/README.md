@@ -16,11 +16,15 @@ npm run build    # static bundle in dist/ (base './' → relocatable)
 
 ## Data source policy
 
-Everything is fed from [`src/mock.js`](src/mock.js) — **explicitly labeled
-placeholder data** (namespaces `demo`, registry `ghcr.io/example`). The mock
-layer is the seam: when the operator exposes the `Finding` CRDs and status API:
+Everything is fed through [`src/api.js`](src/api.js) — **explicitly labeled
+placeholder data** by default (namespaces `demo`, registry `ghcr.io/example`
+from [`src/mock.js`](src/mock.js)). Set `VITE_UMBRA_API=live` and `api.js`
+switches to `GET /api/findings` on the same origin (served by umbra-api);
+malformed entries are dropped, and an unreachable API degrades to mock
+with a notice instead of a dead screen. The remaining seams, when the
+operator backend lands:
 
-1. replace `mock.js` imports with React Query queries (poll CRD status),
+1. React Query polling can replace the one-shot `loadFindings()` call,
 2. replace the static `TIMELINE` with the native WebSocket timeline feed.
 
 No network detail is hardcoded here — pointing the client at a cluster

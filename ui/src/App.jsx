@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import HeaderBar from './components/HeaderBar.jsx'
 import PixelButton from './components/PixelButton.jsx'
 import FindingCard from './components/FindingCard.jsx'
 import CodePanel, { DiffView } from './components/CodePanel.jsx'
 import TimelineEntry from './components/TimelineEntry.jsx'
-import { MOCK_FINDINGS, DIFF_CONTEXT, TIMELINE } from './mock.js'
+import { MOCK_FINDINGS, DIFF_CONTEXT } from './mock.js'
+import { loadFindings } from './api.js'
 import './App.css'
 
 const SEVERITIES = ['all', 'high', 'medium', 'low']
@@ -17,9 +18,31 @@ const SEVERITIES = ['all', 'high', 'medium', 'low']
  * the native WebSocket timeline subscribe at that point. No extra deps until.
  */
 export default function App() {
-  const [findings] = useState(MOCK_FINDINGS)
-  const [selectedId, setSelectedId] = useState(MOCK_FINDINGS[0]?.id ?? null)
+  const [findings, setFindings] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
+  const [notice, setNotice] = useState('loading findings…')
+
+  useEffect(() => {
+    let cancelled = false
+    loadFindings()
+      .then(({ source, findings: list }) => {
+        if (cancelled) return
+        setFindings(list)
+        setSelectedId(list[0]?.id ?? null)
+        setNotice(source === 'live' ? '' : 'mock data — set VITE_UMBRA_API=live for the operator API')
+      })
+      .catch(() => {
+        if (cancelled) return
+        // Live API unreachable: degrade to mock instead of a dead screen.
+        setFindings(MOCK_FINDINGS)
+        setSelectedId(MOCK_FINDINGS[0]?.id ?? null)
+        setNotice('live API unreachable — showing mock data')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const selected = findings.find((f) => f.id === selectedId) ?? null
   const visible = findings.filter((f) => severityFilter === 'all' || f.severity === severityFilter)
@@ -32,6 +55,7 @@ export default function App() {
         {/* ── left column: findings ─────────────────────────────────────── */}
         <section className="column">
           <h2 className="column-title">FINDINGS</h2>
+          {notice !== '' && <p className="empty-note">{notice}</p>}
           <div className="scan-row">
             <PixelButton onClick={() => {}}>Scan cluster</PixelButton>
           </div>
