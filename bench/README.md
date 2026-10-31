@@ -1,7 +1,7 @@
-# UmbraBench — skeleton
+# UmbraBench — catalogs + coherence gate
 
-This directory will hold the benchmark harness. Tonight it holds the
-contract; the runner lands with the loop (Day 4–5).
+This directory holds the benchmark catalogs (the contract) and their
+coherence gate. The runner lands with the loop (Day 4–5).
 
 ## Files
 
@@ -12,6 +12,12 @@ contract; the runner lands with the loop (Day 4–5).
   (`internal/verify.VerifyFxx`, deterministic, unit-tested, no cluster) or a
   `scripts/verify/*.sh` path for faults whose verifier still lives in shell.
   F01–F06 already use the Go package; the rest migrate as their tasks land.
+- `cases-r2.yaml` — wave 2: 20 real-world faults (F21–F40: registries,
+  replicas, StatefulSets, CronJobs, RBAC, ConfigMap/Secret drift). Same
+  schema and seed; all `planned` except implemented F21.
+- `../scripts/bench/check.py` — coherence gate over *all*
+  `cases*.yaml`: unique ids, known category/status, injector present
+  unless `planned`, verifier resolvable, no orphans. CI runs it.
 
 ## Running policy (to be implemented by the harness)
 
@@ -38,7 +44,6 @@ the full 24 x 3 matrix.
 
 ## Status
 
-Scaffolding only: no runner, no injector/verifier scripts here yet.
-Injector+verifier pairs land per fault with their tasks (F01–F03 already
-exist in `task/T-10`, pending integration); the runner lands with the
+Catalogs + gate live: every injector/verifier pair lands per fault with
+its task (F01–F20, T1–T4 and F21 integrated); the runner lands with the
 remediation loop.

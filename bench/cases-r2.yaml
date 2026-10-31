@@ -1,0 +1,153 @@
+# UmbraBench case catalog, wave 2: real-world faults (machine-readable).
+#
+# Same contract as bench/cases.yaml: each fault ships injector +
+# verifier + catalog entry before any AI work. Statuses follow the
+# same ladder (planned -> injector-ready -> verified). Traps from
+# wave 1 stay in cases.yaml; wave 2 has no traps yet.
+#
+# seed/repeats mirror cases.yaml so a future harness can run both
+# files with one configuration.
+
+seed: 42
+repeats: 3
+cases:
+  - id: F21
+    category: Security
+    injector: scripts/injectors/f21_missing_pull_secret.sh
+    verifier: scripts/verify/f21_missing_pull_secret.sh
+    expected_root_cause: Private-registry image without imagePullSecrets
+    trap: false
+    status: injector-ready
+  - id: F22
+    category: Reliability
+    injector: scripts/injectors/f22_scaled_to_zero.sh
+    verifier: scripts/verify/f22_scaled_to_zero.sh
+    expected_root_cause: Deployment accidentally scaled to zero replicas
+    trap: false
+    status: planned
+  - id: F23
+    category: Reliability
+    injector: scripts/injectors/f23_statefulset_no_headless.sh
+    verifier: scripts/verify/f23_statefulset_no_headless.sh
+    expected_root_cause: StatefulSet without a headless Service (no stable identities)
+    trap: false
+    status: planned
+  - id: F24
+    category: Reliability
+    injector: scripts/injectors/f24_cronjob_suspended.sh
+    verifier: scripts/verify/f24_cronjob_suspended.sh
+    expected_root_cause: CronJob suspended, schedule silently stopped
+    trap: false
+    status: planned
+  - id: F25
+    category: Reliability
+    injector: scripts/injectors/f25_no_grace_period.sh
+    verifier: scripts/verify/f25_no_grace_period.sh
+    expected_root_cause: terminationGracePeriodSeconds 0 kills in-flight work
+    trap: false
+    status: planned
+  - id: F26
+    category: Reliability
+    injector: scripts/injectors/f26_hpa_inverted.sh
+    verifier: scripts/verify/f26_hpa_inverted.sh
+    expected_root_cause: HPA minReplicas above maxReplicas never scales
+    trap: false
+    status: planned
+  - id: F27
+    category: Security
+    injector: scripts/injectors/f27_host_network.sh
+    verifier: scripts/verify/f27_host_network.sh
+    expected_root_cause: Pod with hostNetwork sees host network namespace
+    trap: false
+    status: planned
+  - id: F28
+    category: Security
+    injector: scripts/injectors/f28_token_automount.sh
+    verifier: scripts/verify/f28_token_automount.sh
+    expected_root_cause: ServiceAccount token automounted without need
+    trap: false
+    status: planned
+  - id: F29
+    category: Security
+    injector: scripts/injectors/f29_plaintext_secret.sh
+    verifier: scripts/verify/f29_plaintext_secret.sh
+    expected_root_cause: Hardcoded secret value in env (placeholder only)
+    trap: false
+    status: planned
+  - id: F30
+    category: RBAC
+    injector: scripts/injectors/f30_secret_read_grant.sh
+    verifier: scripts/verify/f30_secret_read_grant.sh
+    expected_root_cause: Unneeded secret-read grant (get/list on secrets)
+    trap: false
+    status: planned
+  - id: F31
+    category: RBAC
+    injector: scripts/injectors/f31_pods_exec_grant.sh
+    verifier: scripts/verify/f31_pods_exec_grant.sh
+    expected_root_cause: Unneeded pods/exec grant (shell into any pod)
+    trap: false
+    status: planned
+  - id: F32
+    category: Config
+    injector: scripts/injectors/f32_configmap_stale.sh
+    verifier: scripts/verify/f32_configmap_stale.sh
+    expected_root_cause: ConfigMap changed but Deployment never rolled (stale config)
+    trap: false
+    status: planned
+  - id: F33
+    category: Config
+    injector: scripts/injectors/f33_secret_rotated.sh
+    verifier: scripts/verify/f33_secret_rotated.sh
+    expected_root_cause: Secret rotated but pods still mount the old value
+    trap: false
+    status: planned
+  - id: F34
+    category: Config
+    injector: scripts/injectors/f34_subpath_mount.sh
+    verifier: scripts/verify/f34_subpath_mount.sh
+    expected_root_cause: subPath volume mount never receives ConfigMap updates
+    trap: false
+    status: planned
+  - id: F35
+    category: Config
+    injector: scripts/injectors/f35_impossible_affinity.sh
+    verifier: scripts/verify/f35_impossible_affinity.sh
+    expected_root_cause: nodeAffinity to a label no node carries (Pending)
+    trap: false
+    status: planned
+  - id: F36
+    category: Config
+    injector: scripts/injectors/f36_service_no_endpoints.sh
+    verifier: scripts/verify/f36_service_no_endpoints.sh
+    expected_root_cause: Service selector matches no pods (no endpoints)
+    trap: false
+    status: planned
+  - id: F37
+    category: Config
+    injector: scripts/injectors/f37_pdb_blocking.sh
+    verifier: scripts/verify/f37_pdb_blocking.sh
+    expected_root_cause: PodDisruptionBudget maxUnavailable 0 blocks rollouts
+    trap: false
+    status: planned
+  - id: F38
+    category: Config
+    injector: scripts/injectors/f38_minutely_cronjob.sh
+    verifier: scripts/verify/f38_minutely_cronjob.sh
+    expected_root_cause: CronJob every minute hammers the cluster
+    trap: false
+    status: planned
+  - id: F39
+    category: Reliability
+    injector: scripts/injectors/f39_failing_init.sh
+    verifier: scripts/verify/f39_failing_init.sh
+    expected_root_cause: initContainer fails, pod stuck initializing
+    trap: false
+    status: planned
+  - id: F40
+    category: Reliability
+    injector: scripts/injectors/f40_statefulset_ondelete.sh
+    verifier: scripts/verify/f40_statefulset_ondelete.sh
+    expected_root_cause: StatefulSet OnDelete strategy never rolls new versions
+    trap: false
+    status: planned

@@ -15,6 +15,8 @@ metadata:
 spec:
   template:
     spec:
+      imagePullSecrets:
+        - name: registry-creds
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
@@ -165,5 +167,46 @@ func TestScanSkipsGarbage(t *testing.T) {
 	docs := "kind: [unclosed\n---\nnot yaml at all: : :\n---\n" + healthyDeployment
 	if got := Scan([]byte(docs)); len(got) != 0 {
 		t.Fatalf("garbage produced %d findings", len(got))
+	}
+}
+
+func TestDetectMissingImagePullSecrets(t *testing.T) {
+	priv := `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f21
+  namespace: demo
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+`
+	if got := DetectMissingImagePullSecrets([]byte(priv)); len(got) != 1 {
+		t.Fatalf("want 1 finding, got %d", len(got))
+	} else if got[0].Spec.TargetRef.Name != "f21" || got[0].Spec.Category != v1alpha1.FindingCategorySecurity {
+		t.Fatalf("bad finding: %+v", got[0].Spec)
+	}
+	// Public images and explicit secrets stay silent.
+	for _, doc := range []string{
+		`kind: Deployment
+metadata: {name: x, namespace: demo}
+spec: {template: {spec: {containers: [{name: app, image: nginx:1.25}]}}}`,
+		`kind: Deployment
+metadata: {name: x, namespace: demo}
+spec: {template: {spec: {containers: [{name: app, image: user/repo:1}]}}}`,
+		`kind: Deployment
+metadata: {name: x, namespace: demo}
+spec: {template: {spec: {containers: [{name: app, image: docker.io/library/nginx:1.25}]}}}`,
+		`kind: Deployment
+metadata: {name: x, namespace: demo}
+spec: {template: {spec: {imagePullSecrets: [{name: creds}], containers: [{name: app, image: ghcr.io/example/demo-app:v1}]}}}`,
+		healthyDeployment,
+	} {
+		if got := DetectMissingImagePullSecrets([]byte(doc)); len(got) != 0 {
+			t.Fatalf("false positive on %q", doc[:60])
+		}
 	}
 }

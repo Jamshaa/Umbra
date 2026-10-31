@@ -36,6 +36,7 @@ type resourceRequirements struct {
 // container is the subset of a container spec the detector reads.
 type container struct {
 	Name           string               `json:"name"`
+	Image          string               `json:"image,omitempty"`
 	Resources      resourceRequirements `json:"resources,omitempty"`
 	LivenessProbe  *struct{}            `json:"livenessProbe,omitempty"`
 	ReadinessProbe *struct{}            `json:"readinessProbe,omitempty"`
@@ -43,7 +44,10 @@ type container struct {
 
 // podSpec is the subset of a pod template the detector reads.
 type podSpec struct {
-	Containers []container `json:"containers"`
+	Containers       []container `json:"containers"`
+	ImagePullSecrets []struct {
+		Name string `json:"name"`
+	} `json:"imagePullSecrets,omitempty"`
 }
 
 // manifest is the subset of a workload object the detector reads.
@@ -61,16 +65,28 @@ type manifest struct {
 			Spec podSpec `json:"spec"`
 		} `json:"template"`
 		// Inline pod spec (for Pod objects).
-		Containers []container `json:"containers"`
+		Containers       []container `json:"containers"`
+		ImagePullSecrets []struct {
+			Name string `json:"name"`
+		} `json:"imagePullSecrets,omitempty"`
 	} `json:"spec"`
+}
+
+// podSpecOf returns the effective pod spec of a manifest: the template
+// spec for workload objects, the inline spec for Pod objects.
+func podSpecOf(m manifest) podSpec {
+	if len(m.Spec.Template.Spec.Containers) > 0 || len(m.Spec.Template.Spec.ImagePullSecrets) > 0 {
+		return m.Spec.Template.Spec
+	}
+	return podSpec{
+		Containers:       m.Spec.Containers,
+		ImagePullSecrets: m.Spec.ImagePullSecrets,
+	}
 }
 
 // containersOf returns the containers of a Deployment-like or Pod manifest.
 func containersOf(m manifest) []container {
-	if len(m.Spec.Template.Spec.Containers) > 0 {
-		return m.Spec.Template.Spec.Containers
-	}
-	return m.Spec.Containers
+	return podSpecOf(m).Containers
 }
 
 // decodeManifests splits multi-document YAML and decodes each document.
@@ -202,7 +218,60 @@ func DetectNoReadinessProbe(docs []byte) []v1alpha1.Finding {
 	return out
 }
 
-// Scan runs every F01–F06 detector over the manifests and returns all
+// isPrivateRegistry reports whether image names a registry that needs
+// credentials: an explicit host that is not Docker Hub, or localhost.
+// Bare names ("nginx") and docker.io paths are public and need nothing.
+func isPrivateRegistry(image string) bool {
+	slash := -1
+	for i := 0; i < len(image); i++ {
+		if image[i] == '/' {
+			slash = i
+			break
+		}
+		if image[i] == ':' && slash < 0 {
+			return false // tag on a bare name, no registry involved
+		}
+	}
+	if slash < 0 {
+		return false
+	}
+	host := image[:slash]
+	if host == "localhost" {
+		return true
+	}
+	dot := false
+	for i := 0; i < len(host); i++ {
+		if host[i] == '.' || host[i] == ':' {
+			dot = true
+			break
+		}
+	}
+	if !dot {
+		return false // docker.io user/repo form
+	}
+	return host != "docker.io" && host != "index.docker.io" && host != "registry-1.docker.io"
+}
+
+// DetectMissingImagePullSecrets finds containers pulling from a private
+// registry with no imagePullSecrets on the pod (F21): the kubelet can
+// never authenticate, so the pod never starts.
+func DetectMissingImagePullSecrets(docs []byte) []v1alpha1.Finding {
+	var out []v1alpha1.Finding
+	for _, m := range decodeManifests(docs) {
+		spec := podSpecOf(m)
+		if len(spec.ImagePullSecrets) > 0 {
+			continue
+		}
+		for _, c := range spec.Containers {
+			if isPrivateRegistry(c.Image) {
+				out = append(out, newFinding("F21", v1alpha1.FindingCategorySecurity, m, c))
+			}
+		}
+	}
+	return out
+}
+
+// Scan runs every detector over the manifests and returns all
 // findings. Deterministic: same input, same output, no AI involved.
 func Scan(docs []byte) []v1alpha1.Finding {
 	var out []v1alpha1.Finding
@@ -211,5 +280,6 @@ func Scan(docs []byte) []v1alpha1.Finding {
 	out = append(out, DetectHugeRequests(docs)...)
 	out = append(out, DetectNoLivenessProbe(docs)...)
 	out = append(out, DetectNoReadinessProbe(docs)...)
+	out = append(out, DetectMissingImagePullSecrets(docs)...)
 	return out
 }

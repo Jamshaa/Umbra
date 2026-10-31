@@ -24,3 +24,4 @@ resources:
   - f18_missing_secret.yaml
   - f19_command_typo.yaml
   - f20_port_mismatch.yaml
+  - f21_missing_pull_secret.yaml
