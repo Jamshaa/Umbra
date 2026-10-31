@@ -21,27 +21,29 @@ export default function App() {
   const [findings, setFindings] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
-  const [notice, setNotice] = useState('loading findings…')
+  const applyLoaded = ({ source, findings: list }) => {
+    setFindings(list)
+    setSelectedId(list[0]?.id ?? null)
+    setNotice(source === 'live' ? '' : 'mock data — set VITE_UMBRA_API=live for the operator API')
+  }
+  const applyFallback = () => {
+    // Live API unreachable: degrade to mock instead of a dead screen.
+    setFindings(MOCK_FINDINGS)
+    setSelectedId(MOCK_FINDINGS[0]?.id ?? null)
+    setNotice('live API unreachable — showing mock data')
+  }
+  const refresh = () => {
+    setNotice('scanning cluster…')
+    loadFindings().then(applyLoaded, applyFallback)
+  }
 
   useEffect(() => {
     let cancelled = false
-    loadFindings()
-      .then(({ source, findings: list }) => {
-        if (cancelled) return
-        setFindings(list)
-        setSelectedId(list[0]?.id ?? null)
-        setNotice(source === 'live' ? '' : 'mock data — set VITE_UMBRA_API=live for the operator API')
-      })
-      .catch(() => {
-        if (cancelled) return
-        // Live API unreachable: degrade to mock instead of a dead screen.
-        setFindings(MOCK_FINDINGS)
-        setSelectedId(MOCK_FINDINGS[0]?.id ?? null)
-        setNotice('live API unreachable — showing mock data')
-      })
-    return () => {
-      cancelled = true
-    }
+    loadFindings().then(
+      (r) => { if (!cancelled) applyLoaded(r) },
+      () => { if (!cancelled) applyFallback() },
+    )
+    return () => { cancelled = true }
   }, [])
 
   const selected = findings.find((f) => f.id === selectedId) ?? null
@@ -57,7 +59,7 @@ export default function App() {
           <h2 className="column-title">FINDINGS</h2>
           {notice !== '' && <p className="empty-note">{notice}</p>}
           <div className="scan-row">
-            <PixelButton onClick={() => {}}>Scan cluster</PixelButton>
+            <PixelButton onClick={refresh}>Scan cluster</PixelButton>
           </div>
           <div className="filter-row" role="group" aria-label="Filter findings by severity">
             {SEVERITIES.map((s) => (
@@ -95,18 +97,10 @@ export default function App() {
                 <DiffView context={DIFF_CONTEXT} removed={selected.diffRemoved} added={selected.diffAdded} />
               </CodePanel>
               <div className="gate-row">
-                <PixelButton
-                  size="lg"
-                  tone="warn"
-                  disabled={!verified}
-                  title={
-                    verified
-                      ? 'Propose for production — requires explicit human approval'
-                      : 'Sandbox verification must pass before the production gate opens'
-                  }
-                >
-                  Approve → prod
-                </PixelButton>
+                {/* Production gate: display-only in the alpha. There is no
+                    propose endpoint yet (the API is read-only by design),
+                    so a button here would promise an action that cannot
+                    run. The note carries the gate state instead. */}
                 <code className={'gate-note ' + (verified ? 'is-ok' : 'is-pending')}>
                   {verified ? 'verification PASSED ✓ — awaiting human approval' : 'verification pending'}
                 </code>

@@ -1,4 +1,4 @@
-/* Header: hard-bottom border, logo in Press Start 2P @16px, tabs in 8px,
+/* Header: hard-bottom border, logo in Press Start 2P @16px,
    status chip with an 8x8 pixel LED. Zero easing, zero rounding. */
 
 .header-bar {
@@ -20,40 +20,6 @@
 
 .header-logo-dim {
   color: var(--info);
-}
-
-.header-nav {
-  display: flex;
-  gap: var(--sp-1);
-  margin-right: auto;
-}
-
-.header-tab {
-  font-family: var(--font-pixel);
-  font-size: 8px;
-  letter-spacing: 1px;
-  color: var(--info);
-  text-decoration: none;
-  padding: 8px 8px;
-  border: 3px solid var(--hard-shadow);
-  background: var(--panel);
-  box-shadow: 4px 4px 0 var(--hard-shadow);
-}
-
-.header-tab:hover {
-  background: #324095;
-}
-
-.header-tab:active {
-  box-shadow: 2px 2px 0 var(--hard-shadow);
-  transform: translate(2px, 2px);
-}
-
-.header-tab.is-active {
-  color: var(--hard-shadow);
-  background: var(--info);
-  box-shadow: 1px 1px 0 var(--hard-shadow);
-  transform: translate(3px, 3px);
 }
 
 .header-status {

@@ -69,7 +69,7 @@ Three columns (stack vertically under 900px):
 | Column | Content | Source |
 |---|---|---|
 | FINDINGS | severity-filtered finding cards, SCAN button | CRD list (mocked) |
-| DETAIL | live manifest + sandbox diff + approve-to-prod gate (disabled until verification passed) | CRD status (mocked) |
+| DETAIL | live manifest + sandbox diff + gate note (PASS/pending text; the Approve button was removed — no propose endpoint exists yet) | CRD status (mocked) |
 | AGENT TIMELINE | collapsible tool-call feed with status-colored rails | WebSocket (mocked) |
 
 The **Approve → prod** button stays disabled unless the finding is in
