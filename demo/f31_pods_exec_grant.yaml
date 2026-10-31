@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: f31-pods-exec
+  namespace: demo
+  labels:
+    umbra.io/fault: F31
+rules:
+  # F31: create sobre pods/exec = shell en cualquier pod del namespace.
+  # No conceder este verbo jamas.
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: f31-pods-exec-binding
+  namespace: demo
+  labels:
+    umbra.io/fault: F31
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: f31-pods-exec

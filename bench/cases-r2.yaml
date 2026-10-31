@@ -73,21 +73,21 @@ cases:
     verifier: scripts/verify/f29_plaintext_secret.sh
     expected_root_cause: Hardcoded secret value in env (placeholder only)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F30
     category: RBAC
     injector: scripts/injectors/f30_secret_read_grant.sh
     verifier: scripts/verify/f30_secret_read_grant.sh
     expected_root_cause: Unneeded secret-read grant (get/list on secrets)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F31
     category: RBAC
     injector: scripts/injectors/f31_pods_exec_grant.sh
     verifier: scripts/verify/f31_pods_exec_grant.sh
     expected_root_cause: Unneeded pods/exec grant (shell into any pod)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F32
     category: Config
     injector: scripts/injectors/f32_configmap_stale.sh
@@ -115,35 +115,35 @@ cases:
     verifier: scripts/verify/f35_impossible_affinity.sh
     expected_root_cause: nodeAffinity to a label no node carries (Pending)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F36
     category: Config
     injector: scripts/injectors/f36_service_no_endpoints.sh
     verifier: scripts/verify/f36_service_no_endpoints.sh
     expected_root_cause: Service selector matches no pods (no endpoints)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F37
     category: Config
     injector: scripts/injectors/f37_pdb_blocking.sh
     verifier: scripts/verify/f37_pdb_blocking.sh
     expected_root_cause: PodDisruptionBudget maxUnavailable 0 blocks rollouts
     trap: false
-    status: planned
+    status: injector-ready
   - id: F38
     category: Config
     injector: scripts/injectors/f38_minutely_cronjob.sh
     verifier: scripts/verify/f38_minutely_cronjob.sh
     expected_root_cause: CronJob every minute hammers the cluster
     trap: false
-    status: planned
+    status: injector-ready
   - id: F39
     category: Reliability
     injector: scripts/injectors/f39_failing_init.sh
     verifier: scripts/verify/f39_failing_init.sh
     expected_root_cause: initContainer fails, pod stuck initializing
     trap: false
-    status: planned
+    status: injector-ready
   - id: F40
     category: Reliability
     injector: scripts/injectors/f40_statefulset_ondelete.sh

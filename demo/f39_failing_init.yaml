@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f39-failing-init
+  namespace: demo
+  labels:
+    umbra.io/fault: F39
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f39-failing-init
+  template:
+    metadata:
+      labels:
+        app: f39-failing-init
+        umbra.io/fault: F39
+    spec:
+      # F39: el initContainer falla siempre: el pod nunca sale de
+      # Initializing. No arreglar el command.
+      initContainers:
+        - name: setup
+          image: ghcr.io/example/demo-app:v1
+          command: ["/bin/sh", "-c", "exit 3"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

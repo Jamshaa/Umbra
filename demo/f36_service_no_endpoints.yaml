@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: f36-no-endpoints
+  namespace: demo
+  labels:
+    umbra.io/fault: F36
+spec:
+  # F36: el selector no coincide con ningun pod: el Service existe
+  # pero no tiene endpoints y no enruta nada. No alinear etiquetas.
+  selector:
+    app: f36-nothing-matches-this
+  ports:
+    - name: web
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f36-app
+  namespace: demo
+  labels:
+    umbra.io/fault: F36
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f36-app
+  template:
+    metadata:
+      labels:
+        app: f36-app
+        umbra.io/fault: F36
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

@@ -1,0 +1,56 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: f37-blocking
+  namespace: demo
+  labels:
+    umbra.io/fault: F37
+spec:
+  # F37: maxUnavailable 0 bloquea cualquier desalojo voluntario:
+  # los rollouts y el mantenimiento se quedan atascados.
+  # No subir el valor.
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: f37-blocking
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f37-blocking
+  namespace: demo
+  labels:
+    umbra.io/fault: F37
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f37-blocking
+  template:
+    metadata:
+      labels:
+        app: f37-blocking
+        umbra.io/fault: F37
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

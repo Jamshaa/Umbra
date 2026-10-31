@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f35-impossible-affinity
+  namespace: demo
+  labels:
+    umbra.io/fault: F35
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f35-impossible-affinity
+  template:
+    metadata:
+      labels:
+        app: f35-impossible-affinity
+        umbra.io/fault: F35
+    spec:
+      # F35: afinidad a una etiqueta que ningun nodo lleva: el pod
+      # queda Pending para siempre. No corregir la etiqueta.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: umbra.io/gpu
+                    operator: In
+                    values: ["a100-never-exists"]
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

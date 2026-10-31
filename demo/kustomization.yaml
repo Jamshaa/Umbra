@@ -31,6 +31,14 @@ resources:
   - f26_hpa_inverted.yaml
   - f27_host_network.yaml
   - f28_token_automount.yaml
+  - f29_plaintext_secret.yaml
+  - f30_secret_read_grant.yaml
+  - f31_pods_exec_grant.yaml
+  - f35_impossible_affinity.yaml
+  - f36_service_no_endpoints.yaml
+  - f37_pdb_blocking.yaml
+  - f38_minutely_cronjob.yaml
+  - f39_failing_init.yaml
   - f23_statefulset_no_headless.yaml
   - f32_configmap_stale.yaml
   - f33_secret_rotated.yaml
