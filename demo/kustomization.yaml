@@ -25,3 +25,8 @@ resources:
   - f19_command_typo.yaml
   - f20_port_mismatch.yaml
   - f21_missing_pull_secret.yaml
+  - f23_statefulset_no_headless.yaml
+  - f32_configmap_stale.yaml
+  - f33_secret_rotated.yaml
+  - f34_subpath_mount.yaml
+  - f40_statefulset_ondelete.yaml

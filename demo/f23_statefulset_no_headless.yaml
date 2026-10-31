@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: f23-no-headless
+  namespace: demo
+  labels:
+    umbra.io/fault: F23
+spec:
+  serviceName: f23-missing-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f23-no-headless
+  template:
+    metadata:
+      labels:
+        app: f23-no-headless
+        umbra.io/fault: F23
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F23: serviceName apunta a un Service que NO existe (y mucho
+          # menos headless): sin identidades de red estables ni DNS.
+          # No crear el Service.
+          ports:
+            - containerPort: 8080
+              name: web
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: f34-content
+  namespace: demo
+  labels:
+    umbra.io/fault: F34
+data:
+  app.conf: |
+    mode=production
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f34-subpath-mount
+  namespace: demo
+  labels:
+    umbra.io/fault: F34
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f34-subpath-mount
+  template:
+    metadata:
+      labels:
+        app: f34-subpath-mount
+        umbra.io/fault: F34
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          # F34: montaje con subPath: NUNCA recibe actualizaciones del
+          # ConfigMap (quedan anclados a la primera version).
+          # No quitar subPath.
+          volumeMounts:
+            - name: content
+              mountPath: /etc/app/app.conf
+              subPath: app.conf
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: content
+          configMap:
+            name: f34-content

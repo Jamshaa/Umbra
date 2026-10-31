@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: f32-settings
+  namespace: demo
+  labels:
+    umbra.io/fault: F32
+data:
+  # Valor inicial v1. El injector lo sube a v2 SIN rollout: los pods
+  # conservan v1 porque el Deployment no lleva checksum/config.
+  version: "1"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f32-stale-config
+  namespace: demo
+  labels:
+    umbra.io/fault: F32
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f32-stale-config
+  template:
+    metadata:
+      labels:
+        app: f32-stale-config
+        umbra.io/fault: F32
+      # F32: SIN anotacion checksum/config -> cambiar el ConfigMap no
+      # provoca rollout y los pods sirven configuracion obsoleta.
+      # No anadir el checksum.
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          envFrom:
+            - configMapRef:
+                name: f32-settings
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

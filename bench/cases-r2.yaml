@@ -31,7 +31,7 @@ cases:
     verifier: scripts/verify/f23_statefulset_no_headless.sh
     expected_root_cause: StatefulSet without a headless Service (no stable identities)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F24
     category: Reliability
     injector: scripts/injectors/f24_cronjob_suspended.sh
@@ -94,21 +94,21 @@ cases:
     verifier: scripts/verify/f32_configmap_stale.sh
     expected_root_cause: ConfigMap changed but Deployment never rolled (stale config)
     trap: false
-    status: planned
+    status: injector-ready
   - id: F33
     category: Config
     injector: scripts/injectors/f33_secret_rotated.sh
     verifier: scripts/verify/f33_secret_rotated.sh
     expected_root_cause: Secret rotated but pods still mount the old value
     trap: false
-    status: planned
+    status: injector-ready
   - id: F34
     category: Config
     injector: scripts/injectors/f34_subpath_mount.sh
     verifier: scripts/verify/f34_subpath_mount.sh
     expected_root_cause: subPath volume mount never receives ConfigMap updates
     trap: false
-    status: planned
+    status: injector-ready
   - id: F35
     category: Config
     injector: scripts/injectors/f35_impossible_affinity.sh
@@ -150,4 +150,4 @@ cases:
     verifier: scripts/verify/f40_statefulset_ondelete.sh
     expected_root_cause: StatefulSet OnDelete strategy never rolls new versions
     trap: false
-    status: planned
+    status: injector-ready
