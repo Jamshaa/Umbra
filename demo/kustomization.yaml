@@ -25,6 +25,9 @@ resources:
   - f19_command_typo.yaml
   - f20_port_mismatch.yaml
   - f21_missing_pull_secret.yaml
+  - f22_scaled_to_zero.yaml
+  - f24_cronjob_suspended.yaml
+  - f25_no_grace_period.yaml
   - f23_statefulset_no_headless.yaml
   - f32_configmap_stale.yaml
   - f33_secret_rotated.yaml

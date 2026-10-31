@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f25-no-grace-period
+  namespace: demo
+  labels:
+    umbra.io/fault: F25
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f25-no-grace-period
+  template:
+    metadata:
+      labels:
+        app: f25-no-grace-period
+        umbra.io/fault: F25
+    spec:
+      # F25: sin periodo de gracia (kill inmediato): el trabajo en vuelo
+      # se pierde en cada rollout o replanificacion. No subir el valor.
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

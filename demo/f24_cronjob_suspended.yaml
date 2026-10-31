@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: f24-suspended
+  namespace: demo
+  labels:
+    umbra.io/fault: F24
+spec:
+  # F24: CronJob suspendido: la planificacion esta parada en silencio,
+  # nadie se entera de que el backup ya no corre. No quitar suspend.
+  schedule: "0 3 * * *"
+  suspend: true
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            umbra.io/fault: F24
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: ghcr.io/example/demo-app:v1
+              command: ["/bin/sh", "-c", "echo backup-ok"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi

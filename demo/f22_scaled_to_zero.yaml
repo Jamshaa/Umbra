@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f22-scaled-to-zero
+  namespace: demo
+  labels:
+    umbra.io/fault: F22
+spec:
+  # F22: replicas a cero por un escalado accidental (o un HPA
+  # desbocado): la app existe pero no sirve trafico. No subir replicas.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: f22-scaled-to-zero
+  template:
+    metadata:
+      labels:
+        app: f22-scaled-to-zero
+        umbra.io/fault: F22
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
