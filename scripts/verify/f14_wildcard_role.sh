@@ -8,10 +8,10 @@ NAMESPACE="demo"
 ROLENAME="f14-wildcard"
 
 for _ in $(seq 1 30); do
-  # Ambas listas son exactamente ["*"].
+  # Ambas listas son exactamente ["*"] en JSON.
   res="$(kubectl get role "$ROLENAME" --namespace "$NAMESPACE" \
     -o 'jsonpath={.rules[0].resources}{.rules[0].verbs}' 2>/dev/null || true)"
-  if [ "$res" = "[*][*]" ]; then
+  if [ "$res" = '["*"]["*"]' ]; then
     echo "F14 verified: Role grants wildcard resources and verbs"
     exit 0
   fi

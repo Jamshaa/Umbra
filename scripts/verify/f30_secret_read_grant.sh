@@ -10,7 +10,7 @@ ROLENAME="f30-secret-read"
 for _ in $(seq 1 30); do
   res="$(kubectl get role "$ROLENAME" --namespace "$NAMESPACE" \
     -o 'jsonpath={.rules[0].resources}{.rules[0].verbs}' 2>/dev/null || true)"
-  if [ "$res" = "[secrets][get list]" ]; then
+  if [ "$res" = '["secrets"]["get","list"]' ]; then
     echo "F30 verified: Role grants secret reads"
     exit 0
   fi

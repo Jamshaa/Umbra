@@ -11,7 +11,7 @@ for _ in $(seq 1 30); do
   # recursos == [secrets] y verbos contienen create.
   res="$(kubectl get role "$ROLENAME" --namespace "$NAMESPACE" \
     -o 'jsonpath={.rules[0].resources}{.rules[0].verbs}' 2>/dev/null || true)"
-  if [ "$res" = "[secrets][create]" ]; then
+  if [ "$res" = '["secrets"]["create"]' ]; then
     echo "F15 verified: Role grants secret creation"
     exit 0
   fi

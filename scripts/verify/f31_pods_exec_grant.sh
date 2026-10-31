@@ -10,7 +10,7 @@ ROLENAME="f31-pods-exec"
 for _ in $(seq 1 30); do
   res="$(kubectl get role "$ROLENAME" --namespace "$NAMESPACE" \
     -o 'jsonpath={.rules[0].resources}{.rules[0].verbs}' 2>/dev/null || true)"
-  if [ "$res" = "[pods/exec][create]" ]; then
+  if [ "$res" = '["pods/exec"]["create"]' ]; then
     echo "F31 verified: Role grants pods/exec"
     exit 0
   fi
