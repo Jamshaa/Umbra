@@ -21,6 +21,7 @@ export default function App() {
   const [findings, setFindings] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
+  const [notice, setNotice] = useState('loading findings…')
   const applyLoaded = ({ source, findings: list }) => {
     setFindings(list)
     setSelectedId(list[0]?.id ?? null)
