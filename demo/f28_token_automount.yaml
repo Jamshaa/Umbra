@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f28-token-automount
+  namespace: demo
+  labels:
+    umbra.io/fault: F28
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f28-token-automount
+  template:
+    metadata:
+      labels:
+        app: f28-token-automount
+        umbra.io/fault: F28
+    spec:
+      # F28: token de la ServiceAccount montado sin necesitarlo
+      # (credencial accesible ante cualquier escape). No poner false.
+      automountServiceAccountToken: true
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

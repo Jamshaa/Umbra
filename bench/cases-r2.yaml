@@ -52,21 +52,21 @@ cases:
     verifier: scripts/verify/f26_hpa_inverted.sh
     expected_root_cause: HPA minReplicas above maxReplicas never scales
     trap: false
-    status: planned
+    status: injector-ready
   - id: F27
     category: Security
     injector: scripts/injectors/f27_host_network.sh
     verifier: scripts/verify/f27_host_network.sh
     expected_root_cause: Pod with hostNetwork sees host network namespace
     trap: false
-    status: planned
+    status: injector-ready
   - id: F28
     category: Security
     injector: scripts/injectors/f28_token_automount.sh
     verifier: scripts/verify/f28_token_automount.sh
     expected_root_cause: ServiceAccount token automounted without need
     trap: false
-    status: planned
+    status: injector-ready
   - id: F29
     category: Security
     injector: scripts/injectors/f29_plaintext_secret.sh

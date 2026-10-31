@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f27-host-network
+  namespace: demo
+  labels:
+    umbra.io/fault: F27
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f27-host-network
+  template:
+    metadata:
+      labels:
+        app: f27-host-network
+        umbra.io/fault: F27
+    spec:
+      # F27: hostNetwork expone el pod a la red del NODO (escucha y
+      # fisgoneo fuera del aislamiento de red). No quitarlo.
+      hostNetwork: true
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

@@ -1,0 +1,54 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: f26-hpa-inverted
+  namespace: demo
+  labels:
+    umbra.io/fault: F26
+spec:
+  # F26: minReplicas POR ENCIMA de maxReplicas: el HPA nunca puede
+  # escalar (rango imposible). No corregir los valores.
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: f26-hpa-inverted
+  minReplicas: 8
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: f26-hpa-inverted
+  namespace: demo
+  labels:
+    umbra.io/fault: F26
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: f26-hpa-inverted
+  template:
+    metadata:
+      labels:
+        app: f26-hpa-inverted
+        umbra.io/fault: F26
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
