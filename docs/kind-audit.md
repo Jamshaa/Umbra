@@ -89,3 +89,33 @@ kubectl delete namespace demo
 Ningun archivo de esta tarea contiene credenciales, endpoints privados
 ni material sensible: solo la imagen publica de ejemplo
 (`ghcr.io/example/*`), el contexto `kind-umbra` y rutas dentro del nodo.
+
+## Leer el log desde un pod (solo lectura, solo control-plane)
+
+Un lector dentro del cluster (p. ej. el futuro watcher de Umbra) monta
+el log del nodo como solo-lectura y se fija al control-plane, que es el
+unico nodo donde existe el fichero:
+
+```yaml
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: umbra-control-plane  # kind: un solo nodo
+  containers:
+    - name: audit-reader
+      volumeMounts:
+        - name: umbra-audit
+          mountPath: /var/log/umbra-audit
+          readOnly: true
+  volumes:
+    - name: umbra-audit
+      hostPath:
+        path: /var/log/umbra-audit
+        type: Directory
+```
+
+Reglas: `readOnly: true` siempre (el lector nunca escribe el log) y
+`nodeSelector` al control-plane (en kind de un nodo es redundante, en
+multinodo evita montar un directorio que no existe). En un cluster
+real no se usa hostPath: el audit va a un backend webhook
+(`audit-webhook-*`) o lo envia un agente de logs; el formato de linea
+JSON que parsea `internal/attribution` es el mismo en ambos casos.
