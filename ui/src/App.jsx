@@ -22,6 +22,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
   const [notice, setNotice] = useState('loading findings…')
+  const [copied, setCopied] = useState(false)
   // Monotonic scan id: only the latest refresh may write state, so fast
   // repeated clicks can never leave stale results on screen.
   const scanGen = useRef(0)
@@ -58,6 +59,29 @@ export default function App() {
   const selected = findings.find((f) => f.id === selectedId) ?? null
   const visible = findings.filter((f) => severityFilter === 'all' || f.severity === severityFilter)
   const verified = selected?.state === 'verified'
+  // The exact kubectl command that records a human approval. The user
+  // name stays a placeholder: the UI never knows who you are.
+  const approveCmd = selected
+    ? `kubectl annotate finding ${selected.id} umbra.dev/approved=<tu-usuario>`
+    : ''
+  const copyApprove = async () => {
+    try {
+      await navigator.clipboard.writeText(approveCmd)
+    } catch {
+      // Fallback for contexts without the async clipboard API.
+      const ta = document.createElement('textarea')
+      ta.value = approveCmd
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      ta.remove()
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  useEffect(() => {
+    setCopied(false)
+  }, [selectedId])
 
   return (
     <div className="app-shell">
@@ -106,13 +130,19 @@ export default function App() {
                 <DiffView context={DIFF_CONTEXT} removed={selected.diffRemoved} added={selected.diffAdded} />
               </CodePanel>
               <div className="gate-row">
-                {/* Production gate: display-only in the alpha. There is no
-                    propose endpoint yet (the API is read-only by design),
-                    so a button here would promise an action that cannot
-                    run. The note carries the gate state instead. */}
+                {/* Production gate: display-only in the UI. There is no
+                    propose endpoint (the API is read-only by design), so
+                    approval is a kubectl command the human runs. The copy
+                    button only copies text; it never approves anything. */}
                 <code className={'gate-note ' + (verified ? 'is-ok' : 'is-pending')}>
                   {verified ? 'verification PASSED ✓ — awaiting human approval' : 'verification pending'}
                 </code>
+              </div>
+              <div className="gate-row">
+                <code className="gate-cmd" title="Run this to approve as a human">{approveCmd}</code>
+                <PixelButton size="sm" onClick={copyApprove} aria-label="Copy approval command">
+                  {copied ? '¡Copiado!' : 'Copiar'}
+                </PixelButton>
               </div>
             </>
           ) : (

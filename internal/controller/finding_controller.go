@@ -164,6 +164,9 @@ func (r *FindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	applyStatus := func() {
 		sanitizeStatus(&f.Status)
 		meta.SetStatusCondition(&f.Status.Conditions, readyConditionFor(to, f.Generation))
+		// The human gate lives in status too, but it only mirrors the
+		// umbra.dev/approved annotation written by a person.
+		applyApprovalCondition(&f)
 	}
 	applyStatus()
 

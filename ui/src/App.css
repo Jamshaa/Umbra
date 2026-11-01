@@ -56,6 +56,18 @@
   color: var(--warn);
 }
 
+.gate-cmd {
+  font-family: var(--font-code);
+  font-size: 12px;
+  padding: var(--sp-1);
+  border: 2px solid var(--hard-shadow);
+  background: var(--bg);
+  color: var(--ink);
+  overflow-x: auto;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 /* responsive: stack the three columns */
 @media (max-width: 900px) {
   .app-columns {
