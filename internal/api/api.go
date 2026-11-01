@@ -14,14 +14,24 @@ import (
 
 // FindingView is the UI shape documented in ui/src/api.js.
 type FindingView struct {
-	ID          string   `json:"id"`
-	Severity    string   `json:"severity"`
-	State       string   `json:"state"`
-	Kind        string   `json:"kind"`
-	Target      string   `json:"target"`
-	LiveYaml    string   `json:"liveYaml"`
-	DiffRemoved []string `json:"diffRemoved"`
-	DiffAdded   []string `json:"diffAdded"`
+	ID          string         `json:"id"`
+	Severity    string         `json:"severity"`
+	State       string         `json:"state"`
+	Kind        string         `json:"kind"`
+	Target      string         `json:"target"`
+	LiveYaml    string         `json:"liveYaml"`
+	DiffRemoved []string       `json:"diffRemoved"`
+	DiffAdded   []string       `json:"diffAdded"`
+	Timeline    []TimelineView `json:"timeline"`
+}
+
+// TimelineView is one rendered tool call, newest last.
+type TimelineView struct {
+	Tool         string `json:"tool"`
+	Args         string `json:"args"`
+	Result       string `json:"result"`
+	ModelVersion string `json:"modelVersion"`
+	Ts           int64  `json:"ts"`
 }
 
 // NewHandler wires the read-only routes. distDir is served at /;
@@ -68,9 +78,25 @@ func listFindings(ctx context.Context, c client.Client) ([]FindingView, error) {
 			LiveYaml:    evidence.Sanitize(f.Spec.PrePatchManifest),
 			DiffRemoved: []string{},
 			DiffAdded:   splitLines(f.Spec.ProposedPatch),
+			Timeline:    timelineOf(f),
 		})
 	}
 	return views, nil
+}
+
+// timelineOf renders status entries newest last, sanitized at the edge.
+func timelineOf(f v1alpha1.Finding) []TimelineView {
+	out := make([]TimelineView, 0, len(f.Status.Timeline))
+	for _, e := range f.Status.Timeline {
+		out = append(out, TimelineView{
+			Tool:         e.Tool,
+			Args:         evidence.Sanitize(e.Args),
+			Result:       evidence.Sanitize(e.Result),
+			ModelVersion: e.ModelVersion,
+			Ts:           e.Ts,
+		})
+	}
+	return out
 }
 
 func splitLines(s string) []string {

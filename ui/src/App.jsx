@@ -4,6 +4,7 @@ import PixelButton from './components/PixelButton.jsx'
 import FindingCard from './components/FindingCard.jsx'
 import CodePanel, { DiffView } from './components/CodePanel.jsx'
 import TimelineEntry from './components/TimelineEntry.jsx'
+import Scoreboard from './components/Scoreboard.jsx'
 import { MOCK_FINDINGS, DIFF_CONTEXT, TIMELINE } from './mock.js'
 import { loadFindings } from './api.js'
 import './App.css'
@@ -22,19 +23,22 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
   const [notice, setNotice] = useState('loading findings…')
+  const [source, setSource] = useState('mock')
   const [copied, setCopied] = useState(false)
   // Monotonic scan id: only the latest refresh may write state, so fast
   // repeated clicks can never leave stale results on screen.
   const scanGen = useRef(0)
-  const applyLoaded = ({ source, findings: list }) => {
+  const applyLoaded = ({ source: src, findings: list }) => {
     setFindings(list)
     setSelectedId(list[0]?.id ?? null)
-    setNotice(source === 'live' ? '' : 'mock data — set VITE_UMBRA_API=live for the operator API')
+    setSource(src)
+    setNotice(src === 'live' ? '' : 'mock data — set VITE_UMBRA_API=live for the operator API')
   }
   const applyFallback = () => {
     // Live API unreachable: degrade to mock instead of a dead screen.
     setFindings(MOCK_FINDINGS)
     setSelectedId(MOCK_FINDINGS[0]?.id ?? null)
+    setSource('mock')
     setNotice('live API unreachable — showing mock data')
   }
   const refresh = () => {
@@ -153,15 +157,25 @@ export default function App() {
         {/* ── right column: agent tool-call timeline ────────────────────── */}
         <section className="column">
           <h2 className="column-title">AGENT TIMELINE</h2>
-          {TIMELINE.map((entry, i) => (
-            <TimelineEntry key={i} entry={entry} />
-          ))}
+          {source === 'live' && selected?.timeline?.length > 0 ? (
+            selected.timeline.map((entry, i) => (
+              <TimelineEntry key={i} entry={entry} />
+            ))
+          ) : (
+            <>
+              <p className="empty-note">simulación — no es una ejecución real</p>
+              {TIMELINE.map((entry, i) => (
+                <TimelineEntry key={i} entry={entry} />
+              ))}
+            </>
+          )}
           <div className="thinking-row">
             <span className="cursor" aria-hidden="true" />
             <span className="thinking-label">agent thinking…</span>
           </div>
         </section>
       </main>
+      <Scoreboard />
     </div>
   )
 }

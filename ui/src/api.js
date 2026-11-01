@@ -25,9 +25,37 @@ export function normalize(list) {
       liveYaml: typeof f.liveYaml === 'string' ? f.liveYaml : '',
       diffRemoved: Array.isArray(f.diffRemoved) ? f.diffRemoved.filter((l) => typeof l === 'string') : [],
       diffAdded: Array.isArray(f.diffAdded) ? f.diffAdded.filter((l) => typeof l === 'string') : [],
+      timeline: normalizeTimeline(f.timeline),
     })
   }
   return out
+}
+
+// Backend tool-call feed per finding: [{tool, args, result, modelVersion, ts}].
+// String-or-string-lines coercion, same spirit as diffRemoved/diffAdded.
+// Missing or invalid → [] (the UI then shows the labeled mock fallback).
+function normalizeTimeline(timeline) {
+  if (!Array.isArray(timeline)) return []
+  const out = []
+  for (const e of timeline) {
+    if (!e || typeof e !== 'object') continue
+    const tool = textField(e.tool)
+    if (tool === '') continue
+    out.push({
+      tool,
+      args: textField(e.args),
+      result: textField(e.result),
+      modelVersion: textField(e.modelVersion),
+      ts: textField(e.ts),
+    })
+  }
+  return out
+}
+
+function textField(v) {
+  if (typeof v === 'string') return v
+  if (Array.isArray(v)) return v.filter((l) => typeof l === 'string').join('\n')
+  return ''
 }
 
 export async function loadFindings() {
