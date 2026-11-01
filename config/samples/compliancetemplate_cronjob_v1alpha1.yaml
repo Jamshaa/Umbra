@@ -1,0 +1,27 @@
+apiVersion: umbra.io/v1alpha1
+kind: ComplianceTemplate
+metadata:
+  name: cronjob-gpu-standard
+spec:
+  appliesTo:
+    - kind: CronJob
+      matchLabels:
+        app.kubernetes.io/component: cronjob
+  required:
+    resources:
+      limits:
+        cpu: {min: "500m"}
+        memory: {min: "1Gi"}
+        nvidia.com/gpu: {required: true}
+      requests:
+        cpu: {min: "250m"}
+        memory: {min: "512Mi"}
+        nvidia.com/gpu: {required: true}
+    image:
+      tagPolicy: explicit
+    concurrencyPolicy: Forbid
+  drift:
+    # Autofix applies ONLY to low-risk fields (resources, probes);
+    # image tags and concurrencyPolicy always fall back to PR.
+    onViolation: autofix
+    notifySlack: false

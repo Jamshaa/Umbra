@@ -1,0 +1,27 @@
+apiVersion: umbra.io/v1alpha1
+kind: ComplianceTemplate
+metadata:
+  name: worker-standard
+spec:
+  appliesTo:
+    - kind: Deployment
+      matchLabels:
+        app.kubernetes.io/component: worker
+  required:
+    resources:
+      limits:
+        cpu: {min: "250m"}
+        memory: {min: "256Mi"}
+      requests:
+        cpu: {min: "100m"}
+        memory: {min: "128Mi"}
+    probes:
+      liveness: required
+      readiness: required
+    image:
+      tagPolicy: explicit
+  drift:
+    # Observe first: new template, let violations accumulate as reports
+    # before wiring a stronger mode.
+    onViolation: report
+    notifySlack: false
