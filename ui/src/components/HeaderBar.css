@@ -29,6 +29,7 @@
   padding: 8px;
   border: 2px solid var(--hard-shadow);
   background: var(--panel);
+  margin-left: auto;
 }
 
 .status-led {

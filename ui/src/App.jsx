@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import HeaderBar from './components/HeaderBar.jsx'
 import PixelButton from './components/PixelButton.jsx'
 import FindingCard from './components/FindingCard.jsx'
@@ -22,6 +22,9 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
   const [notice, setNotice] = useState('loading findings…')
+  // Monotonic scan id: only the latest refresh may write state, so fast
+  // repeated clicks can never leave stale results on screen.
+  const scanGen = useRef(0)
   const applyLoaded = ({ source, findings: list }) => {
     setFindings(list)
     setSelectedId(list[0]?.id ?? null)
@@ -35,7 +38,12 @@ export default function App() {
   }
   const refresh = () => {
     setNotice('scanning cluster…')
-    loadFindings().then(applyLoaded, applyFallback)
+    const gen = scanGen.current + 1
+    scanGen.current = gen
+    loadFindings().then(
+      (r) => { if (gen === scanGen.current) applyLoaded(r) },
+      () => { if (gen === scanGen.current) applyFallback() },
+    )
   }
 
   useEffect(() => {

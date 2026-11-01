@@ -31,10 +31,10 @@ export function normalize(list) {
 }
 
 export async function loadFindings() {
-  if (!LIVE) return { source: 'mock', findings: MOCK_FINDINGS, notice: '' }
+  if (!LIVE) return { source: 'mock', findings: MOCK_FINDINGS }
   const res = await fetch('/api/findings', { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`GET /api/findings -> ${res.status}`)
-  return { source: 'live', findings: normalize(await res.json()), notice: '' }
+  return { source: 'live', findings: normalize(await res.json()) }
 }
 
 export { MOCK_FINDINGS }

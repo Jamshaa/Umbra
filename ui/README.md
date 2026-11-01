@@ -72,7 +72,7 @@ Three columns (stack vertically under 900px):
 | DETAIL | live manifest + sandbox diff + gate note (PASS/pending text; the Approve button was removed — no propose endpoint exists yet) | CRD status (mocked) |
 | AGENT TIMELINE | collapsible tool-call feed with status-colored rails | WebSocket (mocked) |
 
-The **Approve → prod** button stays disabled unless the finding is in
-`verified` state — that is the human approval gate, rendered at the UI layer
-too. It is intentionally *not* clickable in the alpha: approval actions bind
-to the operator's approval workflow once it exists.
+The production gate is a text note (PASS/pending), not a button: there is
+no propose endpoint yet — the API is read-only by design — so a button
+would promise an action that cannot run. It returns with the backend
+that backs it.
