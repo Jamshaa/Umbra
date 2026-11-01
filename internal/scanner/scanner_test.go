@@ -24,7 +24,7 @@ spec:
             requests: {cpu: "10m", memory: "64Mi"}
             limits: {cpu: "100m", memory: "128Mi"}
           livenessProbe: {tcpSocket: {port: 8080}}
-          readinessProbe: {tcpSocket: {port: 8080}}
+          readinessProbe: {httpGet: {path: /readyz, port: 8080}}
 `
 
 const noResourcesDeployment = `

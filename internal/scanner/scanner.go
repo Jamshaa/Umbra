@@ -38,8 +38,8 @@ type container struct {
 	Name           string               `json:"name"`
 	Image          string               `json:"image,omitempty"`
 	Resources      resourceRequirements `json:"resources,omitempty"`
-	LivenessProbe  *struct{}            `json:"livenessProbe,omitempty"`
-	ReadinessProbe *struct{}            `json:"readinessProbe,omitempty"`
+	LivenessProbe  any                  `json:"livenessProbe,omitempty"`
+	ReadinessProbe any                  `json:"readinessProbe,omitempty"`
 }
 
 // podSpec is the subset of a pod template the detector reads.
@@ -281,5 +281,26 @@ func Scan(docs []byte) []v1alpha1.Finding {
 	out = append(out, DetectNoLivenessProbe(docs)...)
 	out = append(out, DetectNoReadinessProbe(docs)...)
 	out = append(out, DetectMissingImagePullSecrets(docs)...)
+	out = append(out, DetectCronMissingDeadline(docs)...)
+	out = append(out, DetectCronShortDeadline(docs)...)
+	out = append(out, DetectCronSuspended(docs)...)
+	out = append(out, DetectCronOverlap(docs)...)
+	out = append(out, DetectCronMissingTimezone(docs)...)
+	out = append(out, DetectCronMissingJobBounds(docs)...)
+	out = append(out, DetectCronHistoryBloat(docs)...)
+	out = append(out, DetectCronGPUWithoutPlacement(docs)...)
+	out = append(out, DetectIdenticalProbes(docs)...)
+	out = append(out, DetectSingleReplica(docs)...)
+	out = append(out, DetectNoAntiAffinity(docs)...)
+	out = append(out, DetectRiskyMaxUnavailable(docs)...)
+	out = append(out, DetectInsecureContainer(docs)...)
+	out = append(out, DetectStatefulSetPartition(docs)...)
+	out = append(out, DetectJobNoBounds(docs)...)
+	out = append(out, DetectServiceNoEndpoints(docs)...)
+	out = append(out, DetectHPAWithoutRequests(docs)...)
+	out = append(out, DetectNamespaceNoPolicy(docs)...)
+	out = append(out, DetectNamespaceNoQuota(docs)...)
+	out = append(out, DetectRBACWildcard(docs)...)
+	out = append(out, DetectHPAInvertedBounds(docs)...)
 	return out
 }
