@@ -23,7 +23,7 @@ enlaza aquí y no repite afirmaciones.
 | `umbra-agent diagnose`, `umbra-bench` 3 modos | Sí | No (binarios; bench validado en estático) | Determinista sí; modelo no |
 | Scoreboard UI + timeline live/mock rotulada | Sí | Build+lint | Datos vivos no |
 | Bench A 21/18 + T 12/12 | Sí (JSONL + scoreboard) | — | `live: true` (kind 1.37.0) |
-| Handpatch grupo B (4 correctos + 4 incorrectos) | Sí (`bench/handpatch/`) | — | En curso: estático verde; vivo en marcha |
+| Handpatch grupo B (4 correctos + 4 incorrectos) | Sí (`bench/handpatch/`) | — | `live: true`: correctos pasan, incorrectos rechazados con puerta y motivo |
 
 ## Complemento (código existe, evidencia viva pendiente)
 
