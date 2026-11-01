@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/Jamshaa/Umbra/internal/attribution"
 	"github.com/Jamshaa/Umbra/internal/evidence"
 )
 
@@ -80,6 +82,24 @@ func Tools() []ToolDef {
 		{
 			Name:        "get_related",
 			Description: "Dependency neighbourhood: selecting Services, referenced ConfigMaps/Secrets/PVCs, service account and its RoleBindings (names only, never secret values).",
+			Parameters: obj(
+				`"kind":`+str("Kind, e.g. Deployment")+
+					`,"name":`+str("Object name")+
+					`,"namespace":`+str("Namespace"),
+				"kind", "name", "namespace"),
+		},
+		{
+			Name:        "get_changes",
+			Description: "What changed just before the failure: managedFields writers plus recent events (2h window), with client-vs-person confidence. Use it to answer who changed what.",
+			Parameters: obj(
+				`"kind":`+str("Kind, e.g. Deployment")+
+					`,"name":`+str("Object name")+
+					`,"namespace":`+str("Namespace"),
+				"kind", "name", "namespace"),
+		},
+		{
+			Name:        "get_impact",
+			Description: "Blast radius: dependency neighbourhood plus a 0-100 impact score (dependents, volumes, bindings; cluster kinds score higher). Use it to prioritize.",
 			Parameters: obj(
 				`"kind":`+str("Kind, e.g. Deployment")+
 					`,"name":`+str("Object name")+
@@ -171,6 +191,25 @@ type Proposal struct {
 }
 
 func runeLen(s string) int { return len([]rune(s)) }
+
+// impactScore grades 0-100 by neighbourhood size; cluster kinds outrank
+// namespaced ones. Duplicated from scanner.ImpactScore to keep the agent
+// loop free of the detector package.
+func impactScore(kind string, rel Related) int {
+	s := 10 + 8*len(rel.Services) + 4*len(rel.ConfigMaps) + 6*len(rel.Secrets) +
+		8*len(rel.PVCs) + 5*len(rel.RoleBindings) + 3*len(rel.Owners)
+	if kind == "CronJob" {
+		s += 10 // time bombs affect future runs
+	}
+	switch kind {
+	case "Namespace", "ClusterRole", "ClusterRoleBinding":
+		s += 30
+	}
+	if s > 100 {
+		s = 100
+	}
+	return s
+}
 
 // validateProposal enforces the propose_patch schema in code. Unknown
 // fields are ignored (forward-compatible); every known constraint is
@@ -315,6 +354,54 @@ func dispatch(ctx context.Context, k Kube, name string, args map[string]any) (st
 		}
 		raw, _ := json.Marshal(rel)
 		return string(raw), nil, nil
+	case "get_changes":
+		obj, err := k.Get(ctx, v.kind, v.name, v.namespace)
+		if err != nil {
+			return "", nil, err
+		}
+		fields := attribution.Attribute(obj)
+		evs, err := EventsFor(ctx, k, v.kind, v.name, v.namespace)
+		if err != nil {
+			return "", nil, err
+		}
+		now := time.Now()
+		cutoff := now.Add(-2 * time.Hour)
+		var lines []string
+		for _, f := range fields {
+			if f.UpdatedAt.IsZero() || f.UpdatedAt.Before(cutoff) || f.UpdatedAt.After(now) {
+				continue
+			}
+			lines = append(lines, f.Field+" changed by "+f.Manager+" at "+f.UpdatedAt.UTC().Format(time.RFC3339))
+		}
+		for _, e := range evs {
+			if strings.TrimSpace(e) == "" {
+				continue
+			}
+			lines = append(lines, "event: "+e)
+			if len(lines) >= 20 {
+				break
+			}
+		}
+		if len(lines) == 0 {
+			return "no changes in the last 2h", nil, nil
+		}
+		return evidence.Sanitize(strings.Join(lines, "\n")), nil, nil
+	case "get_impact":
+		rel, err := GetRelated(ctx, k, v.kind, v.name, v.namespace)
+		if err != nil {
+			return "", nil, err
+		}
+		score := impactScore(v.kind, rel)
+		out, _ := json.Marshal(map[string]any{
+			"services":     rel.Services,
+			"configMaps":   rel.ConfigMaps,
+			"secrets":      len(rel.Secrets), // count only: never names that invite guessing
+			"pvcs":         rel.PVCs,
+			"roleBindings": rel.RoleBindings,
+			"owners":       rel.Owners,
+			"score":        score,
+		})
+		return string(out), nil, nil
 	}
 	return "", nil, fmt.Errorf("unknown tool %q", name)
 }

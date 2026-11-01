@@ -28,6 +28,7 @@ type Related struct {
 	PVCs         []string `json:"pvcs"`
 	ServiceAcct  string   `json:"serviceAccount"`
 	RoleBindings []string `json:"roleBindings"`
+	Owners       []string `json:"owners,omitempty"`
 }
 
 func str(m map[string]any, k string) string {
@@ -180,6 +181,20 @@ func GetRelated(ctx context.Context, k Kube, kind, name, namespace string) (Rela
 	sort.Strings(out.Secrets)
 	sort.Strings(out.PVCs)
 	sort.Strings(out.RoleBindings)
+	// Owner chain: who created this object (ReplicaSet -> Deployment...).
+	if meta, _ := obj["metadata"].(map[string]any); meta != nil {
+		for _, o := range asList(meta["ownerReferences"]) {
+			om, _ := o.(map[string]any)
+			if om == nil {
+				continue
+			}
+			kind, name := str(om, "kind"), str(om, "name")
+			if kind != "" && name != "" {
+				out.Owners = append(out.Owners, kind+"/"+name)
+			}
+		}
+	}
+	sort.Strings(out.Owners)
 	return out, nil
 }
 

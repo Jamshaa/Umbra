@@ -63,6 +63,26 @@ func TestParseAuditLineFallbacks(t *testing.T) {
 	}
 }
 
+func TestPresentImpersonation(t *testing.T) {
+	// kubectl --as: both identities recorded, effective actor presented labeled.
+	imp, err := ParseAuditLine([]byte(`{"verb":"patch","user":{"username":"admin"},"impersonatedUser":{"username":"alice@example.com"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, q := imp.Present()
+	if id != "alice@example.com" || q != "impersonated, requested by admin" {
+		t.Fatalf("got (%q, %q)", id, q)
+	}
+	// Normal request: direct, no label games.
+	direct, err := ParseAuditLine([]byte(`{"verb":"get","user":{"username":"bob"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id, q := direct.Present(); id != "bob" || q != "direct" {
+		t.Fatalf("got (%q, %q)", id, q)
+	}
+}
+
 func TestResolveConfidence(t *testing.T) {
 	person, err := ParseAuditLine([]byte(auditPatch))
 	if err != nil {

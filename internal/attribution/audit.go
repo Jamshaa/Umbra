@@ -11,17 +11,18 @@ import (
 // one JSON object per line). Only identity and what/where fields are
 // kept: at Metadata level there are no request bodies to leak.
 type AuditEvent struct {
-	User        string   // user.username, e.g. "kubernetes-admin"
-	Groups      []string // user.groups
-	UserAgent   string   // e.g. "kubectl/v1.37.1"
-	Verb        string   // get/list/create/update/patch/delete/...
-	Resource    string   // objectRef.resource, e.g. "deployments"
-	Subresource string   // objectRef.subresource, "" when absent
-	Namespace   string   // objectRef.namespace
-	Name        string   // objectRef.name
-	APIGroup    string   // objectRef.apiGroup
-	Timestamp   time.Time
-	Stage       string
+	User             string   // user.username, e.g. "kubernetes-admin"
+	Groups           []string // user.groups
+	ImpersonatedUser string   // impersonatedUser.username, "" when absent
+	UserAgent        string   // e.g. "kubectl/v1.37.1"
+	Verb             string   // get/list/create/update/patch/delete/...
+	Resource         string   // objectRef.resource, e.g. "deployments"
+	Subresource      string   // objectRef.subresource, "" when absent
+	Namespace        string   // objectRef.namespace
+	Name             string   // objectRef.name
+	APIGroup         string   // objectRef.apiGroup
+	Timestamp        time.Time
+	Stage            string
 }
 
 // ParseAuditLine parses one audit-log JSON line. Unknown fields are
@@ -34,6 +35,9 @@ func ParseAuditLine(line []byte) (AuditEvent, error) {
 			Username string   `json:"username"`
 			Groups   []string `json:"groups"`
 		} `json:"user"`
+		Impersonated struct {
+			Username string `json:"username"`
+		} `json:"impersonatedUser"`
 		UserAgent string `json:"userAgent"`
 		Verb      string `json:"verb"`
 		ObjectRef struct {
@@ -66,17 +70,18 @@ func ParseAuditLine(line []byte) (AuditEvent, error) {
 		}
 	}
 	return AuditEvent{
-		User:        raw.User.Username,
-		Groups:      append([]string(nil), raw.User.Groups...),
-		UserAgent:   raw.UserAgent,
-		Verb:        raw.Verb,
-		Resource:    raw.ObjectRef.Resource,
-		Subresource: raw.ObjectRef.Subresource,
-		Namespace:   raw.ObjectRef.Namespace,
-		Name:        raw.ObjectRef.Name,
-		APIGroup:    raw.ObjectRef.APIGroup,
-		Timestamp:   ts,
-		Stage:       raw.Stage,
+		User:             raw.User.Username,
+		Groups:           append([]string(nil), raw.User.Groups...),
+		ImpersonatedUser: raw.Impersonated.Username,
+		UserAgent:        raw.UserAgent,
+		Verb:             raw.Verb,
+		Resource:         raw.ObjectRef.Resource,
+		Subresource:      raw.ObjectRef.Subresource,
+		Namespace:        raw.ObjectRef.Namespace,
+		Name:             raw.ObjectRef.Name,
+		APIGroup:         raw.ObjectRef.APIGroup,
+		Timestamp:        ts,
+		Stage:            raw.Stage,
 	}, nil
 }
 
@@ -113,8 +118,23 @@ type Attribution struct {
 	When     time.Time
 }
 
-// isPersonAccount reports whether an audit username identifies a human
-// operator as opposed to platform machinery. "system:*" accounts
+// Present decides which identity to show for an audit event. kubectl
+// --as impersonation records BOTH: user.username is the credential holder
+// who made the request, impersonatedUser.username is who it executed as.
+// We present the effective (impersonated) actor, always labeled, and keep
+// the requester in the record: showing the impersonated name bare would
+// let anyone claim to be anyone with --as.
+//
+//	("alice@example.com", "impersonated, requested by admin")  --as demo
+//	("bob", "direct")                                          normal request
+func (e AuditEvent) Present() (identity, qualifier string) {
+	if e.ImpersonatedUser != "" {
+		return e.ImpersonatedUser, "impersonated, requested by " + e.User
+	}
+	return e.User, "direct"
+}
+
+// isPersonAccount reports whether an audit username identifies a human// operator as opposed to platform machinery. "system:*" accounts
 // (controllers, kubelets, service accounts, anonymous) are clients,
 // not people. Other names ("kubernetes-admin", "alice") count as
 // persons, with a known limit: a shared kubeconfig narrows identity to

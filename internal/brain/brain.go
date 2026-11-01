@@ -147,6 +147,10 @@ type Client struct {
 	MaxSteps       int // loop cap, default DefaultMaxSteps
 	// MaxTokensPerFinding caps spend per finding; 0 means no cap.
 	MaxTokensPerFinding int
+	// NoCache disables the identical-call cache. Benchmarks set it: a
+	// sha256 cache would make N repeats return one answer and report
+	// fictitious consistency.
+	NoCache bool
 
 	mu       sync.Mutex
 	cache    map[string]StepResult
@@ -261,8 +265,10 @@ func (c *Client) Call(ctx context.Context, input []InputItem, tools []Tool, prev
 		return StepResult{}, fmt.Errorf("brain: encode tools: %w", err)
 	}
 	key := cacheKey(c.cfg.Model, previousResponseID, inJSON, toolsJSON)
-	if hit, ok := c.cached(key); ok {
-		return hit, nil
+	if !c.NoCache {
+		if hit, ok := c.cached(key); ok {
+			return hit, nil
+		}
 	}
 	body, err := c.requestBody(c.cfg.Model, input, tools, previousResponseID)
 	if err != nil {
@@ -279,7 +285,9 @@ func (c *Client) Call(ctx context.Context, input []InputItem, tools []Tool, prev
 		}
 		res, retry, err := c.doOnce(ctx, body)
 		if err == nil {
-			c.store(key, res)
+			if !c.NoCache {
+				c.store(key, res)
+			}
 			return res, nil
 		}
 		lastErr = err

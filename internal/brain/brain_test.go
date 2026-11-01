@@ -280,6 +280,27 @@ func TestCacheDedupesIdenticalCalls(t *testing.T) {
 	}
 }
 
+func TestNoCacheHitsServerEveryTime(t *testing.T) {
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.Write([]byte(okBody(t, "resp_n", "")))
+	}))
+	defer srv.Close()
+
+	c := testClient(t, srv.URL)
+	c.NoCache = true
+	in := []InputItem{UserMessage("same")}
+	for i := 0; i < 3; i++ {
+		if _, err := c.Call(context.Background(), in, nil, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if atomic.LoadInt32(&calls) != 3 {
+		t.Fatalf("NoCache must hit the server every repeat, got %d calls", calls)
+	}
+}
+
 func TestMalformedBodyFailsFast(t *testing.T) {
 	var calls int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
