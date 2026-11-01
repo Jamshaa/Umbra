@@ -42,8 +42,8 @@ func fail(format string, args ...any) Result {
 type container struct {
 	Name           string    `json:"name"`
 	Resources      resources `json:"resources,omitempty"`
-	LivenessProbe  *struct{} `json:"livenessProbe,omitempty"`
-	ReadinessProbe *struct{} `json:"readinessProbe,omitempty"`
+	LivenessProbe  any       `json:"livenessProbe,omitempty"`
+	ReadinessProbe any       `json:"readinessProbe,omitempty"`
 }
 
 type resources struct {

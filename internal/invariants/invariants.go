@@ -46,6 +46,24 @@ var rules = map[string]Rule{
 	"F04": {Allow: []string{"/spec/template/spec/containers/#/resources", "/spec/containers/#/resources"}},
 	"F05": {Allow: []string{"/spec/template/spec/containers/#/livenessProbe", "/spec/containers/#/livenessProbe"}},
 	"F06": {Allow: []string{"/spec/template/spec/containers/#/readinessProbe", "/spec/containers/#/readinessProbe"}},
+	// CronJob deterministic repairs: scalar job control fields only.
+	"CronDeadline":      {Allow: []string{"/spec/startingDeadlineSeconds"}},
+	"CronShortDeadline": {Allow: []string{"/spec/startingDeadlineSeconds"}},
+	"CronSuspended":     {Allow: []string{"/spec/suspend"}},
+	"CronOverlap":       {Allow: []string{"/spec/concurrencyPolicy"}},
+	"CronTimezone":      {Allow: []string{"/spec/timeZone"}},
+	"CronBounds": {Allow: []string{
+		"/spec/jobTemplate/spec/backoffLimit",
+		"/spec/jobTemplate/spec/activeDeadlineSeconds",
+		"/spec/jobTemplate/spec/ttlSecondsAfterFinished",
+	}},
+	"CronHistory": {Allow: []string{"/spec/successfulJobsHistoryLimit", "/spec/failedJobsHistoryLimit"}},
+	// Model-proposed, statically gated: selectors, HPA targets, probes, RBAC.
+	"ServiceEndpoints":   {Allow: []string{"/spec/selector"}},
+	"HPARequests":        {Allow: []string{"/spec/template/spec/containers/#/resources", "/spec/containers/#/resources"}},
+	"ProbesDistinct":     {Allow: []string{"/spec/template/spec/containers/#/readinessProbe", "/spec/containers/#/readinessProbe"}},
+	"RBACLeastPrivilege": {Allow: []string{"/rules", "/spec/rules"}},
+	"HPAInvertedBounds":  {Allow: []string{"/spec/minReplicas", "/spec/maxReplicas"}},
 }
 
 // decodeOne parses a single YAML/JSON document into plain maps.

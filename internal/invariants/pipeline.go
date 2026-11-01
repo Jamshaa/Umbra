@@ -15,12 +15,31 @@ const VerifyTimeout = 30 * time.Second
 // Rules without a Go verifier are refused by the pipeline (fail closed);
 // T5 covers them with diagnosis-only runs.
 var verifiers = map[string]func(doc []byte, pod verify.PodStatus) verify.Result{
-	"F01": verify.VerifyF01,
-	"F02": verify.VerifyF02,
-	"F03": verify.VerifyF03,
-	"F04": verify.VerifyF04,
-	"F05": verify.VerifyF05,
-	"F06": verify.VerifyF06,
+	"F01":                verify.VerifyF01,
+	"F02":                verify.VerifyF02,
+	"F03":                verify.VerifyF03,
+	"F04":                verify.VerifyF04,
+	"F05":                verify.VerifyF05,
+	"F06":                verify.VerifyF06,
+	"CronDeadline":       verify.VerifyCronDeadline,
+	"CronShortDeadline":  verify.VerifyCronDeadline,
+	"CronSuspended":      verify.VerifyCronSuspended,
+	"CronOverlap":        verify.VerifyCronOverlap,
+	"CronBounds":         verify.VerifyCronBounds,
+	"CronTimezone":       verify.VerifyCronTimezone,
+	"CronSilentFail":     verify.VerifyCronSilentFail,
+	"ServiceEndpoints":   verify.VerifyServiceEndpoints,
+	"HPARequests":        verify.VerifyHPARequests,
+	"HPAInvertedBounds":  verify.VerifyHPAInvertedBounds,
+	"ProbesDistinct":     verify.VerifyProbesDistinct,
+	"RBACLeastPrivilege": verify.VerifyRBACLeastPrivilege,
+}
+
+// VerifierFor returns the deterministic gate for a rule id, or false when
+// the rule is diagnosis-only (fail closed: no gate, no apply).
+func VerifierFor(rule string) (func([]byte, verify.PodStatus) verify.Result, bool) {
+	vfn, ok := verifiers[rule]
+	return vfn, ok
 }
 
 // DryRunner asks the API server to admit a document without persisting
