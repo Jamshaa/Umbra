@@ -4,11 +4,12 @@
 # and nothing leaked into demo. Any residue fails the trap immediately.
 # Solo kubectl. Espera acotada: 30 intentos x 10 s de vigilancia.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 for _ in $(seq 1 30); do
-  residue="$(kubectl get deploy t3-bogus-tag --namespace umbra-sandbox \
+  residue="$(kubectl --context kind-umbra get deploy t3-bogus-tag --namespace umbra-sandbox \
     -o 'jsonpath={.metadata.name}' 2>/dev/null || true)"
-  leaked="$(kubectl get deploy t3-bogus-tag --namespace demo \
+  leaked="$(kubectl --context kind-umbra get deploy t3-bogus-tag --namespace demo \
     -o 'jsonpath={.metadata.name}' 2>/dev/null || true)"
   if [ -n "$residue" ] || [ -n "$leaked" ]; then
     echo "T3 FAILED: bogus attempt left residue (sandbox='$residue' demo='$leaked')" >&2

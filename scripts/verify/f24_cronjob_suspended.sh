@@ -3,12 +3,13 @@
 # esta suspendido (schedule detenido en silencio).
 # Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 CRONJOB="f24-suspended"
 
 for _ in $(seq 1 30); do
-  susp="$(kubectl get cronjob "$CRONJOB" --namespace "$NAMESPACE" \
+  susp="$(kubectl --context kind-umbra get cronjob "$CRONJOB" --namespace "$NAMESPACE" \
     -o 'jsonpath={.spec.suspend}' 2>/dev/null || true)"
   if [ "$susp" = "true" ]; then
     echo "F24 verified: CronJob suspended, schedule silently stopped"

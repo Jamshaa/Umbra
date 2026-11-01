@@ -3,12 +3,13 @@
 # minReplicas por encima de maxReplicas (rango imposible).
 # Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 HPA="f26-hpa-inverted"
 
 for _ in $(seq 1 30); do
-  bounds="$(kubectl get hpa "$HPA" --namespace "$NAMESPACE" \
+  bounds="$(kubectl --context kind-umbra get hpa "$HPA" --namespace "$NAMESPACE" \
     -o 'jsonpath={.spec.minReplicas}/{.spec.maxReplicas}' 2>/dev/null || true)"
   min="${bounds%%/*}"
   max="${bounds##*/}"

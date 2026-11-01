@@ -7,12 +7,13 @@
 # the guardrail is missing: trap fails.
 # Solo kubectl. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="umbra-sandbox"
 
 for _ in $(seq 1 30); do
   # Rechazo = dry-run con codigo distinto de cero.
-  if ! kubectl run t2-quota-probe --image=ghcr.io/example/demo-app:v1 \
+  if ! kubectl --context kind-umbra run t2-quota-probe --image=ghcr.io/example/demo-app:v1 \
       --restart=Never --namespace "$NAMESPACE" \
       --limits='memory=64Gi' --dry-run=server -o name >/dev/null 2>&1; then
     echo "T2 verified: over-quota pod refused at dry-run"

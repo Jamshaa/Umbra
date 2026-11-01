@@ -3,12 +3,13 @@
 # create sobre pods/exec. Solo kubectl, solo ns demo.
 # Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 ROLENAME="f31-pods-exec"
 
 for _ in $(seq 1 30); do
-  res="$(kubectl get role "$ROLENAME" --namespace "$NAMESPACE" \
+  res="$(kubectl --context kind-umbra get role "$ROLENAME" --namespace "$NAMESPACE" \
     -o 'jsonpath={.rules[0].resources}{.rules[0].verbs}' 2>/dev/null || true)"
   if [ "$res" = '["pods/exec"]["create"]' ]; then
     echo "F31 verified: Role grants pods/exec"

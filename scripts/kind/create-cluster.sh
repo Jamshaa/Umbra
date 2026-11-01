@@ -61,5 +61,9 @@ EOF
 
 "$KIND_BIN" create cluster --name "$CLUSTER_NAME" --image "$KIND_IMAGE" --config "$KIND_CONFIG"
 
-kubectl wait --for=condition=Ready nodes --all --timeout=120s
-kubectl cluster-info --context "kind-$CLUSTER_NAME"
+# From here on we talk to the fresh cluster: enforce the context guard
+# for every kubectl call below (the delete above is name-scoped by kind).
+source "$(dirname "$0")/../lib/guard.sh"
+
+kubectl --context kind-umbra wait --for=condition=Ready nodes --all --timeout=120s
+kubectl --context kind-umbra cluster-info

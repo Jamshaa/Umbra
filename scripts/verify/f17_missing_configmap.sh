@@ -3,12 +3,13 @@
 # atascado en CreateContainerConfigError por el ConfigMap ausente.
 # Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 LABEL="app=f17-missing-configmap"
 
 for _ in $(seq 1 30); do
-  waiting="$(kubectl get pods --namespace "$NAMESPACE" -l "$LABEL" \
+  waiting="$(kubectl --context kind-umbra get pods --namespace "$NAMESPACE" -l "$LABEL" \
     -o 'jsonpath={.items[*].status.containerStatuses[*].state.waiting.reason}' 2>/dev/null || true)"
   if printf '%s' "$waiting" | grep -q 'CreateContainerConfigError'; then
     echo "F17 verified: pod stuck on missing ConfigMap"

@@ -3,12 +3,13 @@
 # updateStrategy OnDelete (las nuevas versiones nunca se despliegan).
 # Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 STS="f40-ondelete"
 
 for _ in $(seq 1 30); do
-  strategy="$(kubectl get statefulset "$STS" --namespace "$NAMESPACE" \
+  strategy="$(kubectl --context kind-umbra get statefulset "$STS" --namespace "$NAMESPACE" \
     -o 'jsonpath={.spec.updateStrategy.type}' 2>/dev/null || true)"
   if [ "$strategy" = "OnDelete" ]; then
     echo "F40 verified: StatefulSet stuck on OnDelete strategy"

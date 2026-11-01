@@ -3,12 +3,13 @@
 # securityContext.privileged=true. Solo kubectl, solo ns demo.
 # Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 LABEL="app=f10-privileged"
 
 for _ in $(seq 1 30); do
-  priv="$(kubectl get pods --namespace "$NAMESPACE" -l "$LABEL" \
+  priv="$(kubectl --context kind-umbra get pods --namespace "$NAMESPACE" -l "$LABEL" \
     -o 'jsonpath={.items[*].spec.containers[*].securityContext.privileged}' 2>/dev/null || true)"
   # Pod existe y algún contenedor declara privileged=true.
   if printf '%s' "$priv" | grep -q 'true'; then

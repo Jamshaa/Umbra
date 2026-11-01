@@ -3,14 +3,15 @@
 # ConfigMap SIN anotacion checksum (cualquier cambio lo deja obsoleto).
 # Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 DEPLOY="f32-stale-config"
 
 for _ in $(seq 1 30); do
-  mounts="$(kubectl get deploy "$DEPLOY" --namespace "$NAMESPACE" \
+  mounts="$(kubectl --context kind-umbra get deploy "$DEPLOY" --namespace "$NAMESPACE" \
     -o 'jsonpath={.spec.template.spec.containers[*].envFrom[*].configMapRef.name}' 2>/dev/null || true)"
-  checksum="$(kubectl get deploy "$DEPLOY" --namespace "$NAMESPACE" \
+  checksum="$(kubectl --context kind-umbra get deploy "$DEPLOY" --namespace "$NAMESPACE" \
     -o 'jsonpath={.spec.template.metadata.annotations.checksum\/config}' 2>/dev/null || true)"
   if [ "$mounts" = "f32-settings" ] && [ -z "$checksum" ]; then
     echo "F32 verified: ConfigMap mounted without rollout checksum"

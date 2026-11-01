@@ -1,20 +1,26 @@
 #!/usr/bin/env bash
-# up.sh: prepara el namespace demo para los injectores F01-F05.
-# Crea el namespace demo (si no existe) y limpia restos de
-# inyecciones anteriores dentro de ESE namespace. No toca nada mas.
-# Idempotente: re-ejecutar es seguro.
-# Unico binario externo: kubectl (en PATH).
-set -eu
+# up.sh: levanta el entorno completo de Umbra en kind (paso 6 del flujo).
+# Cluster con audit log -> imagenes -> CRDs -> manager -> namespaces base.
+# Idempotente: re-ejecutar reconstruye desde cero.
+# NO aplica los 40 fixtures: cada inyector aplica su fallo cuando toca.
+# Binarios externos: kind (KIND_BIN o PATH), kubectl, docker, go.
+set -euo pipefail
 
-NAMESPACE="demo"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
+cd "$ROOT_DIR"
 
-# El namespace se declara en el propio repo (demo/kustomization.yaml
-# fija `namespace: demo`), pero los injectores no presuponen que exista.
-if ! kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
-  kubectl create namespace "$NAMESPACE"
-fi
+CTX="kind-umbra"
 
-# Limpia restos de inyecciones anteriores: solo los Deployments
-# de fallos conocidos dentro del namespace demo. Nada mas.
-kubectl delete deployment f01-no-limits f02-low-memory f03-huge-requests f04-no-limits-bursty f05-no-liveness \
-  --namespace "$NAMESPACE" --ignore-not-found=true
+bash scripts/kind/create-cluster.sh            # crea kind-umbra con audit
+source scripts/lib/guard.sh                   # guarda tras crear el cluster
+kubectl --context "$CTX" wait --for=condition=Ready node --all --timeout=180s
+bash scripts/build-images.sh                  # compila y carga imagenes en kind
+kubectl --context "$CTX" apply --server-side -k config/crd
+kubectl --context "$CTX" apply -k config/manager
+kubectl --context "$CTX" -n umbra-system rollout status deploy/umbra-manager --timeout=120s
+kubectl --context "$CTX" create ns demo --dry-run=client -o yaml | kubectl --context "$CTX" apply -f -
+kubectl --context "$CTX" create ns umbra-sandbox --dry-run=client -o yaml | kubectl --context "$CTX" apply -f -
+kubectl --context "$CTX" apply -f config/sandbox/deny-all.yaml
+
+echo "demo lista: kind-umbra Ready, CRDs + manager en marcha"

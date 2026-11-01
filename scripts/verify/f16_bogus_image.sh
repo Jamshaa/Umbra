@@ -3,12 +3,13 @@
 # atascado en ImagePullBackOff o ErrImagePull.
 # Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 LABEL="app=f16-bogus-image"
 
 for _ in $(seq 1 30); do
-  waiting="$(kubectl get pods --namespace "$NAMESPACE" -l "$LABEL" \
+  waiting="$(kubectl --context kind-umbra get pods --namespace "$NAMESPACE" -l "$LABEL" \
     -o 'jsonpath={.items[*].status.containerStatuses[*].state.waiting.reason}' 2>/dev/null || true)"
   # Cualquiera de los dos motivos confirma imagen inexistente.
   if printf '%s' "$waiting" | grep -Eq 'ImagePullBackOff|ErrImagePull'; then

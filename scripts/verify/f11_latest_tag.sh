@@ -3,12 +3,13 @@
 # imagen con tag :latest (o sin tag). Solo kubectl, solo ns demo.
 # Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 LABEL="app=f11-latest-tag"
 
 for _ in $(seq 1 30); do
-  img="$(kubectl get pods --namespace "$NAMESPACE" -l "$LABEL" \
+  img="$(kubectl --context kind-umbra get pods --namespace "$NAMESPACE" -l "$LABEL" \
     -o 'jsonpath={.items[*].spec.containers[*].image}' 2>/dev/null || true)"
   # Imagen presente y termina en :latest (o sin tag, que equivale).
   if [ -n "$img" ] && { printf '%s' "$img" | grep -q ':latest$'; }; then

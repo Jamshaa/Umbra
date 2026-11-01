@@ -3,6 +3,7 @@
 # porque el ejecutable no existe (mensaje "not found" del runtime).
 # Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 LABEL="app=f19-command-typo"
@@ -10,7 +11,7 @@ LABEL="app=f19-command-typo"
 for _ in $(seq 1 30); do
   # El mensaje del runtime menciona el ejecutable ausente; el motivo
   # varia entre runtimes (CrashLoopBackOff/CreateContainerError).
-  msg="$(kubectl get pods --namespace "$NAMESPACE" -l "$LABEL" \
+  msg="$(kubectl --context kind-umbra get pods --namespace "$NAMESPACE" -l "$LABEL" \
     -o 'jsonpath={.items[*].status.containerStatuses[*].state.waiting.message}{.items[*].status.containerStatuses[*].lastState.terminated.message}' 2>/dev/null || true)"
   if printf '%s' "$msg" | grep -qi 'executable.*not found\|not found.*executable\|exec.*no such file'; then
     echo "F19 verified: container fails on typo'd executable"

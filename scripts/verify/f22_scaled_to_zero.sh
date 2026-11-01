@@ -3,12 +3,13 @@
 # esta escalado a cero replicas (existe pero no sirve trafico).
 # Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 DEPLOY="f22-scaled-to-zero"
 
 for _ in $(seq 1 30); do
-  reps="$(kubectl get deploy "$DEPLOY" --namespace "$NAMESPACE" \
+  reps="$(kubectl --context kind-umbra get deploy "$DEPLOY" --namespace "$NAMESPACE" \
     -o 'jsonpath={.spec.replicas}' 2>/dev/null || true)"
   if [ "$reps" = "0" ]; then
     echo "F22 verified: Deployment scaled to zero replicas"

@@ -3,7 +3,8 @@
 # No toca ningun otro namespace. Idempotente: re-ejecutar es seguro.
 # Unico binario externo: kubectl (en PATH).
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 
-kubectl delete namespace "$NAMESPACE" --ignore-not-found=true
+kubectl --context kind-umbra delete namespace "$NAMESPACE" --ignore-not-found=true

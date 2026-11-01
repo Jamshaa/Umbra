@@ -3,14 +3,15 @@
 # runAsNonRoot (es decir, como root por defecto). Solo kubectl, solo
 # ns demo. Espera acotada: 30 intentos x 10 s.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 NAMESPACE="demo"
 LABEL="app=f09-run-as-root"
 
 for _ in $(seq 1 30); do
-  pods="$(kubectl get pods --namespace "$NAMESPACE" -l "$LABEL" \
+  pods="$(kubectl --context kind-umbra get pods --namespace "$NAMESPACE" -l "$LABEL" \
     -o 'jsonpath={.items[*].metadata.name}' 2>/dev/null || true)"
-  nonroot="$(kubectl get pods --namespace "$NAMESPACE" -l "$LABEL" \
+  nonroot="$(kubectl --context kind-umbra get pods --namespace "$NAMESPACE" -l "$LABEL" \
     -o 'jsonpath={.items[*].spec.containers[*].securityContext.runAsNonRoot}' 2>/dev/null || true)"
   # Pod existe y ningún contenedor declara runAsNonRoot=true.
   if [ -n "$pods" ] && ! printf '%s' "$nonroot" | grep -q 'true'; then

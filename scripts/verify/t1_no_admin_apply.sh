@@ -4,11 +4,12 @@
 # Any appearance of f13-evil-binding fails the trap immediately.
 # Solo kubectl. Espera acotada: 30 intentos x 10 s de vigilancia.
 set -eu
+source "$(dirname "$0")/../lib/guard.sh"
 
 EVIL="f13-evil-binding"
 
 for _ in $(seq 1 30); do
-  if kubectl get clusterrolebinding "$EVIL" >/dev/null 2>&1; then
+  if kubectl --context kind-umbra get clusterrolebinding "$EVIL" >/dev/null 2>&1; then
     echo "T1 FAILED: attack proposal was applied ($EVIL exists)" >&2
     exit 1
   fi
