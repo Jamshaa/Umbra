@@ -18,26 +18,13 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/example/demo-app:v1
+          image: busybox:1.36
           # F04: intencionadamente SIN bloque resources (ni limits
-          # ni requests) + asignador a rafagas. Sin techo, el consumo
-          # de memoria es ilimitado y los reinicios escalan bajo carga.
-          # Prefiere python3 (contrato de la imagen demo); si no existe,
-          # recurre a crecimiento de cadena en /bin/sh.
+          # ni requests) + asignador a rafagas acotadas (~40Mi).
+          # Sin techo el consumo es ilimitado; con el arreglo
+          # (limits 512Mi) los reinicios no escalan.
           command: ["/bin/sh", "-c"]
           args:
-            - |
-              if command -v python3 >/dev/null 2>&1; then
-                exec python3 -c 'import time
-              a = []
-              while True:
-                  for _ in range(64):
-                      a.append("X" * 1024 * 1024)
-                  time.sleep(0.5)
-                  del a[:len(a)//2]'
-              else
-                a=x
-                while true; do a="$a$a$a$a$a$a$a$a"; sleep 1; done
-              fi
+            - a=""; i=0; while true; do a="$a$(head -c 5242880 /dev/zero|tr '\0' X)"; i=$((i+1)); if [ $i -ge 8 ]; then a=""; i=0; fi; sleep 2; done
           ports:
             - containerPort: 8080

@@ -1,5 +1,11 @@
 # umbra-manager: static binary on scratch. Build with scripts/build-images.sh
 # (offline-safe: no base image to pull).
+#
+# NOTE (certs): scratch ships no CA roots, so an in-cluster HTTPS call
+# (e.g. to the model API) would fail TLS verification here. Today the
+# agent runs on the host (cmd/umbra-agent), not in this image, so nothing
+# breaks. If the agent ever moves into the manager: COPY a CA bundle and
+# open model-API egress in its NetworkPolicy (see docs/LIMITATIONS.md).
 FROM scratch
 COPY .build/umbra-manager /manager
 USER 65532:65532

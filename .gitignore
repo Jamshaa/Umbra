@@ -114,6 +114,9 @@ desktop.ini
 node_modules/
 ui/dist/
 
+# ---------- Regenerable UI copy (rebuilt by make bench, never hand-edited) ----------
+ui/public/scoreboard.json
+
 # ---------- Local kind / kubernetes scratch state ----------
 .kind/
 scratch/

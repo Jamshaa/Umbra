@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/example/demo-app:v1
+          image: demo-app:local
           # F01: intencionadamente SIN bloque resources
           # (ni limits ni requests). No anadir.
           ports:

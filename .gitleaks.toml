@@ -16,3 +16,15 @@ title = "Umbra secrets scan"
 
 [extend]
 useDefault = true
+
+# ACCEPTED RISK (maintainer-reviewed): the sanitizer's own unit-test
+# vectors in internal/evidence/sanitize_test.go are fake BY CONSTRUCTION:
+# AWS-documented EXAMPLE keys (AKIA...EXAMPLE), a sequential ghp_
+# placeholder, example.com/example.org hosts, hunter2 literals and an
+# example JWT (see TestNoSecretReachesModelBody/TestSanitizeExtendedPatterns,
+# which assert these values never survive Sanitize). That file exists
+# solely to prove redaction, so any secret-shaped string in it is a test
+# vector by definition. No other path is exempted.
+[allowlist]
+description = "sanitizer unit-test fixtures (fake by construction)"
+paths = ['''internal/evidence/sanitize_test\.go''']

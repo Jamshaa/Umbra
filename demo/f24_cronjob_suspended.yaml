@@ -20,7 +20,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: backup
-              image: ghcr.io/example/demo-app:v1
+              image: busybox:1.36
               command: ["/bin/sh", "-c", "echo backup-ok"]
               resources:
                 requests:

@@ -12,6 +12,11 @@
 *.jsonl text eol=lf
 go.mod text eol=lf
 go.sum text eol=lf
+Makefile text eol=lf
+Dockerfile* text eol=lf
+.gitignore text eol=lf
+.gitleaks* text eol=lf
+*.txt text eol=lf
 *.go text eol=lf
 *.js text eol=lf
 *.jsx text eol=lf

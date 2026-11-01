@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/example/demo-app:v1
+          image: demo-app:local
           # F06: intencionadamente SIN readiness probe. El pod arranca
           # pero nunca figura Ready (ni el Service lo selecciona). La
           # liveness SI esta definida (el fallo es solo la falta de

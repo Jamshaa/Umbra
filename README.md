@@ -3,153 +3,99 @@
 > **Self-healing Kubernetes configurations, end to end:
 > detect → diagnose → patch → apply in a sandbox → verify → roll back if anything fails.**
 
-**Status: early development (pre-release).** The roadmap lives in [docs/PLAN.md](docs/PLAN.md) and the design in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+**Status: pre-release.** Ningún arreglo llega a producción sin prueba determinista; ningún cambio manual queda sin atribuir.
 
----
+> Estado función por función (implementado / unit / vivo): [`docs/STATUS.md`](docs/STATUS.md). El README no afirma nada que esa tabla no respalde.
 
-<!-- Badges available to add on first public push:
-- CI status (ci.yml), security scan (security.yml), License: Apache-2.0.
-Purposefully not added yet: the workflows below exist, but the first real commit that lands
-on `main` is what makes them run. Fake green badges before that would be dishonest. -->
+> Captura de la UI: pendiente de la primera demo grabada (ver `docs/DEMO.md`).
 
-## Why Umbra exists
+## El problema
 
-There is no shortage of tools that *detect* Kubernetes misconfiguration. The gap is that almost none of them *close the loop* — detect, propose a fix, test it in isolation, verify it, and roll back automatically if it breaks.
+Los equipos de plataforma viven con errores de configuración: el 78% de los
+encuestados de Red Hat reportó fallos de configuración en el último año. El
+flujo real es siempre el mismo: algo se rompe, la primera pregunta es
+"¿qué cambió justo antes?", y el arreglo manual que sigue no deja rastro
+auditable. Umbra encaja en ese día a día: el hallazgo llega con quién lo
+cambió, la propuesta con su prueba, y la aplicación con recibo y reversión.
 
-| Tool | What it does | What it does **not** do |
+## Qué lo diferencia
+
+| Herramienta | Hace | No hace (Umbra sí) |
 |---|---|---|
-| [KubeLinter](https://github.com/stackrox/kube-linter) | Static manifest linting | No fixes, no runtime verification |
-| [kube-bench](https://github.com/aquasecurity/kube-bench) | CIS Benchmark audit | Audit only, never repairs |
-| [Polaris](https://github.com/FairwindsOps/polaris) | Dashboard + admission controller + CLI | Blocks at deploy time; never repairs what is already running |
-| Closed-source "AI remediation" products (e.g. AlertMend) | Autonomous scaling/remediation | Commercial, closed source, opaque |
+| K8sGPT | Escanea y explica; remediación automática alfa y limitada | Probar el parche antes de aplicarlo |
+| HolmesGPT | Investiga en solo lectura | Proponer + verificar + recibo |
+| Aurora | Abre PRs solo tras aprobación humana | Puertas deterministas y rollback por snapshot |
 
-**The gap Umbra fills:** a fully open-source agent that closes the complete loop — *audit → fix → sandbox → verify → rollback* — for **general configuration problems**, not just security findings.
+Tesis: el modelo propone, el código verifica, un humano aprueba y todo deja
+un recibo. División honesta del trabajo: **el operador mantiene el estado y
+las puertas; el agente es el que propone**. No es un operador autónomo: sin
+propuesta del agente no hay nada que verificar, y sin puertas nada llega a
+producción.
 
-## How it works
+## Cómo funciona
 
 ```
-┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│   Scanner   │────▶│     Agent (LLM)  │───▶ │     Sandbox      │
-│ (kubectl +  │     │  tool-calling:   │     │  (isolated kind  │
-│  linters)   │     │  diagnose + fix  │     │   namespace with │
-└─────────────┘     └──────────────────┘     │  egress denied)  │
-                                             └────────┬─────────┘
-                                                      │ patch validated
-                                              ┌───────▼─────────┐
-                                              │    Verifier     │
-                                              │ deterministic   │
-                                              │ tests + rollback│
-                                              └─────────────────┘
+Scanner ──▶ Agent (Muse Spark, Responses API) ──▶ Sandbox (umbra-sandbox)
+  │                │ read-only + propose_patch            │ dry-run + apply
+  │                ▼                                     ▼
+  │         allowlist + invariantes               Verificador determinista
+  │                │                                pass ▶ propone (humano aprueba)
+  │                │                                fail ▶ rollback por snapshot
+  └── hallazgo con atribución (audit log / managedFields)
 ```
 
-| Stage | Component | Responsibility |
-|---|---|---|
-| 1. Scan | Scanner | Inventory the cluster (`kubectl get`, KubeLinter, kube-bench) and produce structured findings with severity. |
-| 2. Diagnose & propose | Agent (LLM) | Takes one finding, gathers extra context via tools (logs, events, status), proposes a YAML patch, decides whether applying it is safe. |
-| 3. Sandbox | Sandbox | Applies the patch inside an isolated namespace (`audit-sandbox`) whose NetworkPolicy forbids egress — the cluster is the blast radius limit. |
-| 4. Verify | Verifier | **Deterministic code, not the LLM:** pod starts, probes pass, no CrashLoop, RBAC not widened. Anything unexpected → `rollback`. |
-| 5. Gate | Production gate | Only if the sandbox check suite passes, the change is *proposed* for production and waits for explicit human approval. |
+Seguridad del agente: el modelo nunca aplica nada; `tool_choice: auto` con la
+lista impuesta en código (`internal/agent/tools.go`); parches tipados contra
+allowlist; secretos redactados antes del prompt (`internal/evidence`); T4
+prueba la inyección; sin auto-apply; RBAC mínimo de solo lectura. Detalle en
+`docs/SECURITY.md` y `docs/META.md`.
 
-**The agent never executes anything directly.** The LLM returns `tool_calls`; the harness owns the execution:
-
-| Tool exposed to the model | Purpose |
-|---|---|
-| `get_pod_status(ns, pod)` | Status, restarts, events |
-| `get_logs(ns, pod, tail)` | Last N log lines |
-| `get_manifest(ns, resource)` | Current YAML |
-| `apply_patch(ns, yaml)` | Apply in the sandbox namespace |
-| `run_verification(ns)` | Run the deterministic checks |
-| `rollback(ns, resource)` | Revert the change |
-| `propose_for_production(patch)` | Queue the change for explicit human approval |
-
-## The target: 20 injected faults
-
-Development is driven by a matrix of 20 deliberately-broken workloads. Every fault has **two artifacts written together, before any AI is involved**: an **injector script** and a **deterministic verification test**.
-
-| Category | Example faults | Verification |
-|---|---|---|
-| Resources | Missing limits, unrealistic requests, OOMKilled | Pod starts, no OOM |
-| Reliability | Missing liveness/readiness probes, CrashLoop | Probe passes, no restarts |
-| Security | `runAsRoot`, privileged containers, `:latest` images | Correct `securityContext` |
-| RBAC | ServiceAccount bound to `cluster-admin` | Least-privilege permissions only |
-| Config | `ImagePullBackOff`, missing ConfigMap | Pod reaches `Running` |
-
-## What we measure
-
-| Metric | How it is measured |
-|---|---|
-| Detection | Did the scanner + agent identify the fault? (yes/no) |
-| Correct diagnosis | Does the agent's root cause match the injected one? |
-| Correct fix | Does the sandbox pass verification? |
-| No regression | Is the rest of the namespace still healthy after the fix? |
-| Clean rollback | If it failed, did it revert without residue? |
-
-The scoreboard is a single table: N/20 across those five columns. No inflation.
-
-## What Umbra is deliberately NOT
-
-* ❌ Multi-cluster / multi-tenant orchestration
-* ❌ GitOps (Helm charts, ArgoCD, reconciliation controllers)
-* ❌ Metrics-stack integration (Prometheus/Grafana) — `kubectl top` and events suffice
-* ❌ A pretty dashboard — an HTML table is enough
-* ❌ A free-form chatbot
-
-## Getting started (100% local, zero cloud)
-
-Everything runs inside a disposable [kind](https://kind.sigs.k8s.io/) cluster. Umbra development needs **no cloud provider account and never attends to real cluster credentials** — that is deliberate.
-
-**Prerequisites**
-
-| Tool | Version tested | Notes |
-|---|---|---|
-| Docker | 29.x (Docker Desktop 4.97) | WSL2 backend on Windows |
-| kind | 0.33.0 | Creates the test cluster |
-| kubectl | ≥ 1.37 | Client–server skew kept ≤ 1 minor |
-| Python | 3.10+ | Harness & verifier |
+## Inicio rápido (5 comandos)
 
 ```bash
-# 1. Bootstrap the local cluster (kind defaults to kindest/node:v1.37.0)
-kind create cluster --name umbra
-
-# 2. Confirm
-kubectl cluster-info
-kubectl get nodes
-
-# 3. (coming as development lands) run the harness
-#    python -m umbra scan --namespace demo
+bash scripts/kind/create-cluster.sh   # 1. cluster umbra + audit log
+bash scripts/build-images.sh          # 2. imágenes kind-only
+kubectl apply -k config/crd           # 3. CRDs
+make bench                             # 4. fila determinista del scoreboard
+cd ui && npm ci && npm run build      # 5. UI
 ```
 
-## Security & secrets policy — read this before your first push
+O `make demo` para todo de una vez. Requiere `MODEL_API_KEY` en entorno solo
+para los modos con modelo; **ningún dato sale salvo la llamada al modelo, con
+evidencia sanitizada**, y `MODEL_BASE_URL` permite apuntar a un modelo local.
 
-> **This repository must never contain private material: no API keys, no tokens, no kubeconfigs, no cloud credentials, no internal hostnames, no personal data.** The whole policy, the pre-push checklist and the leak-incident protocol live in **[SECURITY.md](SECURITY.md)**.
->
-> Automated scanning (`gitleaks`) runs in CI — [.github/workflows/security.yml](.github/workflows/security.yml) — and [CONTRIBUTING.md](CONTRIBUTING.md) documents the branch model. CI is a safety net, never a substitute for reviewing your own diff.
+## Benchmark
 
-## Repository layout
+Tres filas, mismos casos, semilla 42, 3 repeticiones (`bench/cases.yaml`):
 
-```
-Umbra/
-├── .github/workflows/     # CI (lint & tests) + security (secrets scanning)
-├── docs/                  # ARCHITECTURE.md (design), PLAN.md (roadmap)
-├── scanner/               # (planned, Day 1) kubectl + linters inventory
-├── brain/                 # (planned, Day 3) LLM tool-calling harness
-├── sandbox/               # (planned, Day 1) isolated namespace + NetworkPolicy
-├── verifier/              # (planned, Day 2) deterministic checks per fault
-├── demo/                  # (planned, Day 6) 20 fault cases + scoreboard script
-├── SECURITY.md            # Security policy + secrets rules  ← START HERE
-├── CONTRIBUTING.md        # Branch model, pre-push checklist
-├── CODE_OF_CONDUCT.md     # Contributor Covenant v2.1
-└── LICENSE                # Apache-2.0
-```
+| Configuración | Qué demuestra | Estado |
+|---|---|---|
+| Solo deterministas (grupo A) | Cobertura sin IA | **18/18**, `live: true` (kind 1.37.0) |
+| Trampas (grupo T) | Rechazar o contener | **12/12**, `live: true` (T1–T4 ×3) |
+| Modelo con verificadores (grupos A+B) | Cuánto añade la IA con seguridad; B es donde el modelo aporta lo que lo determinista no puede | Sin medir (sin clave en este entorno) |
+| Modelo sin verificadores | Parches malos que se habrían aplicado | Sin medir |
 
-## Contributing
+Grupos: **A** = hay arreglo determinista (F01–F06 y reglas Cron);
+**B** = hay verificador pero el arreglo es solo del modelo (Service sin
+endpoints, HPA sin requests, sondas idénticas, RBAC mínimo);
+**C** = solo diagnóstico; **T** = trampas (rechazar o contener). Cada
+resultado JSONL guarda `live: true|false`; las filas medidas hasta hoy son
+`live: true` (kind local).
 
-PRs are welcome once the first milestone lands; see [CONTRIBUTING.md](CONTRIBUTING.md) for the branch model, commit conventions and the mandatory secrets checklist.
+Datos crudos: `bench/results/*.jsonl` (el determinista, del 2026-11-01) y
+`bench/results/scoreboard.json`. Método y reglas de honestidad en
+`docs/BENCHMARK.md`. Ninguna cifra de modelo se publica hasta medirse.
 
-## Code of Conduct
+## Uso de Meta y limitaciones
 
-This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md).
+Modelo Muse Spark por Responses API con llamadas a herramientas; detalle de
+qué modelo, dónde y por qué en `docs/META.md`. Lo que no hace (Helm, tráfico
+real en sandbox, producción real, Prometheus, calendario CronJob completo):
+`docs/LIMITATIONS.md`.
 
-## License
+## Roadmap y licencia
 
-Distributed under the [Apache License 2.0](LICENSE) — including an explicit patent grant (§3), which matters for infrastructure tooling.
+Hoja de ruta del producto (no construido, rotulado): `ROADMAP.md`
+(v0.2 Helm/GitOps, v0.3 modelo local + SIEM, v0.4 CronJob/GPU + vCluster,
+v1.0 HA + multi-cluster). Licencia [Apache-2.0](LICENSE). Convivencia:
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [CONTRIBUTING.md](CONTRIBUTING.md).

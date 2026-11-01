@@ -1,0 +1,13 @@
+# Sandbox baseline: deny-all ingress+egress.
+# Applied by scripts/demo/up.sh after the namespace exists. Umbra only
+# ever writes here (livekube refuses anything else); without this policy
+# the isolation the thesis promises does not exist (verified live 2026-11-01:
+# BLOCKED from inside, REACHED from a namespace without policy).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: umbra-sandbox
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
