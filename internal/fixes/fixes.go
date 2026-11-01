@@ -41,10 +41,28 @@ func Fix(faultID string, manifest []byte) ([]byte, bool) {
 		return addResources(manifest, "100m", "64Mi", "500m", "512Mi")
 	case "F02":
 		return raiseMemoryLimit(manifest, "64Mi")
+	case "F03":
+		return clampHugeRequests(manifest)
+	case "F04":
+		return addResources(manifest, "100m", "64Mi", "500m", "512Mi")
 	case "F05":
 		return addLivenessProbe(manifest)
 	case "F06":
 		return addReadinessProbe(manifest)
+	case "CronDeadline":
+		return fixCronDeadline(manifest)
+	case "CronShortDeadline":
+		return fixCronDeadline(manifest)
+	case "CronSuspended":
+		return fixCronSuspended(manifest)
+	case "CronOverlap":
+		return fixCronOverlap(manifest)
+	case "CronTimezone":
+		return fixCronTimezone(manifest)
+	case "CronBounds":
+		return fixCronBounds(manifest)
+	case "CronHistory":
+		return fixCronHistory(manifest)
 	}
 	return manifest, false
 }
@@ -72,6 +90,32 @@ func addResources(doc []byte, reqCPU, reqMem, limCPU, limMem string) ([]byte, bo
 		indent + "    cpu: \"" + limCPU + "\"\n" +
 		indent + "    memory: \"" + limMem + "\"\n"
 	return []byte(insertBeforePorts(s, block)), true
+}
+
+// clampHugeRequests rewrites requests no node can satisfy (F03 injects
+// cpu 64 / memory 1Ti) to the same sane defaults F01 uses. A pod that can
+// never schedule has no working configuration to preserve.
+func clampHugeRequests(doc []byte) ([]byte, bool) {
+	s := string(doc)
+	changed := false
+	for _, old := range []string{`cpu: 64`, `cpu: "64"`, `memory: 1Ti`, `memory: "1Ti"`} {
+		if !strings.Contains(s, old) {
+			continue
+		}
+		val := `"500m"`
+		if strings.Contains(old, "memory") {
+			val = `"512Mi"`
+		}
+		if !strings.Contains(old, `"`) {
+			val = strings.Trim(val, `"`)
+		}
+		s = strings.ReplaceAll(s, old, strings.Split(old, ":")[0]+": "+val)
+		changed = true
+	}
+	if !changed {
+		return doc, false
+	}
+	return []byte(s), true
 }
 
 func raiseMemoryLimit(doc []byte, min string) ([]byte, bool) {

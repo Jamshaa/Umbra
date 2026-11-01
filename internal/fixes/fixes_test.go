@@ -204,6 +204,36 @@ spec:
 	}
 }
 
+func TestFixF03F04(t *testing.T) {
+	huge := `apiVersion: apps/v1
+kind: Deployment
+metadata: {name: f03, namespace: demo}
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/example/demo-app:v1
+          resources:
+            requests: {cpu: "64", memory: "1Ti"}
+            limits: {cpu: "64", memory: "1Ti"}
+`
+	out, ok := Fix("F03", []byte(huge))
+	if !ok {
+		t.Fatal("F03 should apply")
+	}
+	if stringsContains(string(out), "64") || stringsContains(string(out), "1Ti") {
+		t.Fatalf("huge values survive: %s", out)
+	}
+	if r := verify.VerifyF03(out, verify.PodStatus{Phase: "Running", Ready: true}); !r.Pass {
+		t.Fatalf("patched F03 fails gate: %s", r.Reason)
+	}
+	out, ok = Fix("F04", []byte(f01Manifest))
+	if !ok || !stringsContains(string(out), "resources:") {
+		t.Fatalf("F04 should add resources: %s", out)
+	}
+}
+
 // tiny helpers to keep the test free of import noise.
 func stringsContains(s, sub string) bool       { return strings.Contains(s, sub) }
 func stringsReplace(s, old, neu string) string { return strings.ReplaceAll(s, old, neu) }
