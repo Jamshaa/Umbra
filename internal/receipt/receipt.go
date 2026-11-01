@@ -5,17 +5,54 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"github.com/Jamshaa/Umbra/api/v1alpha1"
 	"github.com/Jamshaa/Umbra/internal/attribution"
 )
 
-// StepResult is the outcome of one verification ladder step
-// (for example invariants, dry-run, sandbox or rollback).
+// Op is one validated patch operation, as proposed (agent) or applied
+// (deterministic fix expressed in the same shape).
+type Op struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value any    `json:"value,omitempty"`
+}
+
+// StepResult is the outcome of one verification ladder step. DurationMs
+// records wall time so slow steps are visible, not just pass/fail.
 type StepResult struct {
-	Step   string
-	Pass   bool
-	Detail string
+	Step       string
+	Pass       bool
+	Detail     string
+	DurationMs int64
+}
+
+// ToolCall is one model tool invocation: the name plus the sha256 of
+// the exact arguments JSON that was sent. Arguments themselves are
+// never stored: they may embed untrusted cluster output.
+type ToolCall struct {
+	Name     string `json:"name"`
+	ArgsHash string `json:"argsHash"`
+}
+
+// ModelUse records what the model did. Zero value means no model was
+// involved (deterministic-only run); the section is still emitted so
+// "no model" is explicit, not ambiguous.
+type ModelUse struct {
+	Model        string     `json:"model"`
+	ResponseIDs  []string   `json:"responseIds"`
+	InputTokens  int        `json:"inputTokens"`
+	OutputTokens int        `json:"outputTokens"`
+	PromptHash   string     `json:"promptHash"`
+	Tools        []ToolCall `json:"tools"`
+}
+
+// Decision is the human gate outcome. Empty Approver means undecided:
+// proposed, not approved.
+type Decision struct {
+	State    string    `json:"state"`
+	Approver string    `json:"approver,omitempty"`
+	At       time.Time `json:"at,omitempty"`
 }
 
 // Receipt is the evidence packet: the canonical JSON document plus
@@ -25,69 +62,176 @@ type Receipt struct {
 	SHA256 string
 }
 
+// Input carries everything the spec requires in one receipt.
+// Callers pass sanitized content; the receipt stores it verbatim so
+// audits see exactly what was decided on.
+type Input struct {
+	FindingID  string
+	Severity   string
+	Category   string
+	Kind       string
+	Namespace  string
+	Name       string
+	Rule       string // e.g. "F01"
+	Template   string // e.g. "api-standard"; "" when no template applies
+	RootCause  string
+	Ops        []Op
+	Diff       string // unified diff text, for humans; "" when none
+	RevertPlan string // pre-patch snapshot YAML
+	Ladder     []StepResult
+	Attr       attribution.Attribution
+	Model      ModelUse
+	Decision   Decision
+	Snapshot   string // sandbox snapshot reference
+	PRURL      string
+	PrevHash   string // previous chain hash, or "GENESIS"
+}
+
 type attributionOut struct {
-	Field     string `json:"field"`
-	Manager   string `json:"manager"`
-	UpdatedAt string `json:"updatedAt"`
+	Level    string `json:"level"`
+	Identity string `json:"identity"`
+	When     string `json:"when"`
 }
 
 type stepOut struct {
-	Step   string `json:"step"`
-	Pass   bool   `json:"pass"`
-	Detail string `json:"detail"`
+	Step       string `json:"step"`
+	Pass       bool   `json:"pass"`
+	Detail     string `json:"detail"`
+	DurationMs int64  `json:"durationMs"`
+}
+
+type opOut struct {
+	// Value is always present (null when absent): omitempty would
+	// silently drop legitimate false/0/"" values and falsify history.
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value any    `json:"value"`
 }
 
 type receiptBody struct {
-	Finding     string           `json:"finding"`
-	Severity    string           `json:"severity"`
-	Category    string           `json:"category"`
-	Target      string           `json:"target"`
-	RootCause   string           `json:"rootCause"`
-	Diff        string           `json:"diff"`
-	RevertPlan  string           `json:"revertPlan"`
-	Ladder      []stepOut        `json:"ladder"`
-	Attribution []attributionOut `json:"attribution"`
-	PRURL       string           `json:"prURL,omitempty"`
+	Finding     string         `json:"finding"`
+	Severity    string         `json:"severity"`
+	Category    string         `json:"category"`
+	Target      targetOut      `json:"target"`
+	Rule        string         `json:"rule"`
+	Template    string         `json:"template,omitempty"`
+	RootCause   string         `json:"rootCause"`
+	Patch       []opOut        `json:"patch"`
+	Diff        string         `json:"diff,omitempty"`
+	RevertPlan  string         `json:"revertPlan"`
+	Ladder      []stepOut      `json:"ladder"`
+	Attribution attributionOut `json:"attribution"`
+	Model       modelOut       `json:"model"`
+	Decision    decisionOut    `json:"decision"`
+	Snapshot    string         `json:"snapshot"`
+	PRURL       string         `json:"prURL,omitempty"`
+	PrevHash    string         `json:"prevHash"`
 }
 
-// Build binds a Finding, its ladder results, its attribution and the
-// PR URL (if any) into one hashed evidence packet. Root cause, diff
-// and revert plan come from the Finding spec (Diagnosis, ProposedPatch
-// and PrePatchManifest).
-func Build(f v1alpha1.Finding, ladder []StepResult, attr []attribution.FieldAttribution, prURL string) Receipt {
+type targetOut struct {
+	Kind      string `json:"kind"`
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+}
+
+type modelOut struct {
+	Model        string    `json:"model"`
+	ResponseIDs  []string  `json:"responseIds"`
+	InputTokens  int       `json:"inputTokens"`
+	OutputTokens int       `json:"outputTokens"`
+	PromptHash   string    `json:"promptHash"`
+	Tools        []toolOut `json:"tools"`
+}
+
+type toolOut struct {
+	Name     string `json:"name"`
+	ArgsHash string `json:"argsHash"`
+}
+
+type decisionOut struct {
+	State    string `json:"state"`
+	Approver string `json:"approver,omitempty"`
+	At       string `json:"at,omitempty"`
+}
+
+func hash(s string) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:])
+}
+
+// Fingerprint is the audit hash primitive: lowercase hex sha256.
+func Fingerprint(s string) string {
+	return hash(s)
+}
+
+// Build binds a full action into one hashed evidence packet. The hash
+// covers the canonical JSON including prevHash, chaining this receipt
+// to the previous one. Use AppendRegistro to store it.
+func Build(in Input) Receipt {
 	body := receiptBody{
-		Finding:    f.Name,
-		Severity:   string(f.Spec.Severity),
-		Category:   string(f.Spec.Category),
-		Target:     f.Spec.TargetRef.Kind + "/" + f.Spec.TargetRef.Namespace + "/" + f.Spec.TargetRef.Name,
-		RootCause:  f.Spec.Diagnosis,
-		Diff:       f.Spec.ProposedPatch,
-		RevertPlan: f.Spec.PrePatchManifest,
-		PRURL:      prURL,
+		Finding:    in.FindingID,
+		Severity:   in.Severity,
+		Category:   in.Category,
+		Target:     targetOut{Kind: in.Kind, Namespace: in.Namespace, Name: in.Name},
+		Rule:       in.Rule,
+		Template:   in.Template,
+		RootCause:  in.RootCause,
+		Diff:       in.Diff,
+		RevertPlan: in.RevertPlan,
+		Model: modelOut{
+			Model:        in.Model.Model,
+			ResponseIDs:  append([]string{}, in.Model.ResponseIDs...),
+			InputTokens:  in.Model.InputTokens,
+			OutputTokens: in.Model.OutputTokens,
+			PromptHash:   in.Model.PromptHash,
+		},
+		Decision: decisionOut{
+			State:    in.Decision.State,
+			Approver: in.Decision.Approver,
+		},
+		Snapshot: in.Snapshot,
+		PRURL:    in.PRURL,
+		PrevHash: in.PrevHash,
 	}
-	for _, s := range ladder {
-		body.Ladder = append(body.Ladder, stepOut{Step: s.Step, Pass: s.Pass, Detail: s.Detail})
+	if body.Model.ResponseIDs == nil {
+		body.Model.ResponseIDs = []string{}
+	}
+	for _, o := range in.Ops {
+		// A JSON null value is equivalent to absent here: setting a
+		// field to null carries no patch meaning the verifier could
+		// act on, so it is dropped like a missing value.
+		oo := opOut{Op: o.Op, Path: o.Path, Value: o.Value}
+		body.Patch = append(body.Patch, oo)
+	}
+	if body.Patch == nil {
+		body.Patch = []opOut{}
+	}
+	for _, s := range in.Ladder {
+		body.Ladder = append(body.Ladder, stepOut{Step: s.Step, Pass: s.Pass, Detail: s.Detail, DurationMs: s.DurationMs})
 	}
 	if body.Ladder == nil {
 		body.Ladder = []stepOut{}
 	}
-	for _, a := range attr {
-		// shortcut: UpdatedAt drops sub-second precision; upgrade to RFC3339Nano if ordering within a second matters.
-		body.Attribution = append(body.Attribution, attributionOut{
-			Field: a.Field, Manager: a.Manager,
-			UpdatedAt: a.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z07:00"),
-		})
+	when := ""
+	if !in.Attr.When.IsZero() {
+		when = in.Attr.When.UTC().Format(time.RFC3339)
 	}
-	if body.Attribution == nil {
-		body.Attribution = []attributionOut{}
+	body.Attribution = attributionOut{Level: in.Attr.Level.String(), Identity: in.Attr.Identity, When: when}
+	for _, t := range in.Model.Tools {
+		body.Model.Tools = append(body.Model.Tools, toolOut{Name: t.Name, ArgsHash: t.ArgsHash})
+	}
+	if body.Model.Tools == nil {
+		body.Model.Tools = []toolOut{}
+	}
+	if !in.Decision.At.IsZero() {
+		body.Decision.At = in.Decision.At.UTC().Format(time.RFC3339)
 	}
 	raw, err := json.Marshal(body)
 	if err != nil {
-		// Structs with string/bool fields never fail to marshal.
+		// The struct graph is JSON-safe by construction.
 		panic("receipt: marshal: " + err.Error())
 	}
-	sum := sha256.Sum256(raw)
-	return Receipt{JSON: string(raw), SHA256: hex.EncodeToString(sum[:])}
+	return Receipt{JSON: string(raw), SHA256: hash(string(raw))}
 }
 
 // chainLine is one stored registry line: payload plus previous hash.
@@ -102,8 +246,7 @@ type chainLine struct {
 func AppendRegistro(chain []string, payload string) []string {
 	prev := "GENESIS"
 	if len(chain) > 0 {
-		sum := sha256.Sum256([]byte(chain[len(chain)-1]))
-		prev = hex.EncodeToString(sum[:])
+		prev = hash(chain[len(chain)-1])
 	}
 	raw, err := json.Marshal(chainLine{Payload: payload, Prev: prev})
 	if err != nil {
@@ -124,8 +267,7 @@ func VerifyChain(chain []string) error {
 		if l.Prev != prev {
 			return fmt.Errorf("receipt: line %d broken link: want prev %q, got %q", i, prev, l.Prev)
 		}
-		sum := sha256.Sum256([]byte(line))
-		prev = hex.EncodeToString(sum[:])
+		prev = hash(line)
 	}
 	return nil
 }

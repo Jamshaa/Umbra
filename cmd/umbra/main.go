@@ -1,6 +1,7 @@
 // Command umbra is the human CLI. Subcommands:
 //
 //	umbra approve FINDING --as USER   record a human approval gate decision
+//	umbra receipts verify <chain-file> verify a receipt registry chain
 //
 // Approval is an explicit human act: the command only writes the
 // umbra.dev/approved annotation. The reconciler interprets it (see
@@ -26,7 +27,9 @@ import (
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage: umbra approve FINDING --as USER\n")
+	fmt.Fprintln(os.Stderr, "usage: umbra <command>")
+	fmt.Fprintln(os.Stderr, "  approve FINDING --as USER    record a human approval")
+	fmt.Fprintln(os.Stderr, "  receipts verify <chain-file> verify a receipt registry chain")
 }
 
 // approve records the human approval on the Finding. It validates the
@@ -51,10 +54,30 @@ func approve(ctx context.Context, c client.Client, name, user string) error {
 }
 
 func main() {
-	if len(os.Args) < 2 || os.Args[1] != "approve" {
+	if len(os.Args) < 2 {
 		usage()
 		os.Exit(2)
 	}
+	switch os.Args[1] {
+	case "receipts":
+		if len(os.Args) != 4 || os.Args[2] != "verify" {
+			receiptsUsage()
+			os.Exit(2)
+		}
+		if err := verifyChainFile(os.Args[3]); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			os.Exit(1)
+		}
+		return
+	case "approve":
+		approveMain(os.Args[2:])
+	default:
+		usage()
+		os.Exit(2)
+	}
+}
+
+func approveMain(args []string) {
 	fs := flag.NewFlagSet("approve", flag.ContinueOnError)
 	as := fs.String("as", "", "approver identity (required)")
 	fs.SetOutput(os.Stderr)

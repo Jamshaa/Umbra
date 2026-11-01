@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,6 +15,7 @@ import (
 
 	"github.com/Jamshaa/Umbra/api/v1alpha1"
 	"github.com/Jamshaa/Umbra/internal/controller"
+	"github.com/Jamshaa/Umbra/internal/receipt"
 )
 
 func testScheme(t *testing.T) *runtime.Scheme {
@@ -69,5 +74,35 @@ func TestApproveCommandName(t *testing.T) {
 	// The CLI, the reconciler and the docs must agree on one annotation.
 	if controller.AnnotationApproved != "umbra.dev/approved" {
 		t.Fatalf("annotation = %q", controller.AnnotationApproved)
+	}
+}
+
+func TestVerifyChainFile(t *testing.T) {
+	var chain []string
+	for _, p := range []string{"first", "second", "third"} {
+		chain = receipt.AppendRegistro(chain, p)
+	}
+	path := filepath.Join(t.TempDir(), "chain.jsonl")
+	var b strings.Builder
+	for _, l := range chain {
+		b.WriteString(l + "\n")
+	}
+	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyChainFile(path); err != nil {
+		t.Fatalf("valid chain rejected: %v", err)
+	}
+	// Tampered second line must fail.
+	raw, _ := os.ReadFile(path)
+	if err := os.WriteFile(path, bytes.Replace(raw, []byte("second"), []byte("SECOND"), 1), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyChainFile(path); err == nil {
+		t.Fatal("tampered chain accepted")
+	}
+	// Missing file is an error, not a panic.
+	if err := verifyChainFile(filepath.Join(t.TempDir(), "nope.jsonl")); err == nil {
+		t.Fatal("missing file accepted")
 	}
 }
