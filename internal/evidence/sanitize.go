@@ -23,12 +23,13 @@ const Redacted = "<REPLACE-ME>"
 // "matchLabels" or "containerPort" never match.
 var secretWords = map[string]bool{
 	"password": true, "passwd": true, "pwd": true,
-	"secret": true, "secrets": true,
-	"token": true, "tokens": true,
-	"key": true, "keys": true, "apikey": true,
+	"secret": true, "secrets": true, "secretkey": true,
+	"token": true, "tokens": true, "accesstoken": true,
+	"refreshtoken": true, "authtoken": true,
+	"key": true, "keys": true, "apikey": true, "authkey": true,
 	"auth": true, "authorization": true, "bearer": true,
-	"credential": true, "credentials": true,
-	"privatekey": true, "passphrase": true,
+	"credential": true, "credentials": true, "clientsecret": true,
+	"privatekey": true, "passphrase": true, "dbpassword": true,
 	"kubeconfig": true,
 }
 
@@ -61,8 +62,15 @@ var (
 	bearerRe    = regexp.MustCompile(`(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{10,}`)
 	privKeyRe   = regexp.MustCompile(`(?s)-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----`)
 	urlAuthRe   = regexp.MustCompile(`(https?://)[^/\s:@]+:[^/\s@]+@`)
+	queryAuthRe = regexp.MustCompile(`([?&](?:token|access_token|api[_-]?key|secret|password|auth)=)[^&\s"']*`)
 	ipv4PrivRe  = regexp.MustCompile(`\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b`)
-	localHostRe = regexp.MustCompile(`\b[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?\.(local|internal|lan)\b`)
+	localHostRe = regexp.MustCompile(`\b[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?\.(local|internal|lan|corp|home|intranet)\b`)
+	// b64RunRe spots long standalone base64 blobs (secrets, key material).
+	// Hex digests and UUIDs must NOT match: looksRandom demands mixed
+	// classes, so plain [0-9a-f] runs and words survive. Tradeoff: a
+	// purely alphanumeric secret without mixed case slips through
+	// unless it rides on a secret key (kvRe covers that path).
+	b64RunRe = regexp.MustCompile(`\b[A-Za-z0-9+/]{32,}={0,2}\b`)
 )
 
 // isSecretKey reports whether a key token names a credential, comparing
@@ -96,8 +104,31 @@ func isSecretKey(token string) bool {
 func isLower(r rune) bool { return r >= 'a' && r <= 'z' }
 func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
 
-// redactValue keeps surrounding quotes when the original value was quoted,
-// so YAML/JSON structure stays valid.
+// looksRandom reports mixed character classes: the b64RunRe match is
+// only redacted when it looks like key material, never for plain hex
+// digests, UUIDs or words.
+func looksRandom(s string) bool {
+	var up, lo, dg, sym bool
+	for _, r := range s {
+		switch {
+		case r >= 'A' && r <= 'Z':
+			up = true
+		case r >= 'a' && r <= 'z':
+			lo = true
+		case r >= '0' && r <= '9':
+			dg = true
+		default:
+			sym = true
+		}
+	}
+	n := 0
+	for _, b := range []bool{up, lo, dg, sym} {
+		if b {
+			n++
+		}
+	}
+	return n >= 3
+}
 func redactValue(v string) string {
 	if len(v) >= 2 {
 		if (v[0] == '"' && v[len(v)-1] == '"') || (v[0] == '\'' && v[len(v)-1] == '\'') {
@@ -127,6 +158,12 @@ func Sanitize(s string) string {
 	out = apiKeyRe.ReplaceAllString(out, Redacted)
 	out = jwtRe.ReplaceAllString(out, Redacted)
 	out = bearerRe.ReplaceAllString(out, Redacted)
+	out = b64RunRe.ReplaceAllStringFunc(out, func(m string) string {
+		if looksRandom(m) {
+			return Redacted
+		}
+		return m
+	})
 	out = kvRe.ReplaceAllStringFunc(out, func(m string) string {
 		loc := kvRe.FindStringSubmatchIndex(m)
 		// groups: 1=key 2=sep 3=value
@@ -139,6 +176,7 @@ func Sanitize(s string) string {
 		return key + sep + redactValue(val)
 	})
 	out = urlAuthRe.ReplaceAllString(out, "${1}"+Redacted+"@")
+	out = queryAuthRe.ReplaceAllString(out, "${1}"+Redacted)
 	out = ipv4PrivRe.ReplaceAllString(out, Redacted)
 	out = localHostRe.ReplaceAllString(out, Redacted)
 	return out

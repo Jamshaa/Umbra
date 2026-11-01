@@ -115,6 +115,84 @@ func TestSanitizeTokensAndKeys(t *testing.T) {
 	}
 }
 
+func TestSanitizeExtendedPatterns(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		leak string // raw value that must not survive
+		keep string // fragment that must survive ("" to skip)
+	}{
+		{"long base64 blob", "key is dGhpcy1pcy1hLXNlY3JldC10b2tlbi12YWx1ZS0xMjM0NQ==", "dGhpcy1pcy1hLXNlY3JldC10b2tlbi12YWx1ZS0xMjM0NQ==", ""},
+		{"base64 with padding", "secret: QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWQ==", "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWQ==", ""},
+		{"hex digest untouched", "sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+		{"uuid untouched", "id: 550e8400-e29b-41d4-a716-446655440000", "", "550e8400"},
+		{"plain word untouched", "status: initialized successfully", "", "initialized"},
+		{"query token", "GET https://hooks.example.com/hook?token=abc123XYZ789&ok=1 failed", "abc123XYZ789", "hooks.example.com/hook"},
+		{"query api key", "callback https://api.example.com/x?api_key=KEY-9f8e7d6c5b4a HTTP/1.1", "KEY-9f8e7d6c5b4a", ""},
+		{"cluster.local host", "dial web.demo.svc.cluster.local:8080 refused", "web.demo.svc.cluster.local", ""},
+		{"corp host", "ldap corp-dc01.corp:389 timeout", "corp-dc01.corp", ""},
+		{"compound env name", "dbpassword: s3cret-pg-pass", "s3cret-pg-pass", ""},
+		{"access token kv", "accessToken: ya29.a0AfH6SMBx9Q2wE", "ya29.a0AfH6SMBx9Q2wE", ""},
+		{"client secret yaml", "clientSecret: topsecretvalue1", "topsecretvalue1", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := Sanitize(tc.in)
+			if tc.leak != "" && strings.Contains(out, tc.leak) {
+				t.Errorf("secret leaked: %q -> %q", tc.in, out)
+			}
+			if tc.keep != "" && !strings.Contains(out, tc.keep) {
+				t.Errorf("harmless text altered: %q -> %q", tc.in, out)
+			}
+			if out != Sanitize(out) {
+				t.Errorf("not idempotent: %q -> %q", out, Sanitize(out))
+			}
+		})
+	}
+}
+
+// TestNoSecretReachesModelBody is the T4 gate: a battery of realistic
+// secrets goes through Sanitize exactly as tool output would before a
+// model call, and none of the raw values may survive in the result.
+func TestNoSecretReachesModelBody(t *testing.T) {
+	planted := []string{
+		"AKIAIOSFODNN7EXAMPLE",
+		"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+		"ghp_abcdefghij1234567890abcdefghij12345678",
+		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9H0s7Y6i3745s",
+		"-----BEGIN RSA PRIVATE KEY-----\nMIIBOgIBAAJBAKc2\n-----END RSA PRIVATE KEY-----",
+		"Bearer hunter2-session-token-abc",
+		"dGhpcy1pcy1hLXNlY3JldC10b2tlbi12YWx1ZS0xMjM0NQ==", "hunter2-hunter2",
+		"mongodb://dbadmin:s3cret-pg-pass@db-master.internal:27017/app?authSource=admin",
+		"callback https://hooks.example.com/x?token=tok_live_abc123XYZ",
+		"web.demo.svc.cluster.local",
+		"10.244.0.15",
+		"kind: Config\nclusters: [c]\nusers: [u]\n",
+	}
+	var body strings.Builder
+	body.WriteString("tool get_logs tail=200\nresult:\n")
+	for _, p := range planted {
+		body.WriteString(p + "\n")
+	}
+	body.WriteString("end of output\n")
+	req := map[string]any{"model": "muse-spark", "input": body.String()}
+	sanitized := Sanitize(req["input"].(string))
+	for _, p := range planted {
+		if strings.Contains(sanitized, p) {
+			t.Fatalf("secret reached the model body: %q", p)
+		}
+	}
+	// The noisiest shapes must be gone even as fragments.
+	for _, frag := range []string{"AKIAIOSFODNN7EXAMPLE", "BEGIN RSA PRIVATE KEY", "hunter2", "tok_live_abc123XYZ", "cluster.local"} {
+		if strings.Contains(sanitized, frag) {
+			t.Fatalf("secret fragment reached the model body: %q", frag)
+		}
+	}
+	if !strings.Contains(sanitized, Redacted) {
+		t.Fatal("nothing was redacted, gate is vacuous")
+	}
+}
+
 func TestSanitizeKubeconfig(t *testing.T) {
 	blob := `apiVersion: v1
 kind: Config
