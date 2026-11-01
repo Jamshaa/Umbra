@@ -119,3 +119,6 @@ ui/dist/
 scratch/
 .build/
 audit-sandbox-dumps/
+
+# ---------- Local-only notes (never commit) ----------
+OVERVIEW.md
