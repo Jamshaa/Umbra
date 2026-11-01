@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probes-demo
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: probes-demo
+  template:
+    metadata:
+      labels:
+        app: probes-demo
+    spec:
+      containers:
+        - name: app
+          image: demo-app:local
+          ports:
+            - containerPort: 8080
+          # CORRECTO: readiness distinta (httpGet); la app colgada
+          # deja de estar lista Y ademas reinicia por liveness.
+          livenessProbe: {tcpSocket: {port: 8080}}
+          readinessProbe: {httpGet: {path: /readyz, port: 8080}}
+          resources:
+            requests: {cpu: "10m", memory: "64Mi"}
+            limits: {cpu: "100m", memory: "128Mi"}

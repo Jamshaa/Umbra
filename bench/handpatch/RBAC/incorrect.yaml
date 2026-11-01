@@ -1,0 +1,17 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: f14-wildcard
+  namespace: demo
+  labels:
+    umbra.io/fault: F14
+rules:
+  # INCORRECTO: acota una regla pero ensancha otra con comodin.
+  # La allowlist deja pasar /rules y el dry-run lo admite (es valido),
+  # pero el verificador lo rechaza: quedan comodines.
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]

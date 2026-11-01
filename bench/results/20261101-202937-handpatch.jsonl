@@ -1,0 +1,1 @@
+{"ts":"2026-11-01T20:29:37Z","commit":"a0ad509","model":"","seed":42,"repeat":1,"case":"X-HPA","config":"handpatch","group":"B","live":false,"cache":"n/a","outcome":"fail","reason":"HPARequests: target demo/hpa-target has no CPU requests (HPA cannot compute utilization) (static)","tokens":0,"latency_ms":0}

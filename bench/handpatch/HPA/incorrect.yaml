@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-target
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hpa-target
+  template:
+    metadata:
+      labels:
+        app: hpa-target
+    spec:
+      containers:
+        - name: app
+          image: demo-app:local
+          ports:
+            - containerPort: 8080
+          # INCORRECTO: anade recursos pero solo memoria; el HPA
+          # escala sobre CPU, asi que sigue sin poder calcular.
+          resources:
+            requests:
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

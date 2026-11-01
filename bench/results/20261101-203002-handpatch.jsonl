@@ -1,0 +1,1 @@
+{"ts":"2026-11-01T20:30:02Z","commit":"a0ad509","model":"","seed":42,"repeat":1,"case":"F36","config":"handpatch","group":"B","live":false,"cache":"n/a","outcome":"pass","reason":"ServiceEndpoints: every Service selector matches a workload (static)","tokens":0,"latency_ms":0}

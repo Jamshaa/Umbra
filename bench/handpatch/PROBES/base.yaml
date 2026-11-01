@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probes-demo
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: probes-demo
+  template:
+    metadata:
+      labels:
+        app: probes-demo
+    spec:
+      containers:
+        - name: app
+          image: demo-app:local
+          ports:
+            - containerPort: 8080
+          # FALLO: liveness == readiness (la app colgada nunca reinicia).
+          livenessProbe: {tcpSocket: {port: 8080}}
+          readinessProbe: {tcpSocket: {port: 8080}}
+          resources:
+            requests: {cpu: "10m", memory: "64Mi"}
+            limits: {cpu: "100m", memory: "128Mi"}

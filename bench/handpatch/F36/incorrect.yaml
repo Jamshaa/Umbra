@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # INCORRECTO: el selector esta bien, pero el parche cambia el namespace
+  # y borra la etiqueta (fuera de /spec/selector): la allowlist lo rechaza.
+  name: f36-no-endpoints
+  namespace: other
+spec:
+  selector:
+    app: f36-app
+  ports:
+    - name: web
+      port: 80
+      targetPort: 8080

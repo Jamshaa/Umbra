@@ -1,0 +1,64 @@
+{
+  "generated_at": "2026-11-01T20:31:27Z",
+  "commit": "a0ad509",
+  "model": "",
+  "seed": 42,
+  "repeats": 3,
+  "rows": [
+    {
+      "config": "deterministic",
+      "group": "A",
+      "live": true,
+      "cases": 21,
+      "pass": 21,
+      "fail": 0,
+      "refused": 0,
+      "skipped": 0,
+      "tokens_total": 0
+    },
+    {
+      "config": "deterministic",
+      "group": "B",
+      "live": true,
+      "cases": 1,
+      "pass": 1,
+      "fail": 0,
+      "refused": 0,
+      "skipped": 3,
+      "tokens_total": 0
+    },
+    {
+      "config": "deterministic",
+      "group": "C",
+      "live": false,
+      "cases": 3,
+      "pass": 3,
+      "fail": 0,
+      "refused": 0,
+      "skipped": 42,
+      "tokens_total": 0
+    },
+    {
+      "config": "deterministic",
+      "group": "T",
+      "live": true,
+      "cases": 12,
+      "pass": 12,
+      "fail": 0,
+      "refused": 0,
+      "skipped": 0,
+      "tokens_total": 0
+    },
+    {
+      "config": "handpatch",
+      "group": "B",
+      "live": true,
+      "cases": 4,
+      "pass": 0,
+      "fail": 4,
+      "refused": 0,
+      "skipped": 0,
+      "tokens_total": 0
+    }
+  ]
+}

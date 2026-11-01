@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: f36-no-endpoints
+  namespace: demo
+  labels:
+    umbra.io/fault: F36
+spec:
+  # CORRECTO: el selector coincide con el Deployment f36-app.
+  selector:
+    app: f36-app
+  ports:
+    - name: web
+      port: 80
+      targetPort: 8080

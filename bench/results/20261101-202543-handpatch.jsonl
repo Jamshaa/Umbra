@@ -1,0 +1,1 @@
+{"ts":"2026-11-01T20:25:43Z","commit":"a0ad509","model":"","seed":42,"repeat":1,"case":"F36","config":"handpatch","group":"B","live":false,"cache":"n/a","outcome":"fail","reason":"allowlist refused hand patch: rule ServiceEndpoints must not touch /metadata/labels","tokens":0,"latency_ms":0}
