@@ -1,0 +1,21 @@
+# ClusterRole umbra-approver: who may approve a Finding.
+#
+# POLICY: the annotation umbra.dev/approved=<user> is free text, so anyone
+# able to patch a Finding could write any name. Approving must therefore be
+# a granted privilege, not an ambient one:
+#
+#   kubectl create clusterrolebinding umbra-approvers \
+#     --clusterrole=umbra-approver --user=<persona>   # a human cluster-admin runs this
+#
+# Only patch on findings (annotations live in metadata): no status writes,
+# no delete, no access to anything else. The reconciler still records the
+# claim as self-declared (ResolveApproval) unless the audit log names the
+# same person; RBAC narrows WHO can write, the verdict says HOW proven.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: umbra-approver
+rules:
+- apiGroups: ["umbra.io"]
+  resources: ["findings"]
+  verbs: ["get", "patch"]

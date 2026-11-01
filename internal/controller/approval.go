@@ -49,6 +49,55 @@ func approvalAllowed(state v1alpha1.FindingState) bool {
 		state == v1alpha1.FindingStateVerified
 }
 
+// ApprovalVerdict says who really approved. The annotation value is a
+// free-text claim: anyone allowed to patch the Finding can write any
+// name, so a claim without corroboration is self-declared, never proven.
+type ApprovalVerdict struct {
+	Claimed  string // annotation value ("" when absent/invalid)
+	Writer   string // managedFields manager that wrote it ("" unknown)
+	Audit    string // audit-log actor ("" when no audit trail)
+	Verified bool   // an audit person matching the claim
+}
+
+// ResolveApproval crosses the annotation claim with the writer client and
+// the audit actor. Verified requires a non-system audit user equal to the
+// claim; a person mismatch is recorded, never silently accepted.
+func ResolveApproval(annotations map[string]string, writer, auditUser string) ApprovalVerdict {
+	var v ApprovalVerdict
+	claimed, ok := ParseApproval(annotations)
+	if !ok {
+		return v
+	}
+	v.Claimed = claimed
+	v.Writer = writer
+	person := auditUser != "" && !strings.HasPrefix(auditUser, "system:")
+	if person {
+		v.Audit = auditUser
+		v.Verified = auditUser == claimed
+	}
+	return v
+}
+
+// Label renders the verdict for the Approved condition: verified names the
+// corroborating actor, everything else says self-declared with the source.
+func (v ApprovalVerdict) Label() string {
+	if v.Claimed == "" {
+		return "no approval"
+	}
+	if v.Verified {
+		return "verificado: " + v.Audit
+	}
+	who := v.Writer
+	if who == "" {
+		who = "unknown client"
+	}
+	s := "autodeclarado: " + v.Claimed + " (via " + who + ")"
+	if v.Audit != "" {
+		s += " [discrepancia: audit dice " + v.Audit + "]"
+	}
+	return s
+}
+
 // approvalWriter names the client that last wrote the approval
 // annotation, from managedFields. Empty when unknown: callers must say
 // "unknown", never invent a writer, and never present a client as a person.
@@ -92,15 +141,17 @@ func applyApprovalCondition(f *v1alpha1.Finding) {
 		return
 	}
 	via := approvalWriter(f)
-	if via == "" {
-		via = "unknown client"
-	}
+	// The reconciler sees managedFields, not the audit log: without an
+	// audit actor every approval is self-declared by construction. The
+	// label says so openly; ResolveApproval upgrades to verified only
+	// when an audit person corroborates the claim.
+	v := ResolveApproval(f.Annotations, via, "")
 	meta.SetStatusCondition(&f.Status.Conditions, metav1.Condition{
 		Type:   ConditionApproved,
 		Status: metav1.ConditionTrue,
 		Reason: "HumanApproval",
-		Message: fmt.Sprintf("Approved by %s (via %s)",
-			evidence.Sanitize(user), evidence.Sanitize(via)),
+		Message: fmt.Sprintf("Approved by %s [%s]",
+			evidence.Sanitize(user), evidence.Sanitize(v.Label())),
 		ObservedGeneration: f.Generation,
 	})
 }

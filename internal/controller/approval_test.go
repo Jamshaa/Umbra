@@ -113,9 +113,9 @@ func TestReconcileRecordsApproval(t *testing.T) {
 	if cond.Status != metav1.ConditionTrue || cond.Reason != "HumanApproval" {
 		t.Fatalf("condition = %+v", cond)
 	}
-	wantPrefix := "Approved by alice (via "
-	if cond.Message != wantPrefix+"kubectl)" && cond.Message != wantPrefix+"unknown client)" {
-		t.Fatalf("message = %q, want %q<manager>)", cond.Message, wantPrefix)
+	wantPrefix := "Approved by alice [autodeclarado: alice (via "
+	if cond.Message != wantPrefix+"kubectl)]" && cond.Message != wantPrefix+"unknown client)]" {
+		t.Fatalf("message = %q, want %q<manager>)]", cond.Message, wantPrefix)
 	}
 
 	// Unknown writer: recorded honestly, never invented.
@@ -129,8 +129,39 @@ func TestReconcileRecordsApproval(t *testing.T) {
 	if cond2 == nil || cond2.Status != metav1.ConditionTrue {
 		t.Fatalf("expected approval recorded, got %+v", cond2)
 	}
-	if want := "Approved by bob (via unknown client)"; cond2.Message != want {
+	if want := "Approved by bob [autodeclarado: bob (via unknown client)]"; cond2.Message != want {
 		t.Fatalf("message = %q, want %q", cond2.Message, want)
+	}
+}
+
+func TestResolveApprovalVerdict(t *testing.T) {
+	ann := map[string]string{AnnotationApproved: "alice"}
+	// Audit person matching the claim: verified.
+	if v := ResolveApproval(ann, "kubectl", "alice"); !v.Verified || v.Label() != "verificado: alice" {
+		t.Fatalf("verified case: %+v", v)
+	}
+	// No audit: self-declared, writer named, never invented.
+	if v := ResolveApproval(ann, "kubectl", ""); v.Verified || v.Label() != "autodeclarado: alice (via kubectl)" {
+		t.Fatalf("no-audit case: %+v", v)
+	}
+	if v := ResolveApproval(ann, "", ""); v.Label() != "autodeclarado: alice (via unknown client)" {
+		t.Fatalf("unknown writer case: %+v", v)
+	}
+	// Audit names another person: mismatch recorded, not verified.
+	v := ResolveApproval(ann, "kubectl", "mallory")
+	if v.Verified || v.Audit != "mallory" {
+		t.Fatalf("mismatch must not verify: %+v", v)
+	}
+	if want := "autodeclarado: alice (via kubectl) [discrepancia: audit dice mallory]"; v.Label() != want {
+		t.Fatalf("label = %q, want %q", v.Label(), want)
+	}
+	// System accounts are machinery, not people: never verify.
+	if v := ResolveApproval(ann, "kubectl", "system:serviceaccount:kube-system:x"); v.Verified || v.Audit != "" {
+		t.Fatalf("system account must not verify: %+v", v)
+	}
+	// Invalid annotation: no verdict at all.
+	if v := ResolveApproval(map[string]string{AnnotationApproved: "a b"}, "kubectl", "alice"); v.Claimed != "" {
+		t.Fatalf("invalid claim must yield nothing: %+v", v)
 	}
 }
 
