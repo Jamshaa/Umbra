@@ -1,6 +1,7 @@
 package livekube
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -53,6 +54,20 @@ func TestTemplateLabels(t *testing.T) {
 	}
 	if got := TemplateLabels(map[string]any{}); len(got) != 0 {
 		t.Fatalf("empty obj must yield no labels: %v", got)
+	}
+}
+
+func TestDryRunRefusesClusterScoped(t *testing.T) {
+	// The refusal happens before any client call (nil Dyn would panic
+	// only if reached), so no fake cluster is needed.
+	d := DryRunner{}
+	for _, kind := range []string{"Namespace", "ClusterRole", "ClusterRoleBinding"} {
+		doc := []byte("apiVersion: v1\nkind: " + kind + "\nmetadata:\n  name: x\n")
+		if err := d.DryRun(context.Background(), doc); err == nil {
+			t.Fatalf("dry-run of %s must be refused", kind)
+		} else if !strings.Contains(err.Error(), "cluster-scoped") {
+			t.Fatalf("wrong refusal for %s: %v", kind, err)
+		}
 	}
 }
 

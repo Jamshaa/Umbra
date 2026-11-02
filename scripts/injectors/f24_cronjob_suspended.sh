@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f24_cronjob_suspended.sh: inyecta el fallo F24 en el namespace demo.
-# F24 = CronJob suspendido (la planificacion parada en silencio).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f24_cronjob_suspended.sh: injects failure F24 into the demo namespace.
+# F24 = Suspended CronJob (schedule silently stopped).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

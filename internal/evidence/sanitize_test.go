@@ -261,6 +261,88 @@ func TestSanitizeIdempotent(t *testing.T) {
 	}
 }
 
+func TestSanitizeSecretDataKeys(t *testing.T) {
+	// data:/stringData: values are always redacted (a Secret's data IS
+	// the secret). Deliberate trade-off: innocent ConfigMap data gets
+	// redacted too. Confidentiality wins over availability here.
+	for _, in := range []string{
+		"data:\n  password: hunter2-hunter2",
+		"stringData:\n  token: hunter2-hunter2",
+		"data: c2VjcmV0LXZhbHVl",
+		"data: us-east-1",
+	} {
+		out := Sanitize(in)
+		if strings.Contains(out, "hunter2") || strings.Contains(out, "c2VjcmV0LXZhbHVl") || strings.Contains(out, "us-east-1") {
+			t.Fatalf("secret data leaked: %q -> %q", in, out)
+		}
+		if !strings.Contains(out, Redacted) {
+			t.Fatalf("no placeholder emitted: %q", out)
+		}
+	}
+}
+
+func TestSanitizeEnvSecrets(t *testing.T) {
+	// K8s env entries keep the credential in a generic "value" field with
+	// the secret identity in the sibling "name" field. Only the value is
+	// redacted; the name stays as diagnosis context.
+	for _, tc := range []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			"block short plaintext",
+			"        - name: DB_PASSWORD\n          value: hunter2-hunter2\n",
+			"        - name: DB_PASSWORD\n          value: <REPLACE-ME>\n",
+		},
+		{
+			"block quoted",
+			"        - name: api_key\n          value: \"s3cret-pg-pass\"\n",
+			"        - name: api_key\n          value: \"<REPLACE-ME>\"\n",
+		},
+		{
+			"block innocent untouched",
+			"        - name: PORT\n          value: 8080\n",
+			"        - name: PORT\n          value: 8080\n",
+		},
+		{
+			"block valueFrom reference untouched",
+			"        - name: DB_PASSWORD\n          valueFrom:\n            secretKeyRef:\n              name: db-creds\n",
+			"        - name: DB_PASSWORD\n          valueFrom:\n            secretKeyRef:\n              name: db-creds\n",
+		},
+		{
+			"json order",
+			`{"name":"DB_PASSWORD","value":"hunter2-hunter2"}`,
+			`{"name":"DB_PASSWORD","value":"<REPLACE-ME>"}`,
+		},
+		{
+			"json reversed order",
+			`{"value":"hunter2-hunter2","name":"TOKEN"}`,
+			`{"value":"<REPLACE-ME>","name":"TOKEN"}`,
+		},
+		{
+			"json innocent untouched",
+			`{"name":"PORT","value":"8080"}`,
+			`{"name":"PORT","value":"8080"}`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := Sanitize(tc.in); got != tc.want {
+				t.Fatalf("got  %q\nwant %q", got, tc.want)
+			}
+		})
+	}
+	// Redacted output must be a fixed point.
+	once := Sanitize("        - name: DB_PASSWORD\n          value: hunter2-hunter2\n")
+	if twice := Sanitize(once); twice != once {
+		t.Fatalf("not idempotent:\n%q\n%q", once, twice)
+	}
+	onceJSON := Sanitize(`{"name":"DB_PASSWORD","value":"hunter2-hunter2"}`)
+	if twice := Sanitize(onceJSON); twice != onceJSON {
+		t.Fatalf("json not idempotent:\n%q\n%q", onceJSON, twice)
+	}
+}
+
 func TestFingerprint(t *testing.T) {
 	a := Fingerprint("prompt\nresult")
 	b := Fingerprint("prompt\nresult")

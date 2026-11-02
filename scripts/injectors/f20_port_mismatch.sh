@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f20_port_mismatch.sh: inyecta el fallo F20 en el namespace demo.
-# F20 = Probes contra el puerto 9090 cuando el contenedor abre 8080.
-# Resources sanos para aislar el fallo.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f20_port_mismatch.sh: injects failure F20 into the demo namespace.
+# F20 = Probes against port 9090 while the container opens 8080.
+# Healthy resources to isolate the failure.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

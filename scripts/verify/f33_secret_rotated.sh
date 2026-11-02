@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f33_secret_rotated.sh (verifier): afirma que el Deployment monta el
-# Secret SIN anotacion checksum (una rotacion lo deja obsoleto).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f33_secret_rotated.sh (verifier): asserts that the Deployment mounts the
+# Secret WITHOUT checksum annotation (one rotation leaves it stale).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

@@ -1,6 +1,7 @@
 package invariants
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -44,6 +45,24 @@ func mustDoc(t *testing.T, s string) map[string]any {
 		t.Fatal(err)
 	}
 	return d
+}
+
+func TestCheckAll(t *testing.T) {
+	if _, _, err := CheckAll("F01", []byte(deployNoResources), []byte(deployFixed), nil); err != nil {
+		t.Fatalf("clean fix rejected: %v", err)
+	}
+	// RBAC widening must fail at the RBAC gate (allowlist covers /rules).
+	rbacRole := `{"kind":"Role","metadata":{"name":"r","namespace":"umbra-sandbox"},"rules":[{"apiGroups":[""],"resources":["pods"],"verbs":["get"]}]}`
+	wideRole := `{"kind":"Role","metadata":{"name":"r","namespace":"umbra-sandbox"},"rules":[{"apiGroups":[""],"resources":["pods"],"verbs":["get","delete"]}]}`
+	if _, step, err := CheckAll("RBACLeastPrivilege", []byte(rbacRole), []byte(wideRole), nil); err == nil || step != "invariants" {
+		t.Fatalf("RBAC widening accepted or mis-stepped: step=%q err=%v", step, err)
+	}
+	// Secret-looking material must fail at the secrets gate (the value
+	// sits inside an allowlisted path so earlier gates let it through).
+	leaky := strings.Replace(deployFixed, "memory: 512Mi", "memory: AKIAIOSFODNN7EXAMPLE", 1)
+	if _, step, err := CheckAll("F01", []byte(deployFixed), []byte(leaky), nil); err == nil || step != "invariants" {
+		t.Fatalf("secret material accepted or mis-stepped: step=%q err=%v", step, err)
+	}
 }
 
 func TestDiffPaths(t *testing.T) {
@@ -122,6 +141,10 @@ func TestRBAC(t *testing.T) {
 	}
 	if err := checkRBAC(mustDoc(t, role), mustDoc(t, wider)); err == nil {
 		t.Fatal("verb widening accepted")
+	}
+	scalarWide := `{"kind":"Role","metadata":{"name":"r","namespace":"umbra-sandbox"},"rules":[{"apiGroups":"","resources":"secrets","verbs":"*"}]}`
+	if err := checkRBAC(mustDoc(t, role), mustDoc(t, scalarWide)); err == nil {
+		t.Fatal("scalar wildcard widening accepted")
 	}
 	bind := `{"kind":"RoleBinding","metadata":{"name":"b","namespace":"umbra-sandbox"},"subjects":[{"kind":"ServiceAccount","name":"a"}],"roleRef":{"kind":"Role","name":"r"}}`
 	bind2 := `{"kind":"RoleBinding","metadata":{"name":"b","namespace":"umbra-sandbox"},"subjects":[{"kind":"ServiceAccount","name":"a"},{"kind":"ServiceAccount","name":"evil"}],"roleRef":{"kind":"Role","name":"r"}}`

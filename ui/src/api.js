@@ -47,6 +47,9 @@ function normalizeTimeline(timeline) {
       result: textField(e.result),
       modelVersion: textField(e.modelVersion),
       ts: textField(e.ts),
+      // Live entries carry no status: a recorded call completed.
+      status: 'success',
+      defaultOpen: false,
     })
   }
   return out

@@ -1,4 +1,4 @@
-# Namespace for the Umbra manager. Standalone install only (Ola 2+):
+# Namespace for the Umbra manager. Standalone install only (Wave 2+):
 # kubectl apply -k config/manager (kind-umbra context).
 apiVersion: v1
 kind: Namespace
@@ -15,10 +15,17 @@ metadata:
   labels:
     umbra.io/managed-by: umbra-manager
 ---
-# The operator itself follows the rules it enforces: pinned image tag
-# (never :latest), sane resources, both probes, non-root.
+# The operator itself follows the rules it enforces: pinned image digest
+# in releases (never :latest), sane resources, both probes, non-root.
 # Image is a placeholder (ghcr.io/example): no real image is published
-# from this repo yet.
+# from this repo yet. umbra-manager:dev is kind-load only (never a
+# release tag): releases must pin image: by digest (sha256), never by
+# mutable tag, or the operator binary is substitutable at pull time.
+# Probes intentionally bind all interfaces (kubelet must reach them);
+# cluster-local pods can therefore observe liveness/readiness state.
+# No NetworkPolicy ships for umbra-system yet (Wave 2): accepted residual
+# risk while the manager holds no secrets and exposes no data plane.
+# Metrics stay on 127.0.0.1 for exactly this reason.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,6 +50,7 @@ spec:
           # Kind-loaded by scripts/build-images.sh (dev only, never published).
           # The ghcr.io/example placeholder lives on in demo/* manifests.
           image: umbra-manager:dev
+          imagePullPolicy: IfNotPresent
           ports:
             - name: metrics
               containerPort: 8080
@@ -73,3 +81,5 @@ spec:
             runAsUser: 65532
             capabilities:
               drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault

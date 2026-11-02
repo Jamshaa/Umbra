@@ -56,13 +56,19 @@ const (
 // TargetRef identifies the observed resource.
 type TargetRef struct {
 	// Kind of the observed resource.
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[A-Z][A-Za-z0-9]*$`
 	Kind string `json:"kind"`
 
 	// Namespace of the observed resource.
 	// +optional
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
 	Namespace string `json:"namespace,omitempty"`
 
 	// Name of the observed resource.
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name"`
 }
 
@@ -112,14 +118,17 @@ type FindingSpec struct {
 
 	// Diagnosis is the optional LLM diagnostic text.
 	// +optional
+	// +kubebuilder:validation:MaxLength=262144
 	Diagnosis string `json:"diagnosis,omitempty"`
 
 	// ProposedPatch is the optional candidate fix as YAML.
 	// +optional
+	// +kubebuilder:validation:MaxLength=262144
 	ProposedPatch string `json:"proposedPatch,omitempty"`
 
 	// PrePatchManifest is the optional pre-patch snapshot as YAML, for rollback.
 	// +optional
+	// +kubebuilder:validation:MaxLength=262144
 	PrePatchManifest string `json:"prePatchManifest,omitempty"`
 
 	// State is the lifecycle state of the finding.

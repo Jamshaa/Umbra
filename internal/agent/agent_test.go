@@ -338,6 +338,54 @@ func TestTokenBudgetRefuses(t *testing.T) {
 	}
 }
 
+func TestHugeToolOutputRefusesBeforeSecondCall(t *testing.T) {
+	k := newFakeKube()
+	k.logs["demo/web-abc"] = strings.Repeat("x", 4000) // ~1000 est. tokens
+	ask := fcJSON("call_1", "get_logs", `{"namespace":"demo","pod":"web-abc","tail":50}`)
+	r, _, counter := runScript(t, []string{turnJSON("resp_1", ask)}, k, 8)
+	r.Client.MaxTokensPerFinding = 400 // turn 1 fits; the giant log dump must not
+
+	out, err := r.Run(context.Background(), "", "x", toolList())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !out.Refused || out.Reason != "token budget exhausted" {
+		t.Fatalf("want pre-call token refusal, got %+v", out)
+	}
+	if counter.Get() != 1 {
+		t.Fatalf("refusal must happen before the second network call, got %d calls", counter.Get())
+	}
+}
+
+func TestScopeConfinesNamespace(t *testing.T) {
+	k := newFakeKube()
+	k.objs[kkey("Deployment", "demo", "web")] = depObj("demo", "web")
+	scoped := Scope{Namespace: "demo"}
+	// Same-namespace reads pass validation (kube "not found" proves the
+	// scope check passed and lookup ran).
+	if _, _, err := dispatch(context.Background(), k, scoped, "get_manifest",
+		map[string]any{"kind": "Deployment", "name": "web", "namespace": "demo"}); err != nil {
+		t.Fatalf("in-scope read rejected: %v", err)
+	}
+	// Cross-namespace reads fail closed, even for existing objects.
+	k.objs[kkey("Deployment", "other", "web")] = depObj("other", "web")
+	if _, _, err := dispatch(context.Background(), k, scoped, "get_manifest",
+		map[string]any{"kind": "Deployment", "name": "web", "namespace": "other"}); err == nil {
+		t.Fatal("cross-namespace read accepted")
+	} else if !strings.Contains(err.Error(), "confined") {
+		t.Fatalf("wrong refusal: %v", err)
+	}
+	if _, _, err := dispatch(context.Background(), k, scoped, "get_logs",
+		map[string]any{"namespace": "other", "pod": "web-abc"}); err == nil {
+		t.Fatal("cross-namespace logs accepted")
+	}
+	// Zero scope stays unconfined (tests, static bundles).
+	if _, _, err := dispatch(context.Background(), k, Scope{}, "get_manifest",
+		map[string]any{"kind": "Deployment", "name": "web", "namespace": "other"}); err != nil {
+		t.Fatalf("unconfined read rejected: %v", err)
+	}
+}
+
 func TestNoCallsMeansRefused(t *testing.T) {
 	k := newFakeKube()
 	r, _, _ := runScript(t, []string{turnJSON("r1")}, k, 8)
@@ -437,6 +485,12 @@ func TestValidateProposalTable(t *testing.T) {
 		}},
 		{"bad op", func(m map[string]any) { m["ops"] = []any{map[string]any{"op": "delete", "path": "/a"}} }},
 		{"empty path", func(m map[string]any) { m["ops"] = []any{map[string]any{"op": "remove", "path": " "}} }},
+		{"long path", func(m map[string]any) {
+			m["ops"] = []any{map[string]any{"op": "add", "path": "/" + strings.Repeat("a", 600), "value": 1}}
+		}},
+		{"deep path", func(m map[string]any) {
+			m["ops"] = []any{map[string]any{"op": "add", "path": "/" + strings.Repeat("a/", 40), "value": 1}}
+		}},
 		{"add w/o value", func(m map[string]any) { m["ops"] = []any{map[string]any{"op": "add", "path": "/a"}} }},
 		{"bad confidence", func(m map[string]any) { m["confidence"] = 1.5 }},
 		{"confidence str", func(m map[string]any) { m["confidence"] = "high" }},
@@ -475,6 +529,43 @@ func TestToolSchemasAreValid(t *testing.T) {
 	}
 	if !names["propose_patch"] || !names["get_manifest"] || !names["get_logs"] {
 		t.Fatalf("missing core tools: %v", names)
+	}
+}
+
+// TestSchemaMatchesValidator builds an args object from each tool's own
+// declared schema and requires the validator to accept it. A schema-
+// conformant call must never fail validation (kube "not found" is fine:
+// it proves validation passed and lookup ran).
+func TestSchemaMatchesValidator(t *testing.T) {
+	for _, td := range Tools() {
+		if td.Name == "propose_patch" {
+			continue // covered by TestValidateProposalTable
+		}
+		var schema struct {
+			Properties map[string]struct {
+				Type string `json:"type"`
+			} `json:"properties"`
+		}
+		if err := json.Unmarshal([]byte(td.Parameters), &schema); err != nil {
+			t.Fatalf("%s: bad schema JSON: %v", td.Name, err)
+		}
+		args := map[string]any{}
+		for name, prop := range schema.Properties {
+			switch prop.Type {
+			case "string":
+				args[name] = "x"
+			case "integer":
+				args[name] = float64(5)
+			default:
+				t.Fatalf("%s: unsupported property type %q for %q", td.Name, prop.Type, name)
+			}
+		}
+		_, _, err := dispatch(context.Background(), newFakeKube(), Scope{}, td.Name, args)
+		if err != nil && (strings.Contains(err.Error(), "missing required") ||
+			strings.Contains(err.Error(), "must be an integer") ||
+			strings.Contains(err.Error(), "unknown tool")) {
+			t.Fatalf("%s: schema-conformant call rejected by validator: %v (args %v)", td.Name, err, args)
+		}
 	}
 }
 

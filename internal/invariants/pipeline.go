@@ -2,6 +2,7 @@ package invariants
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Jamshaa/Umbra/internal/verify"
@@ -27,6 +28,7 @@ var verifiers = map[string]func(doc []byte, pod verify.PodStatus) verify.Result{
 	"CronOverlap":        verify.VerifyCronOverlap,
 	"CronBounds":         verify.VerifyCronBounds,
 	"CronTimezone":       verify.VerifyCronTimezone,
+	"CronHistory":        verify.VerifyCronHistory,
 	"CronSilentFail":     verify.VerifyCronSilentFail,
 	"ServiceEndpoints":   verify.VerifyServiceEndpoints,
 	"HPARequests":        verify.VerifyHPARequests,
@@ -50,7 +52,9 @@ type DryRunner interface {
 }
 
 // Sandbox applies to umbra-sandbox only and returns a snapshot id for
-// rollback. The real implementation lives with the harness.
+// rollback. Implementations MUST confine writes to the sandbox namespace
+// regardless of the document's metadata.namespace (livekube.Sandbox
+// hard-rewrites it); identity sameness is checked separately.
 type Sandbox interface {
 	Apply(ctx context.Context, doc []byte) (snapshotID string, err error)
 }
@@ -81,6 +85,42 @@ func (in Inputs) timeout() time.Duration {
 		return in.Timeout
 	}
 	return VerifyTimeout
+}
+
+// CheckAll runs the static gates (allowlist, identity, size, secrets,
+// RBAC, resources) without dry-run, sandbox, or verifier. Harnesses use
+// it when the verifier needs a multi-doc bundle the single-doc Validate
+// flow cannot carry; the gates themselves are identical. Step names the
+// ladder step that refused ("" on success) for verdict reporting.
+func CheckAll(rule string, beforeDoc, afterDoc []byte, usage map[string]ResourceUsage) (skipped []string, step string, err error) {
+	before, err := decodeOne(beforeDoc)
+	if err != nil {
+		return nil, "parse", fmt.Errorf("before: %w", err)
+	}
+	after, err := decodeOne(afterDoc)
+	if err != nil {
+		return nil, "parse", fmt.Errorf("after: %w", err)
+	}
+	if err := CheckAllowlist(rule, DiffPaths(before, after)); err != nil {
+		return nil, "allowlist", err
+	}
+	if err := checkIdentity(before, after); err != nil {
+		return nil, "invariants", err
+	}
+	if err := checkSize(afterDoc); err != nil {
+		return nil, "invariants", err
+	}
+	if err := checkSecrets(afterDoc); err != nil {
+		return nil, "invariants", err
+	}
+	if err := checkRBAC(before, after); err != nil {
+		return nil, "invariants", err
+	}
+	skipped, err = checkResources(before, after, usage)
+	if err != nil {
+		return skipped, "invariants", err
+	}
+	return skipped, "", nil
 }
 
 // Validate runs the fixed gate order: allowlist+invariants on the docs,

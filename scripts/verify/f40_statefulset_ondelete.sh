@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f40_statefulset_ondelete.sh (verifier): afirma que el StatefulSet usa
-# updateStrategy OnDelete (las nuevas versiones nunca se despliegan).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f40_statefulset_ondelete.sh (verifier): asserts that the StatefulSet uses
+# updateStrategy OnDelete (new versions never deploy).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

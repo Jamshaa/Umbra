@@ -19,10 +19,10 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F08: la readiness apunta al puerto 8081, donde nada escucha
-          # (la app solo abre 8080): el pod vive pero NUNCA esta Ready.
-          # La liveness SI apunta a 8080 (el fallo es solo el mismatch
-          # de readiness). No corregir el puerto de la readinessProbe.
+          # F08: readiness points at port 8081, where nothing listens
+          # (the app only opens 8080): the pod is live but NEVER Ready.
+          # Liveness DOES point at 8080 (the failure is only the mismatch
+          # of readiness). Do not fix the readinessProbe port.
           ports:
             - containerPort: 8080
           livenessProbe:

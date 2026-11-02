@@ -16,8 +16,8 @@ spec:
         app: f39-failing-init
         umbra.io/fault: F39
     spec:
-      # F39: el initContainer falla siempre: el pod nunca sale de
-      # Initializing. No arreglar el command.
+      # F39: the initContainer always fails: the pod never leaves
+      # Initializing. Do not fix the command.
       initContainers:
         - name: setup
           image: ghcr.io/example/demo-app:v1

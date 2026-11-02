@@ -18,9 +18,9 @@ spec:
     spec:
       containers:
         - name: app
-          # F11: imagen fijada a :latest (tag mutable: lo desplegado hoy
-          # no es lo desplegado manana). Resources y probes sanos para
-          # aislar el fallo. No fijar un tag inmutable.
+          # F11: image pinned to :latest (mutable tag: what is deployed today
+          # is not what is deployed tomorrow). Healthy resources and probes to
+          # isolate the failure. Do not pin an immutable tag.
           image: ghcr.io/example/demo-app:latest
           ports:
             - containerPort: 8080

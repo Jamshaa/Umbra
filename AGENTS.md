@@ -1,101 +1,101 @@
-# AGENTS.md — directrices inviolables para cualquier agente en Umbra
+# AGENTS.md — inviolable guidelines for any agent in Umbra
 
-Este archivo lo lee **cualquier** sesión OpenCode que arranca en este repo
-(Jefe Pixel, workers, QA, investigator). Son reglas duras, no sugerencias.
-Nada aquí contradice a `docs/agents/PLAYBOOK.md` (el libro de misiones del
-equipo) ni a `SECURITY.md` (política de Secretos); si algo lo pareciera, manda
-`SECURITY.md` y luego este archivo.
+This file is read by **any** OpenCode session starting in this repo
+(Boss Pixel, workers, QA, investigator). These are hard rules, not suggestions.
+Nothing here contradicts `docs/agents/PLAYBOOK.md` (the team's mission book)
+or `SECURITY.md` (Secrets policy); if anything seemed to, `SECURITY.md` wins,
+then this file.
 
-## 0. Qué es Umbra
+## 0. What Umbra is
 
-**Umbra** es un operador de Kubernetes (Go + controller-runtime) que cierra el
-ciclo: detectar → diagnóstico LLM con parche propuesto → aplicar en sandbox →
-verificación determinista → rollback por snapshot → aprobación humana para
-producir. CRDs: `RemediationPolicy` y `Finding`. UI pixel-art en `ui/` (React).
+**Umbra** is a Kubernetes operator (Go + controller-runtime) closing the
+loop: detect → LLM diagnosis with proposed patch → apply in sandbox →
+deterministic verification → snapshot rollback → human approval for
+production. CRDs: `RemediationPolicy` and `Finding`. Pixel-art UI in `ui/` (React).
 
-Fuente de verdad (léelos antes de decidir nada architectural):
+Source of truth (read them before deciding anything architectural):
 
-| Archivo | Qué define |
+| File | What it defines |
 |---|---|
-| `docs/PLAN.md` | Roadmap 9 días, matriz F01–F20 de fallos, gates duros Día 3 y Día 5, scoreboard |
-| `docs/ARCHITECTURE.md` | Diseño del operador: CRDs, reconciliation, sandbox, verificación, rollback, aprobación |
-| `docs/agents/PLAYBOOK.md` | Las misiones del equipo Pixel: olas de tareas, payloads exactos para `create_task` |
-| `SECURITY.md` | Política de secretos (§4) y qué NO se publica jamás (§3) |
-| `ui/README.md` | Contrato de diseño pixel-art de la UI (paleta, tipografía, layout) |
+| `docs/PLAN.md` | 9-day roadmap, F01–F20 failure matrix, hard gates Day 3 and Day 5, scoreboard |
+| `docs/ARCHITECTURE.md` | Operator design: CRDs, reconciliation, sandbox, verification, rollback, approval |
+| `docs/agents/PLAYBOOK.md` | Pixel team missions: task waves, exact payloads for `create_task` |
+| `SECURITY.md` | Secrets policy (§4) and what is NEVER published (§3) |
+| `ui/README.md` | Pixel-art design contract for the UI (palette, typography, layout) |
 
-## 1. Reglas de git — LEER DOS VECES
+## 1. Git rules — READ TWICE
 
-- Cada worker trabaja en SU worktree (`.pixel-agents/worktrees/T-*`) en SU
-  rama `task/T-*`. Ahí **sí puede conmtear** su trabajo (`git add -A && git
-  commit`) antes de reportar `done` — sin commit no hay revisión.
-- **Prohibido**: `git push` (a cualquier remoto), pull requests, commitear en
-  `main`, commitear en la rama de arranque del repo, fusionar ramas de tarea,
-  operar worktrees de otros, o tocar `.pixel-agents/` (es del servidor Pixel).
-- La integración del trabajo aprobado al árbol principal es **una acción
-  humana**: el humano la hace y la confirma en la interfaz. Nunca la fuerces.
-- El repo tiene un único commit base (Day-0). Nada sobra: cada tarea commitea
-  solo su delta en su rama.
+- Each worker works in THEIR worktree (`.pixel-agents/worktrees/T-*`) on THEIR
+  branch `task/T-*`. There they **may commit** their work (`git add -A && git
+  commit`) before reporting `done` — no commit, no review.
+- **Forbidden**: `git push` (to any remote), pull requests, committing to
+  `main`, committing to the repo's boot branch, merging task branches,
+  operating others' worktrees, or touching `.pixel-agents/` (it belongs to the Pixel server).
+- Integrating approved work into the main tree is **a human
+  action**: the human does it and confirms it in the interface. Never force it.
+- The repo has a single base commit (Day-0). Nothing is spare: each task commits
+  only its delta on its branch.
 
-## 2. Secretos y material prohibido
+## 2. Secrets and forbidden material
 
-Vale lo que diga `SECURITY.md` §3/§4, reducido a tres mandatos:
+What `SECURITY.md` §3/§4 says, reduced to three mandates:
 
-1. **Nada privado entra en este repo**: claves, tokens, kubeconfigs, credenciales
-   de nubes, endpoints privados, IPs/hostnames reales, datos personales. Placeholders
-   (`example.com`, `<REPLACE-ME>`, namespaces ficticios `demo`) siempre.
-2. **Nada privado sale del repo**: no pegues en conversaciones, tickets ni código
-   contenido de tu entorno local (kubeconfig incluido). El kubeconfig local tiene
-   contextos no relacionados con Umbra: **jamás** los uses, los leas ni los menciones.
-   Trabaja SOLO con el contexto `kind-umbra`.
-3. **Sin red sin permiso**: sin curl/wget, sin APIs locales, sin instalar
-   paquetes. Dependencias: solo las que la tarea fija en texto (en Go,
-   `go run <módulo>@<versión>` con la versión que indique la tarea). Jamás
-   añadas dependencias no declaradas en tu tarea.
+1. **No private material enters this repo**: keys, tokens, kubeconfigs, cloud
+   credentials, private endpoints, real IPs/hostnames, personal data. Placeholders
+   (`example.com`, `<REPLACE-ME>`, fictitious `demo` namespaces) always.
+2. **No private material leaves the repo**: don't paste into conversations, tickets, or code
+   anything from your local environment (kubeconfig included). The local kubeconfig has
+   contexts unrelated to Umbra: **never** use, read, or mention them.
+   Work ONLY with the `kind-umbra` context.
+3. **No network without permission**: no curl/wget, no local APIs, no installing
+   packages. Dependencies: only those the task pins in writing (in Go,
+   `go run <module>@<version>` with the version the task states). Never
+   add undeclared dependencies to your task.
 
-## 3. Entorno quirúrgico (Windows)
+## 3. Surgical environment (Windows)
 
-- Plataforma de ejecución: Windows con shells PowerShell. Binarios SIEMPRE por ruta
-  absoluta (el PATH del shell queda rancio): `docker` está en
+- Execution platform: Windows with PowerShell shells. Binaries ALWAYS by absolute
+  path (the shell PATH goes stale): `docker` is at
   `C:\Program Files\Docker\Docker\resources\bin\docker.exe`,
-  `kind` en `%USERPROFILE%\go\bin\kind.exe`.
-- Cluster local: `kind-umbra` (kubectl context actual). Un nodo control-plane
-  v1.37.0, Ready. No lo borres; los cambios que hagas en él deben ser
-  re-creables desde el repo (scripts/manifests commiteados en tu rama).
-- **NO instalados**: `make`, `kustomize` (binario). Usa `kubectl apply -k`.
-- **NO instalado**: Kubebuilder CLI. Scaffolda A MANO el layout de kubebuilder
-  v4 (api/v1alpha1, internal/controller, cmd/main, config/*) y genera CRDs con
+  `kind` at `%USERPROFILE%\go\bin\kind.exe`.
+- Local cluster: `kind-umbra` (current kubectl context). One control-plane node
+  v1.37.0, Ready. Don't delete it; changes you make to it must be
+  re-creatable from the repo (scripts/manifests committed on your branch).
+- **NOT installed**: `make`, `kustomize` (binary). Use `kubectl apply -k`.
+- **NOT installed**: Kubebuilder CLI. Scaffold BY HAND the kubebuilder
+  v4 layout (api/v1alpha1, internal/controller, cmd/main, config/*) and generate CRDs with
   `go run sigs.k8s.io/controller-tools/cmd/controller-gen@v0.19.0 <args>`.
-- `go` y `kubectl` están en PATH y funcionan. Node/npm también (`node` ≥ 24).
+- `go` and `kubectl` are on PATH and work. Node/npm too (`node` ≥ 24).
 
-## 4. Estilo de trabajo del operador (Go)
+## 4. Operator work style (Go)
 
-- Controller-runtime estándar: reconcilers idempotentes, `reconcile` baratos,
-  condiciones (`Conditions`) como estado observable, finalizers solo si los
-  pide la tarea.
-- RBAC markers en los tipos, mínimo privilegio (ver ARCHITECTURE.md §roles).
-- Toda escritura a `status` de un Finding pasa por el sanitizador de evidencia
-  (ARCHITECTURE.md §evidence) — nunca escribas archivos bajo status sin él.
-- Los health/metrics endpoints del manager y el deployment en `config/manager`
-  solo se materializan si la tarea lo pide explícitamente.
+- Standard controller-runtime: idempotent reconcilers, cheap `reconcile`,
+  conditions (`Conditions`) as observable state, finalizers only if
+  the task asks for them.
+- RBAC markers on the types, least privilege (see ARCHITECTURE.md §roles).
+- Every write to a Finding's `status` goes through the evidence sanitizer
+  (ARCHITECTURE.md §evidence) — never write files under status without it.
+- The manager's health/metrics endpoints and the deployment in `config/manager`
+  only materialize if the task explicitly asks for them.
 
-## 5. Estilo de la UI (pixel-art, NO se suaviza)
+## 5. UI style (pixel-art, NOT softened)
 
-El contrato íntegro está en `ui/README.md` y `ui/src/styles/base.css`. Resumen
-obligatorio: 8 colores exactos, Press Start 2P SOLO en múltiplos de 8px,
-borde duro `4px 4px 0`, sombras sin blur, grid de 8px, transiciones 0ms, sin
-`border-radius`, sin Tailwind ni librerías de componentes. Si algo de UI no
-encaja en este contrato, la tarea está mal especificada — reporta `blocked`.
+The full contract is in `ui/README.md` and `ui/src/styles/base.css`. Summary:
+8 exact colors, Press Start 2P ONLY in multiples of 8px,
+hard border `4px 4px 0`, blur-free shadows, 8px grid, 0ms transitions, no
+`border-radius`, no Tailwind or component libraries. If any UI doesn't
+fit this contract, the task is misspecified — report `blocked`.
 
-## 6. Definición de hecho (para TODAS las tareas)
+## 6. Definition of done (for ALL tasks)
 
-1. Todos los criterios de aceptación de la tarea verificados uno a uno, con el
-   comando y su salida evidenciada en la respuesta.
-2. Go: `go build ./...` y `go vet ./...` en verde desde la raíz del módulo.
-   UI: `npm run build` en verde desde `ui/`.
-3. Sin TODOs, sin código muerto, sin placeholders “por ahora” (los placeholders
-   DOCUMENTADOS del contrato de seguridad sí son válidos).
-4. Sin archivos fuera del alcance de la tarea (ni “de camino”).
-5. Resumen en 3 partes: qué se hizo / por qué / cómo se verificó (evidencia).
+1. Every task acceptance criterion verified one by one, with the
+   command and its output evidenced in the response.
+2. Go: `go build ./...` and `go vet ./...` green from the module root.
+   UI: `npm run build` green from `ui/`.
+3. No TODOs, no dead code, no "for now" placeholders (the DOCUMENTED
+   security-contract placeholders are still valid).
+4. No files outside the task scope (no drive-bys).
+5. 3-part summary: what was done / why / how it was verified (evidence).
 
-Si no puedes verificar algo: dilo en el resumen. La evidencia es tu
-credibilidad — un `done` sin prueba es un `blocked` no declarado.
+If you can't verify something: say so in the summary. Evidence is your
+credibility — a `done` without proof is an undeclared `blocked`.

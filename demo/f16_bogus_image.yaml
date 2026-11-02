@@ -18,9 +18,9 @@ spec:
     spec:
       containers:
         - name: app
-          # F16: tag inexistente (nunca se publico): el pod queda en
-          # ImagePullBackOff. Resources y probes sanos para aislar el
-          # fallo. No corregir el tag.
+          # F16: nonexistent tag (never published): the pod stays in
+          # ImagePullBackOff. Healthy resources and probes to isolate the
+          # failure. Do not fix the tag.
           image: ghcr.io/example/demo-app:does-not-exist
           ports:
             - containerPort: 8080

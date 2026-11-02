@@ -19,9 +19,9 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F07: el proceso sale con codigo 1 nada mas arrancar:
-          # CrashLoopBackOff garantizado. Resources sanos para que el
-          # UNICO fallo sea el crashloop. No cambiar el command.
+          # F07: the process exits with code 1 right on start:
+          # Guaranteed CrashLoopBackOff. Healthy resources so that the
+          # ONLY failure is the crashloop. Do not change the command.
           command: ["sh", "-c", "exit 1"]
           ports:
             - containerPort: 8080

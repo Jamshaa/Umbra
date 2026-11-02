@@ -1,6 +1,6 @@
 # Manager namespace + ServiceAccount + Deployment.
 # NOT referenced from config/default: the manager stays out of the
-# default install until Ola 2 wires it (see docs/PLAN.md). Build with:
+# default install until Wave 2 wires it (see docs/PLAN.md). Build with:
 # kubectl kustomize config/manager
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

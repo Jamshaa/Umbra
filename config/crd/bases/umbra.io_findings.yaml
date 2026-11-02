@@ -61,13 +61,16 @@ spec:
                 type: string
               diagnosis:
                 description: Diagnosis is the optional LLM diagnostic text.
+                maxLength: 262144
                 type: string
               prePatchManifest:
                 description: PrePatchManifest is the optional pre-patch snapshot as
                   YAML, for rollback.
+                maxLength: 262144
                 type: string
               proposedPatch:
                 description: ProposedPatch is the optional candidate fix as YAML.
+                maxLength: 262144
                 type: string
               severity:
                 allOf:
@@ -104,12 +107,18 @@ spec:
                 properties:
                   kind:
                     description: Kind of the observed resource.
+                    maxLength: 63
+                    pattern: ^[A-Z][A-Za-z0-9]*$
                     type: string
                   name:
                     description: Name of the observed resource.
+                    maxLength: 253
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                     type: string
                   namespace:
                     description: Namespace of the observed resource.
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                     type: string
                 required:
                 - kind

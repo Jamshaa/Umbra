@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: Service
 metadata:
-  # INCORRECTO: el selector esta bien, pero el parche cambia el namespace
-  # y borra la etiqueta (fuera de /spec/selector): la allowlist lo rechaza.
+  # INCORRECT: the selector is fine, but the patch changes the namespace
+  # and deletes the label (outside /spec/selector): the allowlist rejects it.
   name: f36-no-endpoints
   namespace: other
 spec:

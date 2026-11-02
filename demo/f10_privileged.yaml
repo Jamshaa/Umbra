@@ -19,9 +19,9 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F10: contenedor PRIVILEGIADO (acceso total al host).
-          # Resources y probes sanos para aislar el fallo.
-          # No quitar privileged:true.
+          # F10: PRIVILEGED container (total host access).
+          # Healthy resources and probes to isolate the failure.
+          # Do not remove privileged:true.
           securityContext:
             privileged: true
           ports:

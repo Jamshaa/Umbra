@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f23_statefulset_no_headless.sh (verifier): afirma que el Service
-# f23-missing-headless NO existe (el StatefulSet no tiene headless).
-# La ausencia es el estado estable: bastan 3 sondeos.
-# Solo kubectl, solo ns demo.
+# f23_statefulset_no_headless.sh (verifier): asserts that the Service
+# f23-missing-headless does NOT exist (the StatefulSet has no headless).
+# Absence is the steady state: 3 probes suffice.
+# kubectl only, demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

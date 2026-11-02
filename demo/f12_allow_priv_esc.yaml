@@ -19,9 +19,9 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F12: escalado de privilegios permitido + capacidad SYS_ADMIN
-          # (puerta a escape del contenedor). Resources y probes sanos
-          # para aislar el fallo. No endurecer el securityContext.
+          # F12: privilege escalation allowed + SYS_ADMIN capability
+          # (container-escape door). Healthy resources and probes
+          # to isolate the failure. Do not harden the securityContext.
           securityContext:
             allowPrivilegeEscalation: true
             capabilities:

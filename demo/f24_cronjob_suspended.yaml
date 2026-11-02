@@ -6,8 +6,8 @@ metadata:
   labels:
     umbra.io/fault: F24
 spec:
-  # F24: CronJob suspendido: la planificacion esta parada en silencio,
-  # nadie se entera de que el backup ya no corre. No quitar suspend.
+  # F24: suspended CronJob: scheduling silently stopped,
+  # nobody notices the backup no longer runs. Do not remove suspend.
   schedule: "0 3 * * *"
   suspend: true
   jobTemplate:

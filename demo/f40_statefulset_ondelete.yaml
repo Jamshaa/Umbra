@@ -23,8 +23,8 @@ metadata:
 spec:
   serviceName: f40-headless
   replicas: 2
-  # F40: estrategia OnDelete: las nuevas versiones NUNCA se despliegan
-  # solas, hay que borrar cada pod a mano. No cambiar a RollingUpdate.
+  # F40: OnDelete strategy: new versions NEVER deploy
+  # on their own, each pod must be deleted by hand. Do not switch to RollingUpdate.
   updateStrategy:
     type: OnDelete
   selector:

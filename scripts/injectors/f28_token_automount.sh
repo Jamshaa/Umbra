@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f28_token_automount.sh: inyecta el fallo F28 en el namespace demo.
-# F28 = automountServiceAccountToken explicito sin necesidad.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f28_token_automount.sh: injects failure F28 into the demo namespace.
+# F28 = automountServiceAccountToken set explicitly without need.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

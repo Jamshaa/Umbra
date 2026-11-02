@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f13_cluster_admin_binding.sh (verifier): afirma que existe el
-# ClusterRoleBinding f13 que ata la SA demo a cluster-admin.
-# Solo kubectl. Espera acotada: 30 intentos x 10 s.
+# f13_cluster_admin_binding.sh (verifier): asserts the existence of the
+# ClusterRoleBinding f13 binding the demo SA to cluster-admin.
+# kubectl only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

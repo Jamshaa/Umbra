@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f26_hpa_inverted.sh (verifier): afirma que el HPA demo F26 tiene
-# minReplicas por encima de maxReplicas (rango imposible).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f26_hpa_inverted.sh (verifier): asserts that demo HPA F26 has
+# minReplicas above maxReplicas (impossible range).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

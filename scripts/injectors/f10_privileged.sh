@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f10_privileged.sh: inyecta el fallo F10 en el namespace demo.
-# F10 = Contenedor con securityContext.privileged=true.
-# Resources y probes sanos para aislar el fallo.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f10_privileged.sh: injects failure F10 into the demo namespace.
+# F10 = Container with securityContext.privileged=true.
+# Healthy resources and probes to isolate the failure.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

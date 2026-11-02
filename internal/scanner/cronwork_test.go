@@ -227,6 +227,22 @@ rules: [{apiGroups: ["*"], resources: ["*"], verbs: ["*"]}]
 	if got := DetectRBACWildcard([]byte(docs)); len(got) != 1 {
 		t.Fatalf("want 1, got %d", len(got))
 	}
+	// Scalar (non-list) wildcards and RoleBinding->cluster-admin count too.
+	scalar := `
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: badscalar, namespace: demo}
+rules: [{apiGroups: "", resources: secrets, verbs: "*"}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: evilbind, namespace: demo}
+subjects: [{kind: ServiceAccount, name: app}]
+roleRef: {kind: ClusterRole, name: cluster-admin}
+`
+	if got := DetectRBACWildcard([]byte(scalar)); len(got) != 2 {
+		t.Fatalf("want 2 (scalar secrets read, namespaced cluster-admin grant), got %d: %+v", len(got), got)
+	}
 }
 
 func TestHPAInvertedBounds(t *testing.T) {

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f27_host_network.sh: inyecta el fallo F27 en el namespace demo.
-# F27 = Pod con hostNetwork (ve la red del nodo).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f27_host_network.sh: injects failure F27 into the demo namespace.
+# F27 = Pod with hostNetwork (sees the node network).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f19_command_typo.sh: inyecta el fallo F19 en el namespace demo.
-# F19 = Errata en el command (binario inexistente, el pod no arranca).
-# Resources y probes sanos para aislar el fallo.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f19_command_typo.sh: injects failure F19 into the demo namespace.
+# F19 = Typo in the command (nonexistent binary, the pod never starts).
+# Healthy resources and probes to isolate the failure.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

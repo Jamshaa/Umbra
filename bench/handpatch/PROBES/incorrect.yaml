@@ -18,10 +18,10 @@ spec:
           image: demo-app:local
           ports:
             - containerPort: 8080
-          # INCORRECTO: mantiene la sonda identica (solo cambia el
-          # retraso, que el verificador ignora a proposito) en vez de
-          # distinguirla. Pasa la allowlist (solo toca readinessProbe)
-          # pero el verificador la rechaza: sigue siendo el fallo.
+          # INCORRECT: keeps the probe identical (only changes the
+          # delay, which the verifier ignores on purpose) instead of
+          # telling it apart. Passes the allowlist (only touches readinessProbe)
+          # but the verifier rejects it: it is still the failure.
           livenessProbe: {tcpSocket: {port: 8080}}
           readinessProbe: {tcpSocket: {port: 8080}, initialDelaySeconds: 30}
           resources:

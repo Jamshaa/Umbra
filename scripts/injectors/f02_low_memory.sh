@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f02_low_memory.sh: inyecta el fallo F02 en el namespace demo.
-# F02 = memory limit 8Mi + proceso que crece en memoria en bucle,
-# lo que garantiza OOMKill repetido (CrashLoop de OOM).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f02_low_memory.sh: injects failure F02 into the demo namespace.
+# F02 = memory limit 8Mi + process growing in memory in a loop,
+# guaranteeing repeated OOMKill (OOM CrashLoop).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

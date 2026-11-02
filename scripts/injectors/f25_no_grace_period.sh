@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f25_no_grace_period.sh: inyecta el fallo F25 en el namespace demo.
-# F25 = terminationGracePeriodSeconds 0 (SIGKILL inmediato).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f25_no_grace_period.sh: injects failure F25 into the demo namespace.
+# F25 = terminationGracePeriodSeconds 0 (immediate SIGKILL).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

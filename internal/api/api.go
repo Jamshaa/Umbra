@@ -34,6 +34,20 @@ type TimelineView struct {
 	Ts           int64  `json:"ts"`
 }
 
+// securityHeaders are set on every response: the API serves sanitized
+// cluster data on loopback today, but must not become clickjacking or
+// MIME-sniffing material the day it is ever proxied.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("Cache-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
+}
+
 // NewHandler wires the read-only routes. distDir is served at /;
 // a missing bundle directory answers 503 with a plain message.
 func NewHandler(c client.Client, distDir string) http.Handler {
@@ -56,9 +70,15 @@ func NewHandler(c client.Client, distDir string) http.Handler {
 			http.Error(w, "ui not built", http.StatusServiceUnavailable)
 			return
 		}
+		// No directory listings: only the bundle files are served.
+		// FileServer's index fallback stays for exact directory URLs.
+		if strings.HasSuffix(r.URL.Path, "/") && r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		http.FileServer(http.Dir(distDir)).ServeHTTP(w, r)
 	})
-	return mux
+	return securityHeaders(mux)
 }
 
 func listFindings(ctx context.Context, c client.Client) ([]FindingView, error) {
@@ -77,7 +97,7 @@ func listFindings(ctx context.Context, c client.Client) ([]FindingView, error) {
 			// Defense in depth: sanitize again at the serving edge.
 			LiveYaml:    evidence.Sanitize(f.Spec.PrePatchManifest),
 			DiffRemoved: []string{},
-			DiffAdded:   splitLines(f.Spec.ProposedPatch),
+			DiffAdded:   splitLines(evidence.Sanitize(f.Spec.ProposedPatch)),
 			Timeline:    timelineOf(f),
 		})
 	}

@@ -5,12 +5,17 @@
 # a granted privilege, not an ambient one:
 #
 #   kubectl create clusterrolebinding umbra-approvers \
-#     --clusterrole=umbra-approver --user=<persona>   # a human cluster-admin runs this
+#     --clusterrole=umbra-approver --user=<person>   # a human cluster-admin runs this
 #
 # Only patch on findings (annotations live in metadata): no status writes,
 # no delete, no access to anything else. The reconciler still records the
 # claim as self-declared (ResolveApproval) unless the audit log names the
 # same person; RBAC narrows WHO can write, the verdict says HOW proven.
+#
+# Kubernetes RBAC cannot restrict patch to annotations, so a bare patch
+# grant would also allow spec forgery. config/approval-policy closes that
+# gap at admission: non-system writers may change nothing but the
+# umbra.dev/approved annotation (spec immutable, metadata locked).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

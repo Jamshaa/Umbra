@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f24_cronjob_suspended.sh (verifier): afirma que el CronJob demo F24
-# esta suspendido (schedule detenido en silencio).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f24_cronjob_suspended.sh (verifier): asserts that demo CronJob F24
+# is suspended (schedule silently stopped).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

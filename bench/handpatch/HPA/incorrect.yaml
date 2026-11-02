@@ -18,8 +18,8 @@ spec:
           image: demo-app:local
           ports:
             - containerPort: 8080
-          # INCORRECTO: anade recursos pero solo memoria; el HPA
-          # escala sobre CPU, asi que sigue sin poder calcular.
+          # INCORRECT: adds resources but only memory; the HPA
+          # scales on CPU, so it still cannot compute.
           resources:
             requests:
               memory: 64Mi

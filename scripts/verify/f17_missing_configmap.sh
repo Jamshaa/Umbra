@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f17_missing_configmap.sh (verifier): afirma que el pod demo F17 esta
-# atascado en CreateContainerConfigError por el ConfigMap ausente.
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f17_missing_configmap.sh (verifier): asserts that demo pod F17 is
+# stuck in CreateContainerConfigError over the missing ConfigMap.
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

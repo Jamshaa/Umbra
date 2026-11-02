@@ -19,7 +19,7 @@ spec:
       containers:
         - name: app
           image: demo-app:local
-          # F01: intencionadamente SIN bloque resources
-          # (ni limits ni requests). No anadir.
+          # F01: deliberately WITHOUT resources block
+          # (neither limits nor requests). Do not add.
           ports:
             - containerPort: 8080

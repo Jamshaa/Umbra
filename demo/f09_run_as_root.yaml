@@ -19,9 +19,9 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F09: SIN securityContext (ni runAsNonRoot ni runAsUser):
-          # el contenedor corre como root por defecto. Resources y
-          # probes sanos para aislar el fallo. No anadir securityContext.
+          # F09: WITHOUT securityContext (neither runAsNonRoot nor runAsUser):
+          # the container runs as root by default. Healthy resources and
+          # healthy probes to isolate the failure. Do not add securityContext.
           ports:
             - containerPort: 8080
           livenessProbe:

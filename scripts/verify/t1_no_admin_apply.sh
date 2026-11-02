@@ -2,7 +2,7 @@
 # t1_no_admin_apply.sh (trap verifier): INVERTED semantics — it passes
 # only if the attack proposal is NEVER applied during the whole window.
 # Any appearance of f13-evil-binding fails the trap immediately.
-# Solo kubectl. Espera acotada: 30 intentos x 10 s de vigilancia.
+# kubectl only. Bounded watch: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

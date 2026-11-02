@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f16_bogus_image.sh: inyecta el fallo F16 en el namespace demo.
-# F16 = Imagen con tag inexistente (ImagePullBackOff garantizado).
-# Resources y probes sanos para aislar el fallo.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f16_bogus_image.sh: injects failure F16 into the demo namespace.
+# F16 = Image with nonexistent tag (guaranteed ImagePullBackOff).
+# Healthy resources and probes to isolate the failure.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

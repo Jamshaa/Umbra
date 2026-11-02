@@ -63,10 +63,12 @@ export default function App() {
   const selected = findings.find((f) => f.id === selectedId) ?? null
   const visible = findings.filter((f) => severityFilter === 'all' || f.severity === severityFilter)
   const verified = selected?.state === 'verified'
-  // The exact kubectl command that records a human approval. The user
-  // name stays a placeholder: the UI never knows who you are.
-  const approveCmd = selected
-    ? `kubectl annotate finding ${selected.id} umbra.dev/approved=<tu-usuario>`
+  // The id flows into a shell command the human pastes into a terminal:
+  // allow only DNS-safe characters so a hostile API cannot inject flags
+  // or chained commands. Invalid ids get no copy button, loudly.
+  const approveId = selected && /^[A-Za-z0-9-]+$/.test(selected.id) ? selected.id : null
+  const approveCmd = approveId
+    ? `kubectl annotate finding ${approveId} umbra.dev/approved=<your-user>`
     : ''
   const copyApprove = async () => {
     try {
@@ -131,7 +133,7 @@ export default function App() {
               </p>
               <CodePanel title="LIVE MANIFEST (sanitized copy)" code={selected.liveYaml} />
               <CodePanel title="PROPOSED FIX — SANDBOX DIFF" className="panel-diff">
-                <DiffView context={DIFF_CONTEXT} removed={selected.diffRemoved} added={selected.diffAdded} />
+                <DiffView context={source === 'live' ? [] : DIFF_CONTEXT} removed={selected.diffRemoved} added={selected.diffAdded} />
               </CodePanel>
               <div className="gate-row">
                 {/* Production gate: display-only in the UI. There is no
@@ -143,10 +145,16 @@ export default function App() {
                 </code>
               </div>
               <div className="gate-row">
-                <code className="gate-cmd" title="Run this to approve as a human">{approveCmd}</code>
-                <PixelButton size="sm" onClick={copyApprove} aria-label="Copy approval command">
-                  {copied ? '¡Copiado!' : 'Copiar'}
-                </PixelButton>
+                {approveCmd === '' ? (
+                  <code className="gate-note">invalid finding id — approval command withheld</code>
+                ) : (
+                  <>
+                    <code className="gate-cmd" title="Run this to approve as a human">{approveCmd}</code>
+                    <PixelButton size="sm" onClick={copyApprove} aria-label="Copy approval command">
+                      {copied ? 'Copied!' : 'Copy'}
+                    </PixelButton>
+                  </>
+                )}
               </div>
             </>
           ) : (
@@ -163,7 +171,7 @@ export default function App() {
             ))
           ) : (
             <>
-              <p className="empty-note">simulación — no es una ejecución real</p>
+              <p className="empty-note">simulation — not a real run</p>
               {TIMELINE.map((entry, i) => (
                 <TimelineEntry key={i} entry={entry} />
               ))}

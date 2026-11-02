@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f13_cluster_admin_binding.sh: inyecta el fallo F13 en el namespace demo.
-# F13 = ServiceAccount demo atada a cluster-admin (poder total).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo crea la SA en demo;
-# el ClusterRoleBinding es cluster-scoped por definicion (es el fallo).
+# f13_cluster_admin_binding.sh: injects failure F13 into the demo namespace.
+# F13 = Demo ServiceAccount bound to cluster-admin (total power).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Only creates the SA in demo;
+# the ClusterRoleBinding is cluster-scoped by definition (that is the failure).
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

@@ -4,6 +4,7 @@
   "version": "0.1.0-dev",
   "type": "module",
   "description": "Pixel-art UI for the Umbra K8s remediation operator: findings, sandbox diffs, agent timeline.",
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

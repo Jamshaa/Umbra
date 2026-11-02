@@ -17,7 +17,7 @@ const (
 	// AnnotationApproved is the human approval gate. A human writes it,
 	// never the operator:
 	//
-	//   kubectl annotate finding <id> umbra.dev/approved=<usuario>
+	//   kubectl annotate finding <id> umbra.dev/approved=<user>
 	//
 	// The value names who approves. The reconciler records the approval
 	// (who + when) in the Approved condition; it never acts on it alone.

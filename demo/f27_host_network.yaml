@@ -16,8 +16,8 @@ spec:
         app: f27-host-network
         umbra.io/fault: F27
     spec:
-      # F27: hostNetwork expone el pod a la red del NODO (escucha y
-      # fisgoneo fuera del aislamiento de red). No quitarlo.
+      # F27: hostNetwork exposes the pod to the NODE network (listening and
+      # snooping outside network isolation). Do not remove it.
       hostNetwork: true
       containers:
         - name: app

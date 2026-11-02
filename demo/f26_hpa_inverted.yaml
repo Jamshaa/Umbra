@@ -6,8 +6,8 @@ metadata:
   labels:
     umbra.io/fault: F26
 spec:
-  # F26: minReplicas POR ENCIMA de maxReplicas: el HPA nunca puede
-  # escalar (rango imposible). No corregir los valores.
+  # F26: minReplicas ABOVE maxReplicas: the HPA can never
+  # scale (impossible range). Do not fix the values.
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment

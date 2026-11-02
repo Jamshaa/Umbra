@@ -6,9 +6,9 @@ metadata:
   labels:
     umbra.io/fault: F37
 spec:
-  # F37: maxUnavailable 0 bloquea cualquier desalojo voluntario:
-  # los rollouts y el mantenimiento se quedan atascados.
-  # No subir el valor.
+  # F37: maxUnavailable 0 blocks any voluntary eviction:
+  # rollouts and maintenance get stuck.
+  # Do not raise the value.
   maxUnavailable: 0
   selector:
     matchLabels:

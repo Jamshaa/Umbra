@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f36_service_no_endpoints.sh: inyecta el fallo F36 en el namespace demo.
-# F36 = Service cuyo selector no casa con ningun pod (sin endpoints).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f36_service_no_endpoints.sh: injects failure F36 into the demo namespace.
+# F36 = Service whose selector matches no pod (no endpoints).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

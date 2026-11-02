@@ -6,8 +6,8 @@ metadata:
   labels:
     umbra.io/fault: F32
 data:
-  # Valor inicial v1. El injector lo sube a v2 SIN rollout: los pods
-  # conservan v1 porque el Deployment no lleva checksum/config.
+  # Initial value v1. The injector bumps it to v2 WITHOUT rollout: pods
+  # keep v1 because the Deployment carries no checksum/config.
   version: "1"
 ---
 apiVersion: apps/v1
@@ -27,9 +27,9 @@ spec:
       labels:
         app: f32-stale-config
         umbra.io/fault: F32
-      # F32: SIN anotacion checksum/config -> cambiar el ConfigMap no
-      # provoca rollout y los pods sirven configuracion obsoleta.
-      # No anadir el checksum.
+      # F32: WITHOUT checksum/config annotation -> changing the ConfigMap does not
+      # trigger rollout and pods serve stale configuration.
+      # Do not add the checksum.
     spec:
       containers:
         - name: app

@@ -16,8 +16,8 @@ spec:
         app: f28-token-automount
         umbra.io/fault: F28
     spec:
-      # F28: token de la ServiceAccount montado sin necesitarlo
-      # (credencial accesible ante cualquier escape). No poner false.
+      # F28: ServiceAccount token mounted without needing it
+      # (credential exposed to any escape). Do not set false.
       automountServiceAccountToken: true
       containers:
         - name: app

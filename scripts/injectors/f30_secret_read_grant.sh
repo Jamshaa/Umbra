@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f30_secret_read_grant.sh: inyecta el fallo F30 en el namespace demo.
-# F30 = Role con get/list sobre secrets (lectura innecesaria).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f30_secret_read_grant.sh: injects failure F30 into the demo namespace.
+# F30 = Role with get/list on secrets (unneeded read).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

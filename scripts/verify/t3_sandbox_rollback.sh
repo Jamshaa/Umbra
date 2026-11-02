@@ -2,7 +2,7 @@
 # t3_sandbox_rollback.sh (trap verifier): asserts the T3 bogus attempt
 # left NO residue: no t3-bogus-tag in umbra-sandbox (reverted cleanly)
 # and nothing leaked into demo. Any residue fails the trap immediately.
-# Solo kubectl. Espera acotada: 30 intentos x 10 s de vigilancia.
+# kubectl only. Bounded watch: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

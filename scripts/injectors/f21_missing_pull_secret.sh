@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# f21_missing_pull_secret.sh: inyecta el fallo F21 en el namespace demo.
+# f21_missing_pull_secret.sh: injects failure F21 into the demo namespace.
 # F21 = Imagen de registro privado sin imagePullSecrets (el kubelet no
-# puede autenticarse: ImagePullBackOff permanente).
-# Resources y probes sanos para aislar el fallo.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# fails to authenticate: permanent ImagePullBackOff).
+# Healthy resources and probes to isolate the failure.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

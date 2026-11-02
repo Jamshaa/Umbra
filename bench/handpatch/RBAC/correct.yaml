@@ -6,7 +6,7 @@ metadata:
   labels:
     umbra.io/fault: F14
 rules:
-  # CORRECTO: permisos minimos explicitos en vez de comodines.
+  # CORRECT: explicit minimal permissions instead of wildcards.
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "list"]

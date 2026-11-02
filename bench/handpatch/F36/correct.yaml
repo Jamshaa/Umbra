@@ -6,7 +6,7 @@ metadata:
   labels:
     umbra.io/fault: F36
 spec:
-  # CORRECTO: el selector coincide con el Deployment f36-app.
+  # CORRECT: the selector matches Deployment f36-app.
   selector:
     app: f36-app
   ports:

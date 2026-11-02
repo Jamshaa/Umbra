@@ -19,9 +19,9 @@ spec:
       containers:
         - name: app
           image: demo-app:local
-          # F05: intencionadamente SIN liveness probe. Si la app se
-          # cuelga, nada la reinicia. La readiness SI esta definida
-          # (el fallo es solo la falta de liveness). No anadir
+          # F05: deliberately WITHOUT liveness probe. If the app
+          # hangs, nothing restarts it. Readiness IS defined
+          # (the failure is only the missing liveness). Do not add
           # livenessProbe.
           ports:
             - containerPort: 8080

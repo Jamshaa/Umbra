@@ -19,10 +19,10 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F19: errata en el binario (pythno3 en vez de python3): el
-          # runtime no encuentra el ejecutable y el pod no arranca.
-          # Resources y probes sanos para aislar el fallo (las probes
-          # nunca llegan a ejecutarse). No corregir el command.
+          # F19: typo in the binary (pythno3 instead of python3): the
+          # runtime cannot find the executable and the pod never starts.
+          # Healthy resources and probes to isolate the failure (probes
+          # never get to run). Do not fix the command.
           command: ["pythno3", "app.py"]
           ports:
             - containerPort: 8080

@@ -20,9 +20,9 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F23: serviceName apunta a un Service que NO existe (y mucho
-          # menos headless): sin identidades de red estables ni DNS.
-          # No crear el Service.
+          # F23: serviceName points at a Service that does NOT exist (far
+          # less headless): no stable network identities or DNS.
+          # Do not create the Service.
           ports:
             - containerPort: 8080
               name: web

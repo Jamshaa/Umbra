@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f28_token_automount.sh (verifier): afirma que el pod demo F28 monta
-# el token de la ServiceAccount sin necesitarlo.
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f28_token_automount.sh (verifier): asserts that demo pod F28 mounts
+# the ServiceAccount token without needing it.
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

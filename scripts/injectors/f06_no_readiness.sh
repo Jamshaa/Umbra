@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f06_no_readiness.sh: inyecta el fallo F06 en el namespace demo.
-# F06 = Contenedor SIN readiness probe (con limits sanos y liveness
-# definida): el pod arranca pero nunca esta Ready.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f06_no_readiness.sh: injects failure F06 into the demo namespace.
+# F06 = Container WITHOUT readiness probe (with healthy limits and liveness
+# defined): the pod starts but is never Ready.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

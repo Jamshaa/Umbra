@@ -19,10 +19,10 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F17: referencia a un ConfigMap que NO existe (f17-missing):
-          # el contenedor no llega a crearse (CreateContainerConfigError).
-          # Resources y probes sanos para aislar el fallo. No crear el
-          # ConfigMap ni quitar la referencia.
+          # F17: reference to a ConfigMap that does NOT exist (f17-missing):
+          # the container never gets created (CreateContainerConfigError).
+          # Healthy resources and probes to isolate the failure. Do not create the
+          # ConfigMap or remove the reference.
           envFrom:
             - configMapRef:
                 name: f17-missing

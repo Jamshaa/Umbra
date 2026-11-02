@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f18_missing_secret.sh (verifier): afirma que el pod demo F18 esta
-# atascado en CreateContainerConfigError por el Secret ausente.
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f18_missing_secret.sh (verifier): asserts that demo pod F18 is
+# stuck in CreateContainerConfigError over the missing Secret.
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

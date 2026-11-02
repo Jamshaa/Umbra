@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f08_readiness_mismatch.sh: inyecta el fallo F08 en el namespace demo.
-# F08 = readinessProbe contra un puerto donde nada escucha (8081 vs
-# 8080 real): pod vivo pero nunca Ready. Liveness y resources sanos.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f08_readiness_mismatch.sh: injects failure F08 into the demo namespace.
+# F08 = readinessProbe against a port where nothing listens (8081 vs
+# 8080): live pod but never Ready. Healthy liveness and resources.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

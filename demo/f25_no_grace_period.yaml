@@ -16,8 +16,8 @@ spec:
         app: f25-no-grace-period
         umbra.io/fault: F25
     spec:
-      # F25: sin periodo de gracia (kill inmediato): el trabajo en vuelo
-      # se pierde en cada rollout o replanificacion. No subir el valor.
+      # F25: without grace period (immediate kill): in-flight work
+      # is lost on every rollout or rescheduling. Do not raise the value.
       terminationGracePeriodSeconds: 0
       containers:
         - name: app

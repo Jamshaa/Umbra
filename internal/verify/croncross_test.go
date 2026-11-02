@@ -47,6 +47,17 @@ func TestVerifyCronDeadline(t *testing.T) {
 	}
 }
 
+func TestVerifyCronHistory(t *testing.T) {
+	if r := VerifyCronHistory([]byte(healthyCronDoc), PodStatus{}); !r.Pass {
+		t.Fatalf("healthy should pass: %s", r.Reason)
+	}
+	bloated := strings.Replace(healthyCronDoc, "successfulJobsHistoryLimit: 3",
+		"successfulJobsHistoryLimit: 20", 1)
+	if r := VerifyCronHistory([]byte(bloated), PodStatus{}); r.Pass {
+		t.Fatalf("bloated history should fail: %+v", r)
+	}
+}
+
 func TestVerifyCronSuspendedOverlapBoundsTZ(t *testing.T) {
 	susp := strings.Replace(bareCronDoc, "concurrencyPolicy: Allow", "suspend: true", 1)
 	if r := VerifyCronSuspended([]byte(susp), PodStatus{}); r.Pass {
@@ -200,6 +211,25 @@ rules: [{apiGroups: ["*"], resources: ["*"], verbs: ["*"]}]
 `
 	if r := VerifyRBACLeastPrivilege([]byte(bad), PodStatus{}); r.Pass {
 		t.Fatalf("wildcard should fail: %+v", r)
+	}
+	scalar := `
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: badscalar, namespace: demo}
+rules: [{apiGroups: "", resources: secrets, verbs: "*"}]
+`
+	if r := VerifyRBACLeastPrivilege([]byte(scalar), PodStatus{}); r.Pass {
+		t.Fatalf("scalar wildcard should fail: %+v", r)
+	}
+	bind := `
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: evilbind, namespace: demo}
+subjects: [{kind: ServiceAccount, name: app}]
+roleRef: {kind: ClusterRole, name: cluster-admin}
+`
+	if r := VerifyRBACLeastPrivilege([]byte(bind), PodStatus{}); r.Pass {
+		t.Fatalf("namespaced cluster-admin grant should fail: %+v", r)
 	}
 	good := `
 apiVersion: rbac.authorization.k8s.io/v1

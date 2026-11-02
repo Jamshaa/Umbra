@@ -18,8 +18,8 @@ spec:
           image: demo-app:local
           ports:
             - containerPort: 8080
-          # CORRECTO: readiness distinta (httpGet); la app colgada
-          # deja de estar lista Y ademas reinicia por liveness.
+          # CORRECT: distinct readiness (httpGet); the hung app
+          # stops being ready AND also restarts via liveness.
           livenessProbe: {tcpSocket: {port: 8080}}
           readinessProbe: {httpGet: {path: /readyz, port: 8080}}
           resources:

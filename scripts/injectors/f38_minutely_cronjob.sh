@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f38_minutely_cronjob.sh: inyecta el fallo F38 en el namespace demo.
-# F38 = CronJob cada minuto (martilleo del cluster).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f38_minutely_cronjob.sh: injects failure F38 into the demo namespace.
+# F38 = Every-minute CronJob (cluster hammering).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

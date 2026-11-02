@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f39_failing_init.sh (verifier): afirma que el Deployment demo F39
-# declara un initContainer (que falla siempre: pod en Initializing).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f39_failing_init.sh (verifier): asserts that demo Deployment F39
+# declares an initContainer (always failing: pod stuck in Initializing).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

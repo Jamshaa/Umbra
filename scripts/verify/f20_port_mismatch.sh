@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f20_port_mismatch.sh (verifier): afirma que el Deployment demo F20
-# declara probes en un puerto (9090) que el contenedor no abre (8080).
-# Es una propiedad del spec: no depende de timings del pod.
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f20_port_mismatch.sh (verifier): asserts that demo Deployment F20
+# declares probes on a port (9090) the container does not open (8080).
+# It is a spec property: independent of pod timings.
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 
@@ -12,7 +12,7 @@ DEPLOY="f20-port-mismatch"
 for _ in $(seq 1 30); do
   spec="$(kubectl --context kind-umbra get deploy "$DEPLOY" --namespace "$NAMESPACE" \
     -o 'jsonpath={.spec.template.spec.containers[0].ports[*].containerPort}/{.spec.template.spec.containers[0].livenessProbe.tcpSocket.port}/{.spec.template.spec.containers[0].readinessProbe.tcpSocket.port}' 2>/dev/null || true)"
-  # Puertos abiertos 8080 frente a probes en 9090: mismatch.
+  # Open ports 8080 vs probes on 9090: mismatch.
   if [ "$spec" = "8080/9090/9090" ]; then
     echo "F20 verified: probes target 9090 while container opens 8080"
     exit 0

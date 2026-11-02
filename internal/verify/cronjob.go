@@ -20,6 +20,7 @@ type cronManifest struct {
 		ConcurrencyPolicy          string `json:"concurrencyPolicy"`
 		StartingDeadlineSeconds    *int64 `json:"startingDeadlineSeconds,omitempty"`
 		SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+		FailedJobsHistoryLimit     *int32 `json:"failedJobsHistoryLimit,omitempty"`
 		TimeZone                   string `json:"timeZone"`
 		JobTemplate                struct {
 			Spec struct {
@@ -126,6 +127,22 @@ func VerifyCronTimezone(doc []byte, _ PodStatus) Result {
 		return fail("CronTimezone: timeZone still absent (controller zone decides DST)")
 	}
 	return Result{Pass: true, Reason: "CronTimezone: explicit timeZone"}
+}
+
+// VerifyCronHistory gates capped history limits: unbounded Job history
+// accumulates objects in etcd. Mirrors the detector threshold.
+func VerifyCronHistory(doc []byte, _ PodStatus) Result {
+	m, ok := decodeCron(doc)
+	if !ok {
+		return fail("CronHistory: manifest does not decode as CronJob")
+	}
+	if m.Spec.SuccessfulJobsHistoryLimit != nil && *m.Spec.SuccessfulJobsHistoryLimit > 5 {
+		return fail("CronHistory: successfulJobsHistoryLimit %d keeps too much history", *m.Spec.SuccessfulJobsHistoryLimit)
+	}
+	if m.Spec.FailedJobsHistoryLimit != nil && *m.Spec.FailedJobsHistoryLimit > 5 {
+		return fail("CronHistory: failedJobsHistoryLimit %d keeps too much history", *m.Spec.FailedJobsHistoryLimit)
+	}
+	return Result{Pass: true, Reason: "CronHistory: history limits capped"}
 }
 
 // VerifyCronSilentFail needs runtime: lastSchedule recent but

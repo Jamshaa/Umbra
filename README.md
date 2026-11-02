@@ -3,99 +3,99 @@
 > **Self-healing Kubernetes configurations, end to end:
 > detect → diagnose → patch → apply in a sandbox → verify → roll back if anything fails.**
 
-**Status: pre-release.** Ningún arreglo llega a producción sin prueba determinista; ningún cambio manual queda sin atribuir.
+**Status: pre-release.** No fix reaches production without a deterministic test; no manual change goes unattributed.
 
-> Estado función por función (implementado / unit / vivo): [`docs/STATUS.md`](docs/STATUS.md). El README no afirma nada que esa tabla no respalde.
+> Function-by-function status (implemented / unit / live): [`docs/STATUS.md`](docs/STATUS.md). This README claims nothing that table doesn't back.
 
-> Captura de la UI: pendiente de la primera demo grabada (ver `docs/DEMO.md`).
+> UI screenshot: pending the first recorded demo (see `docs/DEMO.md`).
 
-## El problema
+## The problem
 
-Los equipos de plataforma viven con errores de configuración: el 78% de los
-encuestados de Red Hat reportó fallos de configuración en el último año. El
-flujo real es siempre el mismo: algo se rompe, la primera pregunta es
-"¿qué cambió justo antes?", y el arreglo manual que sigue no deja rastro
-auditable. Umbra encaja en ese día a día: el hallazgo llega con quién lo
-cambió, la propuesta con su prueba, y la aplicación con recibo y reversión.
+Platform teams live with misconfiguration: 78% of Red Hat
+respondents reported config failures in the last year. The
+real flow is always the same: something breaks, the first question is
+"what changed just before?", and the manual fix that follows leaves no
+auditable trace. Umbra fits that day-to-day: the finding arrives with who
+changed it, the proposal with its test, and the apply with receipt and rollback.
 
-## Qué lo diferencia
+## What sets it apart
 
-| Herramienta | Hace | No hace (Umbra sí) |
+| Tool | Does | Doesn't do (Umbra does) |
 |---|---|---|
-| K8sGPT | Escanea y explica; remediación automática alfa y limitada | Probar el parche antes de aplicarlo |
-| HolmesGPT | Investiga en solo lectura | Proponer + verificar + recibo |
-| Aurora | Abre PRs solo tras aprobación humana | Puertas deterministas y rollback por snapshot |
+| K8sGPT | Scans and explains; alpha, limited auto-remediation | Test the patch before applying |
+| HolmesGPT | Read-only investigation | Propose + verify + receipt |
+| Aurora | Opens PRs only after human approval | Deterministic gates and snapshot rollback |
 
-Tesis: el modelo propone, el código verifica, un humano aprueba y todo deja
-un recibo. División honesta del trabajo: **el operador mantiene el estado y
-las puertas; el agente es el que propone**. No es un operador autónomo: sin
-propuesta del agente no hay nada que verificar, y sin puertas nada llega a
-producción.
+Thesis: the model proposes, code verifies, a human approves, and everything leaves
+a receipt. Honest split: **the operator holds state and
+gates; the agent proposes**. Not an autonomous operator: with
+no agent proposal there is nothing to verify, and with no gates nothing reaches
+production.
 
-## Cómo funciona
+## How it works
 
 ```
 Scanner ──▶ Agent (Muse Spark, Responses API) ──▶ Sandbox (umbra-sandbox)
   │                │ read-only + propose_patch            │ dry-run + apply
   │                ▼                                     ▼
   │         allowlist + invariantes               Verificador determinista
-  │                │                                pass ▶ propone (humano aprueba)
-  │                │                                fail ▶ rollback por snapshot
-  └── hallazgo con atribución (audit log / managedFields)
+  │                │                                pass ▶ propose (human approves)
+  │                │                                fail ▶ rollback via snapshot
+  └── finding with attribution (audit log / managedFields)
 ```
 
-Seguridad del agente: el modelo nunca aplica nada; `tool_choice: auto` con la
-lista impuesta en código (`internal/agent/tools.go`); parches tipados contra
-allowlist; secretos redactados antes del prompt (`internal/evidence`); T4
-prueba la inyección; sin auto-apply; RBAC mínimo de solo lectura. Detalle en
-`docs/SECURITY.md` y `docs/META.md`.
+Agent safety: the model never applies anything; `tool_choice: auto` with the
+code-enforced list (`internal/agent/tools.go`); typed patches against
+allowlist; secrets redacted before the prompt (`internal/evidence`); T4
+covers injection; no auto-apply; minimal read-only RBAC. Detail in
+`docs/SECURITY.md` and `docs/META.md`.
 
-## Inicio rápido (5 comandos)
+## Quickstart (5 commands)
 
 ```bash
 bash scripts/kind/create-cluster.sh   # 1. cluster umbra + audit log
-bash scripts/build-images.sh          # 2. imágenes kind-only
+bash scripts/build-images.sh          # 2. kind-only images
 kubectl apply -k config/crd           # 3. CRDs
-make bench                             # 4. fila determinista del scoreboard
+make bench                             # 4. deterministic scoreboard row
 cd ui && npm ci && npm run build      # 5. UI
 ```
 
-O `make demo` para todo de una vez. Requiere `MODEL_API_KEY` en entorno solo
-para los modos con modelo; **ningún dato sale salvo la llamada al modelo, con
-evidencia sanitizada**, y `MODEL_BASE_URL` permite apuntar a un modelo local.
+Or `make demo` for everything at once. Requires `MODEL_API_KEY` in env only
+for model modes; **nothing leaves except the model call, with
+sanitized evidence**, and `MODEL_BASE_URL` points at a local model.
 
 ## Benchmark
 
-Tres filas, mismos casos, semilla 42, 3 repeticiones (`bench/cases.yaml`):
+Three rows, same cases, seed 42, 3 repeats (`bench/cases.yaml`):
 
-| Configuración | Qué demuestra | Estado |
+| Configuration | Shows | Status |
 |---|---|---|
-| Solo deterministas (grupo A) | Cobertura sin IA | **18/18**, `live: true` (kind 1.37.0) |
-| Trampas (grupo T) | Rechazar o contener | **12/12**, `live: true` (T1–T4 ×3) |
-| Modelo con verificadores (grupos A+B) | Cuánto añade la IA con seguridad; B es donde el modelo aporta lo que lo determinista no puede | Sin medir (sin clave en este entorno) |
-| Modelo sin verificadores | Parches malos que se habrían aplicado | Sin medir |
+| Deterministic only (group A) | Coverage without AI | **18/18**, `live: true` (kind 1.37.0) |
+| Traps (group T) | Reject or contain | **12/12**, `live: true` (T1–T4 ×3) |
+| Model with verifiers (groups A+B) | How much AI adds with safety; B is where the model adds what deterministic can't | Unmeasured (no key in this environment) |
+| Model without verifiers | Bad patches that would have applied | Unmeasured |
 
-Grupos: **A** = hay arreglo determinista (F01–F06 y reglas Cron);
-**B** = hay verificador pero el arreglo es solo del modelo (Service sin
-endpoints, HPA sin requests, sondas idénticas, RBAC mínimo);
-**C** = solo diagnóstico; **T** = trampas (rechazar o contener). Cada
-resultado JSONL guarda `live: true|false`; las filas medidas hasta hoy son
-`live: true` (kind local).
+Groups: **A** = has deterministic fix (F01–F06 and Cron rules);
+**B** = has verifier but the fix is model-only (Service without
+endpoints, HPA without requests, identical probes, minimal RBAC);
+**C** = diagnosis only; **T** = traps (reject or contain). Each
+JSONL result stores `live: true|false`; rows measured so far are
+`live: true` (local kind).
 
-Datos crudos: `bench/results/*.jsonl` (el determinista, del 2026-11-01) y
-`bench/results/scoreboard.json`. Método y reglas de honestidad en
-`docs/BENCHMARK.md`. Ninguna cifra de modelo se publica hasta medirse.
+Raw data: `bench/results/*.jsonl` (deterministic, 2026-11-01) and
+`bench/results/scoreboard.json`. Method and honesty rules in
+`docs/BENCHMARK.md`. No model figures published until measured.
 
-## Uso de Meta y limitaciones
+## Meta usage and limitations
 
-Modelo Muse Spark por Responses API con llamadas a herramientas; detalle de
-qué modelo, dónde y por qué en `docs/META.md`. Lo que no hace (Helm, tráfico
-real en sandbox, producción real, Prometheus, calendario CronJob completo):
+Muse Spark model via Responses API with tool calls; which
+model, where and why in `docs/META.md`. What it doesn't do (Helm, real
+sandbox traffic, real production, Prometheus, full CronJob calendar):
 `docs/LIMITATIONS.md`.
 
-## Roadmap y licencia
+## Roadmap and license
 
-Hoja de ruta del producto (no construido, rotulado): `ROADMAP.md`
-(v0.2 Helm/GitOps, v0.3 modelo local + SIEM, v0.4 CronJob/GPU + vCluster,
-v1.0 HA + multi-cluster). Licencia [Apache-2.0](LICENSE). Convivencia:
+Product roadmap (unbuilt, labeled): `ROADMAP.md`
+(v0.2 Helm/GitOps, v0.3 local model + SIEM, v0.4 CronJob/GPU + vCluster,
+v1.0 HA + multi-cluster). License [Apache-2.0](LICENSE). Conduct:
 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [CONTRIBUTING.md](CONTRIBUTING.md).

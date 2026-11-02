@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f07_crashloop.sh: inyecta el fallo F07 en el namespace demo.
-# F07 = Contenedor cuyo proceso sale con codigo 1 al arrancar
-# (CrashLoopBackOff garantizado, resources y probes sanos).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f07_crashloop.sh: injects failure F07 into the demo namespace.
+# F07 = Container whose process exits with code 1 on start
+# (guaranteed CrashLoopBackOff, healthy resources and probes).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

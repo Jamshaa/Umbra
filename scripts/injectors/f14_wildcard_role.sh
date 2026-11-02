@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f14_wildcard_role.sh: inyecta el fallo F14 en el namespace demo.
-# F14 = Role con comodines en recursos y verbos, atado a la SA default.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f14_wildcard_role.sh: injects failure F14 into the demo namespace.
+# F14 = Role with wildcards in resources and verbs, bound to the default SA.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

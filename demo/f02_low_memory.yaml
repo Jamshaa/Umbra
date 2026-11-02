@@ -19,9 +19,9 @@ spec:
       containers:
         - name: app
           image: busybox:1.36
-          # F02: limite de memoria deliberadamente insuficiente (8Mi).
-          # El proceso retiene ~32Mi: con 8Mi muere en OOMKilled repetido;
-          # con el arreglo (64Mi) se estabiliza. busybox aporta /bin/sh.
+          # F02: deliberately insufficient memory limit (8Mi).
+          # The process retains ~32Mi: with 8Mi it dies in repeated OOMKilled;
+          # with the fix (64Mi) it stabilizes. busybox provides /bin/sh.
           command: ["/bin/sh", "-c"]
           args:
             - a=$(head -c 33554432 /dev/zero | tr '\0' 'X'); sleep 3600

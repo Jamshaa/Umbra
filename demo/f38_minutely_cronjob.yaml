@@ -6,9 +6,9 @@ metadata:
   labels:
     umbra.io/fault: F38
 spec:
-  # F38: corre CADA MINUTO: martillea el cluster con Jobs basura y
-  # puede solapar ejecuciones si una tarda mas de 60 s.
-  # No bajar la frecuencia aqui: ese es el fix.
+  # F38: runs EVERY MINUTE: hammers the cluster with junk Jobs and
+  # can overlap runs if one takes more than 60 s.
+  # Do not lower the frequency here: that is the fix.
   schedule: "* * * * *"
   jobTemplate:
     spec:

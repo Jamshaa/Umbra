@@ -28,8 +28,9 @@ rules:
   verbs:
   - patch
   - update
-# Namespace creation is cluster-scoped; namespaced sandbox objects are
-# restricted by the Role in sandbox-role.yaml.
+# Namespace reads stay cluster-wide (discovery only, no writes).
+# Mutations are pinned to the sandbox the reconciler owns; nothing else
+# in the cluster can be created, updated or patched by this role.
 - apiGroups:
   - ""
   resources:
@@ -38,6 +39,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  resourceNames:
+  - umbra-sandbox
+  verbs:
   - create
   - update
   - patch

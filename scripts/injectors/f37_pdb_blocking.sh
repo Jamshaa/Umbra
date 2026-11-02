@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f37_pdb_blocking.sh: inyecta el fallo F37 en el namespace demo.
-# F37 = PDB con maxUnavailable 0 (bloquea desalojos y rollouts).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f37_pdb_blocking.sh: injects failure F37 into the demo namespace.
+# F37 = PDB with maxUnavailable 0 (blocks evictions and rollouts).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

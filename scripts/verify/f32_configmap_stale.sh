@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f32_configmap_stale.sh (verifier): afirma que el Deployment monta el
-# ConfigMap SIN anotacion checksum (cualquier cambio lo deja obsoleto).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f32_configmap_stale.sh (verifier): asserts that the Deployment mounts the
+# ConfigMap WITHOUT checksum annotation (any change leaves it stale).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

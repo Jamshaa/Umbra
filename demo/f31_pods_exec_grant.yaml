@@ -6,8 +6,8 @@ metadata:
   labels:
     umbra.io/fault: F31
 rules:
-  # F31: create sobre pods/exec = shell en cualquier pod del namespace.
-  # No conceder este verbo jamas.
+  # F31: create on pods/exec = shell in any pod of the namespace.
+  # Never grant this verb.
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["create"]

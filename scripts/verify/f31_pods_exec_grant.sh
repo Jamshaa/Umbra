@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f31_pods_exec_grant.sh (verifier): afirma que el Role demo F31 concede
-# create sobre pods/exec. Solo kubectl, solo ns demo.
-# Espera acotada: 30 intentos x 10 s.
+# f31_pods_exec_grant.sh (verifier): asserts that demo Role F31 grants
+# create on pods/exec. kubectl only, demo ns only.
+# Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

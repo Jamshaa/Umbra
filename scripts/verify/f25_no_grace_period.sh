@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f25_no_grace_period.sh (verifier): afirma que el pod demo F25 tiene
-# terminationGracePeriodSeconds 0 (muerte sin drenaje).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f25_no_grace_period.sh (verifier): asserts that demo pod F25 has
+# terminationGracePeriodSeconds 0 (death without draining).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

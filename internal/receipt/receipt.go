@@ -1,6 +1,7 @@
 package receipt
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -238,6 +239,19 @@ func Build(in Input) Receipt {
 type chainLine struct {
 	Payload string `json:"payload"`
 	Prev    string `json:"prev"`
+	// Sig is the optional hex HMAC-SHA256 over prev + "\n" + payload under
+	// an operator-held key. Unsigned lines predate signatures and verify
+	// with the legacy VerifyChain only.
+	Sig string `json:"sig,omitempty"`
+}
+
+// Sign returns hex HMAC-SHA256 of prev + "\n" + payload under key. The key
+// lives outside the chain (e.g. UMBRA_RECEIPT_HMAC_KEY): whoever can
+// rewrite the file but lacks the key cannot forge a signed chain.
+func Sign(prev, payload string, key []byte) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte(prev + "\n" + payload))
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 // AppendRegistro appends payload to the registry chain, linking it to
@@ -255,6 +269,20 @@ func AppendRegistro(chain []string, payload string) []string {
 	return append(chain, string(raw))
 }
 
+// AppendRegistroSigned appends a keyed line: same link plus an HMAC over
+// prev + payload, so wholesale rewrites without the key do not verify.
+func AppendRegistroSigned(chain []string, payload string, key []byte) []string {
+	prev := "GENESIS"
+	if len(chain) > 0 {
+		prev = hash(chain[len(chain)-1])
+	}
+	raw, err := json.Marshal(chainLine{Payload: payload, Prev: prev, Sig: Sign(prev, payload, key)})
+	if err != nil {
+		panic("receipt: marshal chain line: " + err.Error())
+	}
+	return append(chain, string(raw))
+}
+
 // VerifyChain checks every link of the registry chain. It returns nil
 // when the chain is intact, else an error naming the first broken index.
 func VerifyChain(chain []string) error {
@@ -266,6 +294,30 @@ func VerifyChain(chain []string) error {
 		}
 		if l.Prev != prev {
 			return fmt.Errorf("receipt: line %d broken link: want prev %q, got %q", i, prev, l.Prev)
+		}
+		prev = hash(line)
+	}
+	return nil
+}
+
+// VerifyChainSigned checks links and HMACs. Every line must carry a valid
+// signature: an unsigned or re-signed-by-attacker line fails. An empty key
+// is refused outright (fail closed: no key, no signed verification).
+func VerifyChainSigned(chain []string, key []byte) error {
+	if len(key) == 0 {
+		return fmt.Errorf("receipt: signed verification needs a non-empty key")
+	}
+	prev := "GENESIS"
+	for i, line := range chain {
+		var l chainLine
+		if err := json.Unmarshal([]byte(line), &l); err != nil {
+			return fmt.Errorf("receipt: line %d not valid JSON: %w", i, err)
+		}
+		if l.Prev != prev {
+			return fmt.Errorf("receipt: line %d broken link: want prev %q, got %q", i, prev, l.Prev)
+		}
+		if l.Sig == "" || !hmac.Equal([]byte(l.Sig), []byte(Sign(l.Prev, l.Payload, key))) {
+			return fmt.Errorf("receipt: line %d bad signature", i)
 		}
 		prev = hash(line)
 	}

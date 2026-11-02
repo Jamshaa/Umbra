@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f34_subpath_mount.sh: inyecta el fallo F34 en el namespace demo.
-# F34 = Montaje con subPath de un ConfigMap (anclado a la primera
-# version, nunca recibe actualizaciones).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f34_subpath_mount.sh: injects failure F34 into the demo namespace.
+# F34 = subPath mount of a ConfigMap (pinned to the first
+# version, never receives updates).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

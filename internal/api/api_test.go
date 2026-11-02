@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -108,6 +109,42 @@ func TestMethodNotAllowed(t *testing.T) {
 	NewHandler(c, "").ServeHTTP(rec, req)
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("code = %d, want 405", rec.Code)
+	}
+}
+
+func TestSecurityHeaders(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(apiScheme(t)).Build()
+	rec := get(t, NewHandler(c, ""), "/api/findings")
+	for k, want := range map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options":        "DENY",
+		"Referrer-Policy":        "no-referrer",
+		"Cache-Control":          "no-store",
+	} {
+		if got := rec.Header().Get(k); got != want {
+			t.Fatalf("header %s = %q, want %q", k, got, want)
+		}
+	}
+}
+
+func TestNoDirectoryListing(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(apiScheme(t)).Build()
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "assets")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sub, "app.js"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := NewHandler(c, dir)
+	// Exact files still serve.
+	if rec := get(t, h, "/assets/app.js"); rec.Code != http.StatusOK {
+		t.Fatalf("asset code = %d, want 200", rec.Code)
+	}
+	// Directory URLs without an index must not list.
+	if rec := get(t, h, "/assets/"); rec.Code != http.StatusNotFound {
+		t.Fatalf("listing code = %d, want 404", rec.Code)
 	}
 }
 

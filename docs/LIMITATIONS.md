@@ -1,25 +1,25 @@
-# LIMITATIONS.md — lo que Umbra no hace (ni finge hacer)
+# LIMITATIONS.md — what Umbra doesn't do (nor pretends to)
 
-- **Sin Helm ni tráfico real en el sandbox.** El sandbox comprueba que algo
-  arranca y pasa sondas, no que aguante carga. Cae del catálogo lo que exija
-  reproducir tráfico (F04 se verifica por límites + reinicios estables, no por
-  carga real).
-- **Sin producción real.** El manager/producción solo propone; aplicar es un
-  acto humano (`umbra approve` / anotación). Nunca hay auto-apply.
-- **Sin Prometheus.** Comparar requests contra consumo histórico exige series
-  temporales; `metrics-server` es una instantánea y no decide nada. La
-  optimización de costes va al roadmap.
-- **Calendario CronJob parcial.** `NextCronRuns` solo expande `*`, `*/k` y
-  números en minuto/hora; el resto es "desconocido", nunca sano.
-- **Detección estática, no runtime.** Solapes reales de CronJob, QoS bajo
-  presión o colisiones de horario multi-CronJob necesitan observación en vivo;
-  el detector marca el riesgo, el evento lo confirma.
-- **Roles sin uso.** Requiere audit log real con historial; fuera de alcance.
-- **Modelo local.** Glimmer vía endpoint OpenAI-compatible: cableado
-  (`MODEL_BASE_URL`), sin medir.
-- **Red de salida.** El cluster solo necesita llegar a la API del modelo;
-  hoy el agente corre en el host, así que esto no afecta a las imágenes.
-  Si el agente se mueve al manager: `FROM scratch` no trae certificados
-  raíz y la llamada HTTPS fallaría — habría que copiar el paquete CA y
-  abrir la salida en su NetworkPolicy (ver comentario en
+- **No Helm, no real sandbox traffic.** The sandbox checks that something
+  starts and passes probes, not that it holds load. Anything requiring
+  traffic replay is out of catalog (F04 verifies via limits + stable restarts, not
+  real load).
+- **No real production.** Manager/production only proposes; applying is a
+  human act (`umbra approve` / annotation). Never auto-apply.
+- **No Prometheus.** Comparing requests against historical usage needs time
+  series; `metrics-server` is a snapshot and decides nothing. Cost
+  optimization goes to the roadmap.
+- **Partial CronJob calendar.** `NextCronRuns` only expands `*`, `*/k` and
+  numbers in minute/hour; the rest is "unknown", never healthy.
+- **Static detection, not runtime.** Real CronJob overlaps, QoS under
+  pressure, or multi-CronJob schedule collisions need live observation;
+  the detector flags the risk, the event confirms it.
+- **Unused roles.** Requires real audit log with history; out of scope.
+- **Local model.** Glimmer via OpenAI-compatible endpoint: wired
+  (`MODEL_BASE_URL`), unmeasured.
+- **Egress.** The cluster only needs to reach the model API;
+  today the agent runs on the host, so this doesn't affect images.
+  If the agent moves into the manager: `FROM scratch` ships no root
+  certificates and the HTTPS call would fail — copy the CA bundle and
+  open egress in its NetworkPolicy (see comment in
   `Dockerfile.manager`).

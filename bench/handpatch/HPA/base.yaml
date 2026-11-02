@@ -37,7 +37,7 @@ spec:
           image: demo-app:local
           ports:
             - containerPort: 8080
-          # FALLO: sin requests el HPA no puede calcular la utilizacion.
+          # FAILURE: without requests the HPA cannot compute utilization.
           resources:
             limits:
               cpu: 100m

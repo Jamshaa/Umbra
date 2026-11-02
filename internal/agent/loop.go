@@ -38,12 +38,26 @@ type Runner struct {
 	Client *brain.Client
 	Kube   Kube
 	System string
+	// Scope confines reads to the diagnosed namespace. Zero value means
+	// unconfined (tests, static bundles that serve a single fixture).
+	Scope Scope
 }
 
 // errorResult formats a tool failure for the model. The model gets the
 // reason, never a stack, never credentials.
 func errorResult(format string, args ...any) string {
 	return "error: " + fmt.Sprintf(format, args...)
+}
+
+// estimateInputTokens prices the outgoing turn at ~4 chars per token.
+// Crude on purpose: it only needs to stop a giant tool dump from blowing
+// the whole budget in a single call the output cap cannot prevent.
+func estimateInputTokens(items []brain.InputItem) int {
+	n := 0
+	for _, it := range items {
+		n += len(it.Role) + len(it.Content) + len(it.Output)
+	}
+	return n/4 + 1
 }
 
 // isValidCallID enforces the Responses API shape: 1 to 64 chars.
@@ -88,7 +102,17 @@ func (r *Runner) Run(ctx context.Context, systemPrompt, userContent string, tool
 		// would duplicate context and burn tokens.
 		maxOutput := 0
 		if r.Client.MaxTokensPerFinding > 0 {
-			maxOutput = r.Client.MaxTokensPerFinding - totalTok
+			if est := estimateInputTokens(turn); totalTok+est >= r.Client.MaxTokensPerFinding {
+				outcome.Refused = true
+				outcome.Reason = "token budget exhausted"
+				outcome.Tokens = totalTok
+				return outcome, nil
+			} else {
+				maxOutput = r.Client.MaxTokensPerFinding - totalTok - est
+				if maxOutput < 1 {
+					maxOutput = 1
+				}
+			}
 		}
 		res, err := r.Client.CallWithBudget(ctx, turn, tools, prevID, maxOutput)
 		if err != nil {
@@ -131,7 +155,7 @@ func (r *Runner) Run(ctx context.Context, systemPrompt, userContent string, tool
 				outputs = append(outputs, brain.ToolOutput(c.CallID, errorResult("unknown tool %q; use only the provided tools", c.Name)))
 				continue
 			}
-			text, proposal, err := dispatch(ctx, r.Kube, c.Name, args)
+			text, proposal, err := dispatch(ctx, r.Kube, r.Scope, c.Name, args)
 			if err != nil {
 				outputs = append(outputs, brain.ToolOutput(c.CallID, errorResult("%v", err)))
 				continue

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f18_missing_secret.sh: inyecta el fallo F18 en el namespace demo.
-# F18 = Referencia a un Secret inexistente (nombre placeholder,
-# CreateContainerConfigError). Resources y probes sanos.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f18_missing_secret.sh: injects failure F18 into the demo namespace.
+# F18 = Reference to a nonexistent Secret (placeholder name,
+# CreateContainerConfigError). Healthy resources and probes.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

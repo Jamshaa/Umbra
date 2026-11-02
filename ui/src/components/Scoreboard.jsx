@@ -8,10 +8,14 @@ function pickRows(json) {
   for (const r of json.rows) {
     const pass = Number(r?.pass)
     const total = Number(r?.cases)
-    if (!Number.isFinite(pass) || !Number.isFinite(total)) return null
-    const group = typeof r?.group === 'string' && r.group ? ` · ${r.group}` : ''
-    const live = r?.live === true ? ' (vivo)' : ' (estático)'
-    rows.push({ key: `${r?.config}|${r?.group}`, config: `${r?.config}${group}${live}`, pass, total })
+    const config = typeof r?.config === 'string' && r.config !== '' ? r.config : null
+    const group = typeof r?.group === 'string' && r.group !== '' ? r.group : null
+    // Reject malformed rows outright: an unchecked key would let two
+    // different rows collide on "undefined|undefined".
+    if (!Number.isFinite(pass) || !Number.isFinite(total) || config === null || group === null) return null
+    const live = r?.live === true ? ' (live)' : ' (static)'
+    const commit = typeof r?.commit === 'string' && r.commit !== '' ? r.commit : 'unknown'
+    rows.push({ key: `${config}|${group}|${r?.live === true ? 'live' : 'static'}|${commit}`, config: `${config} · ${group}${live}`, pass, total })
   }
   return rows.length > 0 ? rows : null
 }
@@ -26,7 +30,7 @@ export default function Scoreboard() {
   const [rows, setRows] = useState(null)
   useEffect(() => {
     let live = true
-    fetch('scoreboard.json', {
+    fetch('/scoreboard.json', {
       credentials: 'omit',
       headers: { Accept: 'application/json' },
     })
@@ -47,7 +51,7 @@ export default function Scoreboard() {
     <section className="scoreboard">
       <h2 className="column-title">SCOREBOARD</h2>
       {rows === null ? (
-        <p className="empty-note">sin mediciones — ejecuta make bench</p>
+        <p className="empty-note">no measurements — run make bench</p>
       ) : (
         <table className="scoreboard-table">
           <thead>

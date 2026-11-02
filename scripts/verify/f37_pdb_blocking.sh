@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f37_pdb_blocking.sh (verifier): afirma que el PDB demo F37 fija
-# maxUnavailable en 0 (bloquea desalojos y rollouts).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f37_pdb_blocking.sh (verifier): asserts that demo PDB F37 sets
+# maxUnavailable at 0 (blocks evictions and rollouts).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

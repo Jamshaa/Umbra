@@ -19,10 +19,10 @@ spec:
       containers:
         - name: app
           image: demo-app:local
-          # F06: intencionadamente SIN readiness probe. El pod arranca
-          # pero nunca figura Ready (ni el Service lo selecciona). La
-          # liveness SI esta definida (el fallo es solo la falta de
-          # readiness). No anadir readinessProbe.
+          # F06: deliberately WITHOUT readiness probe. The pod starts
+          # but never shows Ready (nor does the Service select it). The
+          # liveness IS defined (the failure is only the missing
+          # readiness). Do not add readinessProbe.
           ports:
             - containerPort: 8080
           livenessProbe:

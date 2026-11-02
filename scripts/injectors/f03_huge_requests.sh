@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f03_huge_requests.sh: inyecta el fallo F03 en el namespace demo.
-# F03 = requests cpu=64 / memory=1Ti, imposibles de satisfacer:
-# el Pod queda Pending sin programar nunca.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f03_huge_requests.sh: injects failure F03 into the demo namespace.
+# F03 = requests cpu=64 / memory=1Ti, impossible to satisfy:
+# the Pod stays Pending, never scheduled.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

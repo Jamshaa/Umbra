@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f19_command_typo.sh (verifier): afirma que el pod demo F19 no arranca
-# porque el ejecutable no existe (mensaje "not found" del runtime).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f19_command_typo.sh (verifier): asserts that demo pod F19 never starts
+# because the executable does not exist (runtime "not found" message).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 
@@ -9,8 +9,8 @@ NAMESPACE="demo"
 LABEL="app=f19-command-typo"
 
 for _ in $(seq 1 30); do
-  # El mensaje del runtime menciona el ejecutable ausente; el motivo
-  # varia entre runtimes (CrashLoopBackOff/CreateContainerError).
+  # The runtime message names the missing executable; the reason
+  # varies across runtimes (CrashLoopBackOff/CreateContainerError).
   msg="$(kubectl --context kind-umbra get pods --namespace "$NAMESPACE" -l "$LABEL" \
     -o 'jsonpath={.items[*].status.containerStatuses[*].state.waiting.message}{.items[*].status.containerStatuses[*].lastState.terminated.message}' 2>/dev/null || true)"
   if printf '%s' "$msg" | grep -qi 'executable.*not found\|not found.*executable\|exec.*no such file'; then

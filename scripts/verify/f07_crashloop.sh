@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f07_crashloop.sh (verifier): afirma que el pod demo F07 esta en
-# CrashLoopBackOff con al menos un reinicio. Solo kubectl, solo ns demo.
-# Espera acotada: 30 intentos x 10 s. Sale 0 si verifica, 1 si no.
+# f07_crashloop.sh (verifier): asserts that demo pod F07 is in
+# CrashLoopBackOff with at least one restart. kubectl only, demo ns only.
+# Bounded wait: 30 tries x 10 s. Exits 0 if verified, 1 if not.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

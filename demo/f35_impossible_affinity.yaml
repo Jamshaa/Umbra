@@ -16,8 +16,8 @@ spec:
         app: f35-impossible-affinity
         umbra.io/fault: F35
     spec:
-      # F35: afinidad a una etiqueta que ningun nodo lleva: el pod
-      # queda Pending para siempre. No corregir la etiqueta.
+      # F35: affinity to a label no node carries: the pod
+      # stays Pending forever. Do not fix the label.
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

@@ -178,6 +178,11 @@ func (d DryRunner) DryRun(ctx context.Context, doc []byte) error {
 	if !ok {
 		return fmt.Errorf("livekube: dry-run of unsupported kind %q", kind)
 	}
+	// Same refusal as Apply/Rollback: a dry-run path must never become a
+	// backdoor for cluster-wide writes if gate checks change.
+	if clusterScoped(kind) {
+		return fmt.Errorf("livekube: refusing cluster-scoped dry-run of %s (sandbox is namespaced)", kind)
+	}
 	u := &unstructured.Unstructured{Object: obj}
 	u.SetNamespace(SandboxNamespace)
 	u.SetGenerateName("umbra-dryrun-")
@@ -195,7 +200,9 @@ type Sandbox struct {
 	Dyn dynamic.Interface
 }
 
-// Apply implements invariants.Sandbox.
+// Apply implements invariants.Sandbox: the object namespace is always
+// rewritten to umbra-sandbox, so a hostile or mistaken namespace in the
+// patch can never escape the sandbox, even if gate checks change.
 func (s Sandbox) Apply(ctx context.Context, doc []byte) (string, error) {
 	var obj map[string]any
 	if err := jsonUnmarshal(doc, &obj); err != nil {
@@ -314,10 +321,15 @@ func TemplateLabels(obj map[string]any) map[string]string {
 }
 
 // Rollback restores snapshot ("" = object did not exist: delete it).
+// Like Apply, it refuses cluster-scoped kinds: a rollback path must
+// never become a backdoor for cluster-wide writes.
 func (s Sandbox) Rollback(ctx context.Context, kind, name, snapshot string) error {
 	gvr, ok := gvrOf(kind)
 	if !ok {
 		return fmt.Errorf("livekube: rollback of unsupported kind %q", kind)
+	}
+	if clusterScoped(kind) {
+		return fmt.Errorf("livekube: refusing cluster-scoped rollback of %s (sandbox is namespaced)", kind)
 	}
 	res := s.Dyn.Resource(gvr).Namespace(SandboxNamespace)
 	if snapshot == "" {

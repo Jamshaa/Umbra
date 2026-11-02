@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f09_run_as_root.sh: inyecta el fallo F09 en el namespace demo.
-# F09 = Contenedor SIN securityContext (corre como root por defecto).
-# Resources y probes sanos para aislar el fallo.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f09_run_as_root.sh: injects failure F09 into the demo namespace.
+# F09 = Container WITHOUT securityContext (runs as root by default).
+# Healthy resources and probes to isolate the failure.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

@@ -66,8 +66,8 @@ func Tools() []ToolDef {
 			Description: "Phase, readiness, restarts and last termination reason of one pod.",
 			Parameters: obj(
 				`"namespace":`+str("Namespace")+
-					`,"name":`+str("Pod name"),
-				"namespace", "name"),
+					`,"pod":`+str("Pod name"),
+				"namespace", "pod"),
 		},
 		{
 			Name:        "get_logs",
@@ -119,6 +119,22 @@ type validatedArgs struct {
 	kind, name, namespace string
 	pod, container        string
 	tail                  int
+}
+
+// Scope optionally confines every read tool to one namespace: the finding
+// under diagnosis. Zero value (tests, static bundles) means unconfined.
+// Kind/name stay free on purpose: get_related/get_changes must follow
+// references into other objects, but never into other namespaces.
+type Scope struct {
+	Namespace string
+}
+
+// confine rejects reads outside the scope namespace.
+func (s Scope) confine(v validatedArgs) error {
+	if s.Namespace != "" && v.namespace != s.Namespace {
+		return fmt.Errorf("reads are confined to namespace %q", s.Namespace)
+	}
+	return nil
 }
 
 // needStr extracts a required non-empty string field.
@@ -248,6 +264,9 @@ func validateProposal(args map[string]any) (Proposal, error) {
 		if strings.TrimSpace(path) == "" {
 			return p, fmt.Errorf("ops[%d].path is required", i)
 		}
+		if len(path) > 512 || strings.Count(path, "/") > 32 {
+			return p, fmt.Errorf("ops[%d].path too long or deep", i)
+		}
 		v, hasV := om["value"]
 		if (op == "add" || op == "replace") && !hasV {
 			return p, fmt.Errorf("ops[%d]: %s needs a value", i, op)
@@ -278,7 +297,7 @@ func validateProposal(args map[string]any) (Proposal, error) {
 // dispatch runs one validated call. Read tools hit Kube and return
 // sanitized text; propose_patch validates and returns the proposal
 // without applying anything, ever.
-func dispatch(ctx context.Context, k Kube, name string, args map[string]any) (string, *Proposal, error) {
+func dispatch(ctx context.Context, k Kube, scope Scope, name string, args map[string]any) (string, *Proposal, error) {
 	if name == "propose_patch" {
 		p, err := validateProposal(args)
 		if err != nil {
@@ -294,6 +313,11 @@ func dispatch(ctx context.Context, k Kube, name string, args map[string]any) (st
 	}
 	v, err := validateReadArgs(name, args)
 	if err != nil {
+		return "", nil, err
+	}
+	// Namespace confinement is enforced in code, not in the prompt: a
+	// prompt-injected tool call cannot wander into other namespaces.
+	if err := scope.confine(v); err != nil {
 		return "", nil, err
 	}
 	switch name {

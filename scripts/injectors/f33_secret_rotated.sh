@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f33_secret_rotated.sh: inyecta el fallo F33 en el namespace demo.
-# Aplica Secret v1 (placeholder) + Deployment y DESPUES rota el Secret
-# a v2 sin rollout: los pods montan el valor antiguo. Valores ficticios,
-# ningun secreto real (SECURITY.md). Re-ejecutar es seguro.
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f33_secret_rotated.sh: injects failure F33 into the demo namespace.
+# Applies Secret v1 (placeholder) + Deployment and THEN rotates the Secret
+# to v2 without rollout: pods mount the old value. Fictitious values,
+# no real secret (SECURITY.md). Re-running is safe.
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

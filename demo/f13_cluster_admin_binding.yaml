@@ -6,8 +6,8 @@ metadata:
   labels:
     umbra.io/fault: F13
 ---
-# F13: esta cuenta queda atada a cluster-admin (poder total sobre el
-# cluster para una app demo). Es el fallo: no crear este binding.
+# F13: this account stays bound to cluster-admin (total power over the
+# cluster for a demo app). That is the failure: do not create this binding.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:

@@ -30,9 +30,9 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F34: montaje con subPath: NUNCA recibe actualizaciones del
-          # ConfigMap (quedan anclados a la primera version).
-          # No quitar subPath.
+          # F34: subPath mount: NEVER receives updates from the
+          # ConfigMap (they stay pinned to the first version).
+          # Do not remove subPath.
           volumeMounts:
             - name: content
               mountPath: /etc/app/app.conf

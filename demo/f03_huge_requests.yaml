@@ -19,8 +19,8 @@ spec:
       containers:
         - name: app
           image: demo-app:local
-          # F03: requests deliberadamente imposibles de satisfacer
-          # (cpu=64, memory=1Ti) -> el Pod queda Pending sin programar nunca.
+          # F03: deliberately unsatisfiable requests
+          # (cpu=64, memory=1Ti) -> the Pod stays Pending, never scheduled.
           resources:
             requests:
               cpu: "64"

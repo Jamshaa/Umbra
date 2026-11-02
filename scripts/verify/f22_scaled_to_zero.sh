@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f22_scaled_to_zero.sh (verifier): afirma que el Deployment demo F22
-# esta escalado a cero replicas (existe pero no sirve trafico).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f22_scaled_to_zero.sh (verifier): asserts that demo Deployment F22
+# is scaled to zero replicas (exists but serves no traffic).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

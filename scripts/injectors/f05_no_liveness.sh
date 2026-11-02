@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f05_no_liveness.sh: inyecta el fallo F05 en el namespace demo.
-# F05 = Contenedor SIN liveness probe (con limits sanos y readiness
-# definida): si la app se cuelga, nada la reinicia.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f05_no_liveness.sh: injects failure F05 into the demo namespace.
+# F05 = Container WITHOUT liveness probe (with healthy limits and readiness
+# defined): if the app hangs, nothing restarts it.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

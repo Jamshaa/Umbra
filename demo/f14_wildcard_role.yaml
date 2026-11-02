@@ -6,8 +6,8 @@ metadata:
   labels:
     umbra.io/fault: F14
 rules:
-  # F14: comodines en recursos Y verbos (poder total dentro de demo).
-  # Es el fallo: no conceder "*" jamas. No acotar las reglas.
+  # F14: wildcards in resources AND verbs (total power inside demo).
+  # That is the failure: never grant "*". Do not scope down the rules.
   - apiGroups: [""]
     resources: ["*"]
     verbs: ["*"]

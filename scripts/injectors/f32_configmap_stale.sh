@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f32_configmap_stale.sh: inyecta el fallo F32 en el namespace demo.
-# Aplica ConfigMap v1 + Deployment y DESPUES sube el ConfigMap a v2 sin
-# rollout: los pods se quedan con v1 (falta el checksum/config).
-# Re-ejecutar es seguro (el patch a v2 es idempotente).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f32_configmap_stale.sh: injects failure F32 into the demo namespace.
+# Applies ConfigMap v1 + Deployment and THEN bumps the ConfigMap to v2 without
+# rollout: pods stay on v1 (missing checksum/config).
+# Re-running is safe (the patch to v2 is idempotent).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

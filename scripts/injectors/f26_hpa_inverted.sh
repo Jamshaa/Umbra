@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f26_hpa_inverted.sh: inyecta el fallo F26 en el namespace demo.
-# F26 = HPA con minReplicas por encima de maxReplicas (nunca escala).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f26_hpa_inverted.sh: injects failure F26 into the demo namespace.
+# F26 = HPA with minReplicas above maxReplicas (never scales).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

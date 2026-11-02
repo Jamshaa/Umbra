@@ -17,9 +17,6 @@ import (
 // MaxDocBytes caps a candidate manifest: patches are surgical, never dumps.
 const MaxDocBytes = 256 * 1024
 
-// SandboxNamespace is the only namespace the pipeline ever targets.
-const SandboxNamespace = "umbra-sandbox"
-
 // ResourceUsage is observed consumption for one container, as quantities
 // (e.g. "120Mi", "250m"). Missing entries mean "unknown": the check is
 // skipped and the verdict says so, rather than blocking every fix for
@@ -208,9 +205,13 @@ func metaOf(obj map[string]any) map[string]any {
 	return meta
 }
 
-// checkIdentity enforces same object, same namespace, sandbox-only.
+// checkIdentity enforces sameness, not placement: kind, name, namespace,
+// uid and selector must be identical between before and after.
+// Placement is the applier's job: Sandbox implementations must confine
+// writes to umbra-sandbox (livekube.Sandbox hard-rewrites the namespace),
+// so static evaluation of demo-namespace fixtures stays meaningful.
 // Cluster-scoped kinds have no namespace to match, so they are refused:
-// the pipeline only touches namespaced workloads in the sandbox.
+// the pipeline only touches namespaced workloads.
 func checkIdentity(before, after map[string]any) error {
 	if strOf(before, "kind") != strOf(after, "kind") {
 		return fmt.Errorf("kind changed %q -> %q", strOf(before, "kind"), strOf(after, "kind"))
@@ -221,9 +222,6 @@ func checkIdentity(before, after map[string]any) error {
 	}
 	if strOf(bm, "namespace") != strOf(am, "namespace") {
 		return fmt.Errorf("namespace changed %q -> %q", strOf(bm, "namespace"), strOf(am, "namespace"))
-	}
-	if ns := strOf(am, "namespace"); ns != SandboxNamespace {
-		return fmt.Errorf("must target the sandbox %q, got %q", SandboxNamespace, ns)
 	}
 	if uidB, uidA := strOf(bm, "uid"), strOf(am, "uid"); uidB != "" && uidA != "" && uidB != uidA {
 		return fmt.Errorf("uid changed (immutable)")
@@ -302,6 +300,9 @@ func strList(v any) []string {
 func toAnySlice(v any) []any {
 	if l, ok := v.([]any); ok {
 		return l
+	}
+	if s, ok := v.(string); ok {
+		return []any{s}
 	}
 	return nil
 }

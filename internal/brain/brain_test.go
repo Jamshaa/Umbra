@@ -42,12 +42,29 @@ func TestFromEnv(t *testing.T) {
 	t.Setenv("MODEL_API_KEY", " k ")
 	t.Setenv("MODEL_BASE_URL", "")
 	t.Setenv("MODEL_NAME", "")
+	t.Setenv("MODEL_SEED", "")
 	cfg, err := FromEnv()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.APIKey != "k" || cfg.BaseURL != DefaultBaseURL || cfg.Model != DefaultModel {
+	if cfg.APIKey != "k" || cfg.BaseURL != DefaultBaseURL || cfg.Model != DefaultModel || cfg.Seed != 0 {
 		t.Fatalf("bad defaults: %+v", cfg)
+	}
+	t.Setenv("MODEL_SEED", "42")
+	cfg, err = FromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Seed != 42 {
+		t.Fatalf("MODEL_SEED ignored: %+v", cfg)
+	}
+	t.Setenv("MODEL_SEED", "not-a-number")
+	cfg, err = FromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Seed != 0 {
+		t.Fatalf("bad MODEL_SEED must fall back to unset, got %+v", cfg)
 	}
 	t.Setenv("MODEL_BASE_URL", "http://localhost:9999/")
 	t.Setenv("MODEL_NAME", "local-model")
@@ -58,6 +75,19 @@ func TestFromEnv(t *testing.T) {
 	if cfg.BaseURL != "http://localhost:9999" || cfg.Model != "local-model" {
 		t.Fatalf("custom values ignored: %+v", cfg)
 	}
+	t.Setenv("MODEL_BASE_URL", "http://203.0.1.20:1234/")
+	if _, err := FromEnv(); err == nil {
+		t.Fatal("plaintext non-loopback endpoint must fail")
+	}
+	t.Setenv("MODEL_BASE_URL", "https://203.0.1.20:1234/")
+	if _, err := FromEnv(); err != nil {
+		t.Fatalf("https endpoint must pass: %v", err)
+	}
+	t.Setenv("MODEL_BASE_URL", "://bad url")
+	if _, err := FromEnv(); err == nil {
+		t.Fatal("malformed endpoint must fail")
+	}
+	t.Setenv("MODEL_BASE_URL", "")
 }
 
 func TestRequestShape(t *testing.T) {
@@ -96,6 +126,27 @@ func TestRequestShape(t *testing.T) {
 	}
 	if _, ok := gotBody["previous_response_id"]; ok {
 		t.Fatalf("previous_response_id must be omitted when empty: %s", body)
+	}
+	if _, ok := gotBody["seed"]; ok {
+		t.Fatalf("seed must be omitted when unset: %s", body)
+	}
+}
+
+func TestRequestSendsSeedWhenSet(t *testing.T) {
+	var gotBody map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Write([]byte(okBody(t, "resp_seed", "")))
+	}))
+	defer srv.Close()
+
+	c := testClient(t, srv.URL)
+	c.cfg.Seed = 42
+	if _, err := c.Call(context.Background(), []InputItem{UserMessage("hi")}, nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	if gotBody["seed"] != float64(42) {
+		t.Fatalf("seed missing from body: %v", gotBody)
 	}
 }
 

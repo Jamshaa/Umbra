@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# f40_statefulset_ondelete.sh: inyecta el fallo F40 en el namespace demo.
-# F40 = StatefulSet con updateStrategy OnDelete (las nuevas versiones
-# nunca se despliegan solas). Incluye su headless Service correcto:
-# el fallo es SOLO la estrategia.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f40_statefulset_ondelete.sh: injects failure F40 into the demo namespace.
+# F40 = StatefulSet with updateStrategy OnDelete (new versions
+# never deploy on their own). Includes its correct headless Service:
+# the failure is ONLY the strategy.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

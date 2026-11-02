@@ -6,8 +6,8 @@ metadata:
   labels:
     umbra.io/fault: F36
 spec:
-  # F36: el selector no coincide con ningun pod: el Service existe
-  # pero no tiene endpoints y no enruta nada. No alinear etiquetas.
+  # F36: the selector matches no pod: the Service exists
+  # but has no endpoints and routes nothing. Do not align labels.
   selector:
     app: f36-nothing-matches-this
   ports:

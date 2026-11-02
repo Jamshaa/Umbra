@@ -8,7 +8,7 @@
 // internal/controller) and records who approved and when. kubectl can
 // do the same by hand:
 //
-//	kubectl annotate finding <id> umbra.dev/approved=<usuario>
+//	kubectl annotate finding <id> umbra.dev/approved=<user>
 package main
 
 import (

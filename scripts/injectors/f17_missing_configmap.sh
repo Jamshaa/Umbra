@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f17_missing_configmap.sh: inyecta el fallo F17 en el namespace demo.
-# F17 = Referencia a un ConfigMap inexistente (CreateContainerConfigError).
-# Resources y probes sanos para aislar el fallo.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f17_missing_configmap.sh: injects failure F17 into the demo namespace.
+# F17 = Reference to a nonexistent ConfigMap (CreateContainerConfigError).
+# Healthy resources and probes to isolate the failure.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

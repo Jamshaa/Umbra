@@ -11,7 +11,9 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,11 +36,13 @@ const (
 )
 
 // Config comes from the environment only, never from a file:
-// MODEL_API_KEY (required), MODEL_BASE_URL, MODEL_NAME.
+// MODEL_API_KEY (required), MODEL_BASE_URL, MODEL_NAME, MODEL_SEED
+// (optional; 0 means unset and the server decides).
 type Config struct {
 	APIKey  string
 	BaseURL string
 	Model   string
+	Seed    int
 }
 
 // FromEnv reads the model configuration. It returns an error when
@@ -56,10 +60,38 @@ func FromEnv() (Config, error) {
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = DefaultBaseURL
 	}
+	// The key travels as an Authorization header on every call: refuse a
+	// plaintext non-loopback endpoint rather than leak it on the wire.
+	if err := checkBaseURL(cfg.BaseURL); err != nil {
+		return Config{}, err
+	}
+	if s, err := strconv.Atoi(strings.TrimSpace(os.Getenv("MODEL_SEED"))); err == nil {
+		cfg.Seed = s
+	}
 	if cfg.Model == "" {
 		cfg.Model = DefaultModel
 	}
 	return cfg, nil
+}
+
+// checkBaseURL refuses plaintext endpoints outside loopback: the API key
+// would travel in cleartext on every call. https anywhere and http on
+// loopback (local models) stay allowed.
+func checkBaseURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return fmt.Errorf("brain: bad MODEL_BASE_URL %q", raw)
+	}
+	if strings.EqualFold(u.Scheme, "https") {
+		return nil
+	}
+	if strings.EqualFold(u.Scheme, "http") {
+		h := strings.ToLower(u.Hostname())
+		if h == "localhost" || h == "127.0.0.1" || h == "::1" {
+			return nil
+		}
+	}
+	return fmt.Errorf("brain: refusing non-HTTPS non-loopback MODEL_BASE_URL (key would travel in cleartext)")
 }
 
 // Tool is one function the model may call. The caller owns the JSON
@@ -190,6 +222,9 @@ func (c *Client) requestBody(model string, input []InputItem, tools []Tool, prev
 		"input":       input,
 		"tools":       defs,
 		"tool_choice": "auto",
+	}
+	if c.cfg.Seed != 0 {
+		body["seed"] = c.cfg.Seed
 	}
 	if previousResponseID != "" {
 		body["previous_response_id"] = previousResponseID

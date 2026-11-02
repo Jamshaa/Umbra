@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f27_host_network.sh (verifier): afirma que el pod demo F27 corre con
-# hostNetwork activado. Solo kubectl, solo ns demo.
-# Espera acotada: 30 intentos x 10 s.
+# f27_host_network.sh (verifier): asserts that demo pod F27 runs with
+# hostNetwork enabled. kubectl only, demo ns only.
+# Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

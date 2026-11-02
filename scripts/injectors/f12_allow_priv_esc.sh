@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f12_allow_priv_esc.sh: inyecta el fallo F12 en el namespace demo.
-# F12 = allowPrivilegeEscalation=true + capacidad SYS_ADMIN.
-# Resources y probes sanos para aislar el fallo.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f12_allow_priv_esc.sh: injects failure F12 into the demo namespace.
+# F12 = allowPrivilegeEscalation=true + SYS_ADMIN capability.
+# Healthy resources and probes to isolate the failure.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

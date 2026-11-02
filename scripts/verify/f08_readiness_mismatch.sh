@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f08_readiness_mismatch.sh (verifier): afirma que el pod demo F08 esta
-# Running pero con readiness en false (mismatch 8081 vs 8080).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f08_readiness_mismatch.sh (verifier): asserts that demo pod F08 is
+# Running but with readiness false (mismatch 8081 vs 8080).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

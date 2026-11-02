@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f39_failing_init.sh: inyecta el fallo F39 en el namespace demo.
-# F39 = initContainer que falla siempre (pod atascado en Initializing).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f39_failing_init.sh: injects failure F39 into the demo namespace.
+# F39 = initContainer that always fails (pod stuck in Initializing).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

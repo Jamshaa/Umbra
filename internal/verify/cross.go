@@ -221,11 +221,27 @@ func normalizeProbeFields(p any) any {
 func VerifyRBACLeastPrivilege(docs []byte, _ PodStatus) Result {
 	all := multiDocs(docs)
 	hasStar := func(v any) bool {
+		if s, ok := v.(string); ok {
+			return s == "*"
+		}
 		l, _ := v.([]any)
 		for _, e := range l {
 			if s, _ := e.(string); s == "*" {
 				return true
 			}
+		}
+		return false
+	}
+	hasSecrets := func(v any) bool {
+		switch t := v.(type) {
+		case []any:
+			for _, e := range t {
+				if s, _ := e.(string); s == "secrets" || s == "*" {
+					return true
+				}
+			}
+		case string:
+			return t == "secrets" || t == "*"
 		}
 		return false
 	}
@@ -241,9 +257,13 @@ func VerifyRBACLeastPrivilege(docs []byte, _ PodStatus) Result {
 				if rm == nil {
 					continue
 				}
-				if hasStar(rm["verbs"]) || hasStar(rm["resources"]) {
+				if hasStar(rm["verbs"]) || hasStar(rm["resources"]) || hasStar(rm["apiGroups"]) {
 					ns, name := metaOf(g)
 					return fail("RBACLeastPrivilege: %s %s/%s still has wildcards", kindOf(g), ns, name)
+				}
+				if kindOf(g) == "ClusterRole" && hasSecrets(rm["resources"]) {
+					ns, name := metaOf(g)
+					return fail("RBACLeastPrivilege: ClusterRole %s/%s reads secrets cluster-wide", ns, name)
 				}
 			}
 		case "ClusterRoleBinding":
@@ -252,6 +272,17 @@ func VerifyRBACLeastPrivilege(docs []byte, _ PodStatus) Result {
 				rr, _ = g["roleRef"].(map[string]any)
 			}
 			if rr != nil {
+				if n, _ := rr["name"].(string); n == "cluster-admin" {
+					ns, name := metaOf(g)
+					return fail("RBACLeastPrivilege: binding %s/%s still grants cluster-admin", ns, name)
+				}
+			}
+		case "RoleBinding":
+			rr, _ := specOf(g)["roleRef"].(map[string]any)
+			if rr == nil {
+				rr, _ = g["roleRef"].(map[string]any)
+			}
+			if k, _ := rr["kind"].(string); k == "ClusterRole" {
 				if n, _ := rr["name"].(string); n == "cluster-admin" {
 					ns, name := metaOf(g)
 					return fail("RBACLeastPrivilege: binding %s/%s still grants cluster-admin", ns, name)

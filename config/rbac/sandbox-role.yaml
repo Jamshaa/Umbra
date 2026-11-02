@@ -4,13 +4,17 @@ metadata:
   name: umbra-sandbox-manager
   namespace: umbra-sandbox
 rules:
+# Mutations are pinned to the sandbox control objects the reconciler owns;
+# this mirrors the kubebuilder markers in remediationpolicy_controller.go.
 - apiGroups:
   - networking.k8s.io
   resources:
   - networkpolicies
+  resourceNames: [deny-all]
   verbs: [get, list, watch, create, update, patch]
 - apiGroups:
   - ""
   resources:
   - resourcequotas
+  resourceNames: [sandbox-quota]
   verbs: [get, list, watch, create, update, patch]

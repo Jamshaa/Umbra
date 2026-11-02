@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f22_scaled_to_zero.sh: inyecta el fallo F22 en el namespace demo.
-# F22 = Deployment escalado a cero replicas (no sirve trafico).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f22_scaled_to_zero.sh: injects failure F22 into the demo namespace.
+# F22 = Deployment scaled to zero replicas (serves no traffic).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

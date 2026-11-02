@@ -6,9 +6,9 @@ metadata:
   labels:
     umbra.io/fault: F14
 rules:
-  # INCORRECTO: acota una regla pero ensancha otra con comodin.
-  # La allowlist deja pasar /rules y el dry-run lo admite (es valido),
-  # pero el verificador lo rechaza: quedan comodines.
+  # INCORRECT: narrows one rule but widens another with a wildcard.
+  # The allowlist lets /rules through and the dry-run admits it (it is valid),
+  # but the verifier rejects it: wildcards remain.
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "list"]

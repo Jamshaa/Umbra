@@ -66,6 +66,44 @@ func TestOpenPRPlanOnly(t *testing.T) {
 	}
 }
 
+func TestSafePathRejects(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := safePath(dir, "../evil.yaml"); err == nil {
+		t.Fatal("parent escape accepted")
+	}
+	// outside is absolute on any platform; it must never be accepted.
+	outside := filepath.Join(t.TempDir(), "outside.txt")
+	if err := os.WriteFile(outside, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := safePath(dir, outside); err == nil {
+		t.Fatal("absolute path accepted")
+	}
+	if _, err := safePath(dir, "sub/ok.yaml"); err != nil {
+		t.Fatalf("nested path rejected: %v", err)
+	}
+	// A planted symlink file must not pass even though its parent is clean.
+	link := filepath.Join(dir, "link.yaml")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Skip("symlinks unavailable: " + err.Error())
+	}
+	if _, err := safePath(dir, "link.yaml"); err == nil {
+		t.Fatal("file symlink escape accepted")
+	}
+	// A symlink staying inside the repository is fine.
+	inside := filepath.Join(dir, "real.yaml")
+	if err := os.WriteFile(inside, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	okLink := filepath.Join(dir, "oklink.yaml")
+	if err := os.Symlink(inside, okLink); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := safePath(dir, "oklink.yaml"); err != nil {
+		t.Fatalf("inside symlink rejected: %v", err)
+	}
+}
+
 func TestOpenPRWithToken(t *testing.T) {
 	t.Setenv("GH_TOKEN", "secret-token")
 	dir := t.TempDir()

@@ -36,9 +36,13 @@ const (
 
 // RemediationPolicyReconciler guarantees the sandbox for each policy.
 //
-// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch
+// Markers mirror config/rbac by hand (no controller-gen in CI yet): the
+// manager reads namespaces cluster-wide but mutates ONLY umbra-sandbox.
+//
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=create;update;patch,resourceNames=umbra-sandbox
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch,resourceNames=deny-all
+// +kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch,resourceNames=sandbox-quota
 type RemediationPolicyReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme

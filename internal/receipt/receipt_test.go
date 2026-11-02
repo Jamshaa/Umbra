@@ -1,6 +1,7 @@
 package receipt
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -132,6 +133,45 @@ func TestChainDetectsTamper(t *testing.T) {
 	// Non-JSON line.
 	if err := VerifyChain([]string{"not json"}); err == nil {
 		t.Fatal("garbage line accepted")
+	}
+}
+
+func TestChainSigned(t *testing.T) {
+	key := []byte("test-key-please-ignore")
+	chain := AppendRegistroSigned(nil, "first", key)
+	chain = AppendRegistroSigned(chain, "second", key)
+	if err := VerifyChainSigned(chain, key); err != nil {
+		t.Fatalf("signed chain rejected: %v", err)
+	}
+	// Wrong key fails.
+	if err := VerifyChainSigned(chain, []byte("wrong")); err == nil {
+		t.Fatal("wrong key accepted")
+	}
+	// Empty key fails closed.
+	if err := VerifyChainSigned(chain, nil); err == nil {
+		t.Fatal("empty key accepted")
+	}
+	// Tampered payload fails even though links are recomputed around it:
+	// rebuild the chain after altering the payload and observe the sig
+	// mismatch, mimicking a wholesale rewrite without the key.
+	var l struct {
+		Payload string `json:"payload"`
+		Prev    string `json:"prev"`
+		Sig     string `json:"sig"`
+	}
+	if err := json.Unmarshal([]byte(chain[1]), &l); err != nil {
+		t.Fatal(err)
+	}
+	l.Payload = "forged"
+	raw, _ := json.Marshal(l)
+	// Keep the rest of the chain linked so only the signature speaks.
+	forged := []string{chain[0], string(raw)}
+	if err := VerifyChainSigned(forged, key); err == nil {
+		t.Fatal("forged payload accepted")
+	}
+	// Unsigned legacy lines fail signed verification.
+	if err := VerifyChainSigned(AppendRegistro(nil, "plain"), key); err == nil {
+		t.Fatal("unsigned line accepted by signed verification")
 	}
 }
 

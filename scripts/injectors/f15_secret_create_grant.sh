@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# f15_secret_create_grant.sh: inyecta el fallo F15 en el namespace demo.
-# F15 = Role que concede create sobre secrets a la SA default
-# (permiso de escritura innecesario sobre material sensible).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f15_secret_create_grant.sh: injects failure F15 into the demo namespace.
+# F15 = Role granting create on secrets to the default SA
+# (unneeded write permission on sensitive material).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

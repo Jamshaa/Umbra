@@ -15,7 +15,7 @@ func TestGetChangesAndImpact(t *testing.T) {
 		"spec": map[string]any{"selector": map[string]any{"app": "web"}},
 	}
 
-	out, prop, err := dispatch(context.Background(), k, "get_changes",
+	out, prop, err := dispatch(context.Background(), k, Scope{}, "get_changes",
 		map[string]any{"kind": "Deployment", "name": "web", "namespace": "demo"})
 	if err != nil || prop != nil {
 		t.Fatalf("get_changes: %v %v", out, err)
@@ -24,7 +24,7 @@ func TestGetChangesAndImpact(t *testing.T) {
 		t.Fatalf("no managedFields/events expected, got %q", out)
 	}
 
-	out, prop, err = dispatch(context.Background(), k, "get_impact",
+	out, prop, err = dispatch(context.Background(), k, Scope{}, "get_impact",
 		map[string]any{"kind": "Deployment", "name": "web", "namespace": "demo"})
 	if err != nil || prop != nil {
 		t.Fatalf("get_impact: %v %v", out, err)

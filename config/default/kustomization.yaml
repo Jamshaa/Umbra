@@ -1,8 +1,9 @@
 # Default install: the 3 CRDs plus the manager's minimal RBAC.
 # Apply with: kubectl apply -k config/default (kind-umbra context).
-# The manager Deployment itself is Ola 2 work and stays out of this list.
+# The manager Deployment itself is Wave 2 work and stays out of this list.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - ../crd
 - ../rbac
+- ../approval-policy

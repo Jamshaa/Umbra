@@ -142,5 +142,22 @@ func safePath(root, rel string) (string, error) {
 			break
 		}
 	}
+	// The ancestor walk starts at the parent: resolve the leaf itself too,
+	// otherwise a planted symlink file passes the check and os.WriteFile
+	// follows it outside the repository.
+	if fi, err := os.Lstat(full); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		real, err := filepath.EvalSymlinks(full)
+		if err != nil {
+			return "", fmt.Errorf("executor: resolve file %q: %w", rel, err)
+		}
+		realRoot, err := filepath.EvalSymlinks(root)
+		if err != nil {
+			return "", fmt.Errorf("executor: resolve repository: %w", err)
+		}
+		realRel, err := filepath.Rel(realRoot, real)
+		if err != nil || realRel == ".." || strings.HasPrefix(realRel, ".."+string(filepath.Separator)) {
+			return "", fmt.Errorf("executor: file symlink escapes repository: %q", rel)
+		}
+	}
 	return full, nil
 }

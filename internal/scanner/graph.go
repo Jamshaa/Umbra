@@ -290,6 +290,19 @@ func DetectRBACWildcard(docs []byte) []v1alpha1.Finding {
 		}
 		return false
 	}
+	containsSecrets := func(v any) bool {
+		switch t := v.(type) {
+		case []any:
+			for _, e := range t {
+				if s, _ := e.(string); s == "secrets" {
+					return true
+				}
+			}
+		case string:
+			return t == "secrets"
+		}
+		return false
+	}
 	for _, g := range all {
 		switch g.Kind {
 		case "Role", "ClusterRole":
@@ -302,16 +315,12 @@ func DetectRBACWildcard(docs []byte) []v1alpha1.Finding {
 				if rm == nil {
 					continue
 				}
-				if containsStar(rm["verbs"]) || containsStar(rm["resources"]) {
+				if containsStar(rm["verbs"]) || containsStar(rm["resources"]) || containsStar(rm["apiGroups"]) {
 					emit(g.Kind, g.Metadata.Namespace, g.Metadata.Name)
 				}
 				if g.Kind == "ClusterRole" {
-					if res, _ := rm["resources"].([]any); res != nil {
-						for _, e := range res {
-							if s, _ := e.(string); s == "secrets" || s == "*" {
-								emit(g.Kind, g.Metadata.Namespace, g.Metadata.Name)
-							}
-						}
+					if containsStar(rm["resources"]) || containsSecrets(rm["resources"]) {
+						emit(g.Kind, g.Metadata.Namespace, g.Metadata.Name)
 					}
 				}
 			}
@@ -321,6 +330,16 @@ func DetectRBACWildcard(docs []byte) []v1alpha1.Finding {
 				rr, _ = g.Spec["roleRef"].(map[string]any)
 			}
 			if rr != nil {
+				if n, _ := rr["name"].(string); n == "cluster-admin" {
+					emit(g.Kind, g.Metadata.Namespace, g.Metadata.Name)
+				}
+			}
+		case "RoleBinding":
+			rr := g.RoleRef
+			if rr == nil {
+				rr, _ = g.Spec["roleRef"].(map[string]any)
+			}
+			if k, _ := rr["kind"].(string); k == "ClusterRole" {
 				if n, _ := rr["name"].(string); n == "cluster-admin" {
 					emit(g.Kind, g.Metadata.Namespace, g.Metadata.Name)
 				}

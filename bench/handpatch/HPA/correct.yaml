@@ -18,7 +18,7 @@ spec:
           image: demo-app:local
           ports:
             - containerPort: 8080
-          # CORRECTO: con requests de CPU el HPA calcula la utilizacion.
+          # CORRECT: with CPU requests the HPA computes utilization.
           resources:
             requests:
               cpu: 10m

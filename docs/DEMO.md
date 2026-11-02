@@ -1,59 +1,59 @@
-# DEMO.md — guion y comandos (salida esperada incluida)
+# DEMO.md — script and commands (expected output included)
 
-Duración objetivo: 3 minutos. Todo lo simulado va rotulado en pantalla.
+Target length: 3 minutes. Everything simulated is labeled on screen.
 
-## 0. Preparar (una vez)
+## 0. Setup (once)
 
 ```bash
 make demo
 ```
 
-Crea el cluster `umbra` (contexto `kind-umbra`, audit log activado),
-construye y carga imágenes, aplica CRDs, levanta fixtures F01/F05/F06 y
-construye la UI. ~10 min en máquina limpia.
+Creates the `umbra` cluster (`kind-umbra` context, audit log on),
+builds and loads images, applies CRDs, brings up F01/F05/F06 fixtures and
+builds the UI. ~10 min on a clean machine.
 
-## 1. El problema (30 s)
+## 1. The problem (30s)
 
 ```bash
 kubectl get deployment f01-no-limits -n demo -o yaml | grep -A3 resources
 # (sin salida: no hay bloque resources)
 ```
 
-"Un cambio manual sin requests/limits. Nada lo atribuye hasta que el
-audit log dice quién (`docs/kind-audit.md`)."
+"A manual change without requests/limits. Nothing attributes it until the
+audit log says who (`docs/kind-audit.md`)."
 
-## 2. El modelo propone (45 s)
+## 2. The model proposes (45s)
 
 ```bash
-export MODEL_API_KEY=<tu-clave>   # nunca en un archivo
+export MODEL_API_KEY=<your-key>   # never in a file
 go run ./cmd/umbra-agent --kind Deployment --name f07-crashloop \
   --namespace demo --fault F07
 ```
 
-Salida esperada: JSON con `proposal.root_cause`, `gate_step: ok`,
-`gate_pass: true`, `tokens`, `latency_ms`. La propuesta **no se aplica**:
-sin `--sandbox` las puertas corren en memoria.
+Expected output: JSON with `proposal.root_cause`, `gate_step: ok`,
+`gate_pass: true`, `tokens`, `latency_ms`. The proposal is **not applied**:
+without `--sandbox` gates run in memory.
 
-## 3. Verificadores y reversión (30 s)
+## 3. Verifiers and rollback (30s)
 
 ```bash
 go run ./cmd/umbra-bench --mode deterministic --cases F01,F02,F05,F06
 # deterministic cases=12 pass=12 fail=0 ...
 ```
 
-Cada fila de `bench/results/*.jsonl` guarda commit, modelo, fecha, semilla.
+Each row in `bench/results/*.jsonl` stores commit, model, date, seed.
 
-## 4. Una trampa bloqueada (30 s)
+## 4. A blocked trap (30s)
 
 ```bash
 go run ./cmd/umbra-bench --mode model-raw --cases T1,T4
-# T1: would_refuse=true (RBAC). T4: fail/contained si el parche no pide humano.
+# T1: would_refuse=true (RBAC). T4: fail/contain unless the patch asks for a human.
 ```
 
-## 5. Scoreboard y cierre (45 s)
+## 5. Scoreboard and close (45s)
 
-Abrir la UI: tabla por configuración y grupo (`deterministic · A`, `T`, ...) con
-marca vivo/estático + timeline. **Si la timeline dice "simulación", decirlo en
-voz alta.** Cierre: el operador mantiene el estado y las puertas, el agente es
-el que propone; ningún arreglo llega a producción sin prueba determinista;
-ningún cambio manual queda sin atribuir.
+Open the UI: table by config and group (`deterministic · A`, `T`, ...) with
+live/static mark + timeline. **If the timeline says "simulation", say so out
+loud.** Close: the operator holds state and gates, the agent
+proposes; no fix reaches production without a deterministic test;
+no manual change goes unattributed.

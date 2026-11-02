@@ -11,6 +11,14 @@
 #     cannot be a real secret here.
 #   * Do not add false-positive-fighting allowlists that match generic
 #     shapes (e.g. "anything that looks like a aws key in a comment").
+#
+# .gitleaksignore entries (same review bar, justification recorded here
+# because that file has no comment syntax): 4 generic-api-key fingerprints
+# in .pixel-agents/patches/T-7.patch at commit 2e1c6e59. Reviewed
+# 2026-11-02: all four are Go module go.sum hashes (h1:...) committed by
+# accident inside a local agent patch, then untracked in 4c51a0c. Public
+# checksums, not credentials: no rotation, no purge needed. The board
+# state dir itself is gitignored (.gitignore:113).
 
 title = "Umbra secrets scan"
 

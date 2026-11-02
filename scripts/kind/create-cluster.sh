@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# create-cluster.sh: recrea el cluster kind `umbra` (contexto kind-umbra)
-# con el audit log del API server habilitado desde el arranque.
+# create-cluster.sh: recreates the kind cluster `umbra` (kind-umbra context)
+# with the API server audit log enabled from boot.
 #
-# - La audit policy es scripts/kind/audit-policy.yaml (restrictiva: solo
-#   create/update/patch sobre workloads en namespaces de demo).
-# - El audit log vive DENTRO del nodo en /var/log/umbra-audit/audit.log.
-# - Idempotente: se puede re-ejecutar; borra el cluster anterior si existe.
-# - Unicos binarios externos: kind (KIND_BIN o PATH) y kubectl.
+# - The audit policy is scripts/kind/audit-policy.yaml (restrictive: only
+# create/update/patch on workloads in demo namespaces).
+# - The audit log lives INSIDE the node at /var/log/umbra-audit/audit.log.
+# - Idempotent: can be re-run; deletes the previous cluster if one exists.
+# - Only external binaries: kind (KIND_BIN or PATH) and kubectl.
 set -eu
 
 CLUSTER_NAME="umbra"
@@ -19,8 +19,8 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
 AUDIT_POLICY_HOST="$ROOT_DIR/scripts/kind/audit-policy.yaml"
 
-# kind rara vez esta en el PATH (ver AGENTS.md §3): se admite override
-# via KIND_BIN y fallback a la ruta documentada en Windows.
+# kind is rarely on PATH (see AGENTS.md §3): override accepted
+# via KIND_BIN with fallback to the documented path on Windows.
 KIND_BIN="${KIND_BIN:-$(command -v kind 2>/dev/null || echo "$HOME/go/bin/kind")}"
 
 "$KIND_BIN" delete cluster --name "$CLUSTER_NAME" >/dev/null 2>&1 || true

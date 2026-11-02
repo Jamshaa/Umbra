@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f35_impossible_affinity.sh: inyecta el fallo F35 en el namespace demo.
-# F35 = Afinidad a una etiqueta inexistente (Pending permanente).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f35_impossible_affinity.sh: injects failure F35 into the demo namespace.
+# F35 = Affinity to a nonexistent label (permanent Pending).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

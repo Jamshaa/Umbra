@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# f29_plaintext_secret.sh: inyecta el fallo F29 en el namespace demo.
-# F29 = Secreto literal en el manifiesto (valor placeholder obvio).
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). Solo ns demo.
+# f29_plaintext_secret.sh: injects failure F29 into the demo namespace.
+# F29 = Literal secret in the manifest (obvious placeholder value).
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Demo ns only.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

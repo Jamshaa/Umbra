@@ -1,46 +1,46 @@
-# kind con audit log
+# kind with audit log
 
-El guardia necesita saber QUIEN cambio que. En kind el audit log del
-API server viene desactivado; este repo levanta el cluster con audit
-habilitado desde el principio mediante `scripts/kind/create-cluster.sh`
-y la policy `scripts/kind/audit-policy.yaml`.
+The guard needs to know WHO changed what. In kind the API server audit log
+ships disabled; this repo brings the cluster up with audit enabled from the
+start via `scripts/kind/create-cluster.sh`
+and the policy `scripts/kind/audit-policy.yaml`.
 
-## Levantar (o recrear) el cluster
+## Bring up (or recreate) the cluster
 
 ```bash
 bash scripts/kind/create-cluster.sh
 ```
 
-El script es idempotente: borra el cluster `umbra` si existe y lo vuelve
-a crear (imagen `kindest/node:v1.37.0`) con estos flags extra del API server:
+The script is idempotent: it deletes the `umbra` cluster if it exists and
+recreates it (image `kindest/node:v1.37.0`) with these extra API server flags:
 
 - `audit-log-path: /var/log/umbra-audit/audit.log`
 - `audit-policy-file: /etc/kubernetes/umbra-audit-policy.yaml`
-  (montado desde `scripts/kind/audit-policy.yaml` del repo)
-- rotacion: `audit-log-maxage=7`, `audit-log-maxbackup=3`, `audit-log-maxsize=100`
+  (mounted from the repo's `scripts/kind/audit-policy.yaml`)
+- rotation: `audit-log-maxage=7`, `audit-log-maxbackup=3`, `audit-log-maxsize=100`
 
-Al terminar deja el contexto `kind-umbra` seleccionado y espera a que el
-nodo este `Ready`.
+On finish it leaves the `kind-umbra` context selected and waits until the
+node is `Ready`.
 
-## Donde vive el log y como leerlo
+## Where the log lives and how to read it
 
-El log vive DENTRO del nodo control-plane, en la ruta fija
-`/var/log/umbra-audit/audit.log`. Se lee con `docker exec`
-(`kubectl exec` no sirve: apunta a pods, y el control-plane es el
-contenedor del nodo, no un pod):
+The log lives INSIDE the control-plane node, at the fixed path
+`/var/log/umbra-audit/audit.log`. Read it with `docker exec`
+(`kubectl exec` doesn't work: it targets pods, and the control-plane is the
+node container, not a pod):
 
 ```bash
 docker exec umbra-control-plane cat /var/log/umbra-audit/audit.log
 ```
 
-Filtrar por un objeto concreto (ej. un patch sobre un deployment de demo):
+Filter by a concrete object (e.g. a patch on a demo deployment):
 
 ```bash
 docker exec umbra-control-plane cat /var/log/umbra-audit/audit.log \
   | grep '"namespace":"demo"'
 ```
 
-## Ejemplo esperado
+## Expected example
 
 ```bash
 kubectl create namespace demo
@@ -51,7 +51,7 @@ docker exec umbra-control-plane cat /var/log/umbra-audit/audit.log \
   | grep '"name":"demo-audit"'
 ```
 
-Una linea del log (JSON, una entrada por linea) contiene:
+One log line (JSON, one entry per line) holds:
 
 ```json
 {
@@ -65,41 +65,41 @@ Una linea del log (JSON, una entrada por linea) contiene:
 }
 ```
 
-Es decir: `user` (quien), `verb` (que operacion) y `objectRef`
-(sobre que objeto). Limpieza del ejemplo:
+That is: `user` (who), `verb` (what op) and `objectRef`
+(over which object). Clean up the example:
 
 ```bash
 kubectl delete namespace demo
 ```
 
-## Que registra la policy (y que no)
+## What the policy records (and what not)
 
-`scripts/kind/audit-policy.yaml`, nivel `Metadata`, `omitStages:
+`scripts/kind/audit-policy.yaml`, level `Metadata`, `omitStages:
 [RequestReceived]`:
 
-- Registra: verbos `create`, `update` y `patch` sobre workloads
+- Records: `create`, `update` and `patch` verbs on workloads
   (`deployments`, `deployments/scale`, `statefulsets`, `daemonsets`,
-  `replicasets`, `pods`) en el namespace `demo`.
-- Descarta (`level: None`): todo lo demas, incluidas TODAS las lecturas
-  (`get`/`list`/`watch`). Si hay que auditar mas namespaces de demo,
-  se anaden a la lista `namespaces` de la regla.
+  `replicasets`, `pods`) in the `demo` namespace.
+- Drops (`level: None`): everything else, including ALL reads
+  (`get`/`list`/`watch`). To audit more demo namespaces,
+  add them to the rule's `namespaces` list.
 
-## Sin secretos
+## No secrets
 
-Ningun archivo de esta tarea contiene credenciales, endpoints privados
-ni material sensible: solo la imagen publica de ejemplo
-(`ghcr.io/example/*`), el contexto `kind-umbra` y rutas dentro del nodo.
+No file in this task holds credentials, private endpoints
+or sensitive material: only the public example image
+(`ghcr.io/example/*`), the `kind-umbra` context and paths inside the node.
 
-## Leer el log desde un pod (solo lectura, solo control-plane)
+## Read the log from a pod (read-only, control-plane only)
 
-Un lector dentro del cluster (p. ej. el futuro watcher de Umbra) monta
-el log del nodo como solo-lectura y se fija al control-plane, que es el
-unico nodo donde existe el fichero:
+A reader inside the cluster (e.g. Umbra's future watcher) mounts
+the node log read-only and pins to control-plane, the
+only node where the file exists:
 
 ```yaml
 spec:
   nodeSelector:
-    kubernetes.io/hostname: umbra-control-plane  # kind: un solo nodo
+    kubernetes.io/hostname: umbra-control-plane  # kind: single node
   containers:
     - name: audit-reader
       volumeMounts:
@@ -113,9 +113,9 @@ spec:
         type: Directory
 ```
 
-Reglas: `readOnly: true` siempre (el lector nunca escribe el log) y
-`nodeSelector` al control-plane (en kind de un nodo es redundante, en
-multinodo evita montar un directorio que no existe). En un cluster
-real no se usa hostPath: el audit va a un backend webhook
-(`audit-webhook-*`) o lo envia un agente de logs; el formato de linea
-JSON que parsea `internal/attribution` es el mismo en ambos casos.
+Rules: `readOnly: true` always (the reader never writes the log) and
+`nodeSelector` to control-plane (redundant in single-node kind,
+avoids mounting a missing directory in multinode). In a real
+cluster no hostPath: audit goes to a webhook backend
+(`audit-webhook-*`) or a log agent ships it; the JSON line
+format parsed by `internal/attribution` is the same in both cases.

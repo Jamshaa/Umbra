@@ -41,17 +41,18 @@ func (nullBox) Apply(_ context.Context, _ []byte) (string, error) { return "", n
 
 // result is the machine-readable outcome, one JSON object on stdout.
 type result struct {
-	Finding   string `json:"finding"`
-	Refused   bool   `json:"refused,omitempty"`
-	Reason    string `json:"reason,omitempty"`
-	Proposal  any    `json:"proposal,omitempty"`
-	GateStep  string `json:"gate_step,omitempty"`
-	GatePass  bool   `json:"gate_pass,omitempty"`
-	GateWhy   string `json:"gate_why,omitempty"`
-	Sandbox   bool   `json:"sandbox"`
-	Tokens    int    `json:"tokens"`
-	Model     string `json:"model"`
-	LatencyMS int64  `json:"latency_ms"`
+	Finding    string `json:"finding"`
+	Refused    bool   `json:"refused,omitempty"`
+	Reason     string `json:"reason,omitempty"`
+	Proposal   any    `json:"proposal,omitempty"`
+	GateStep   string `json:"gate_step,omitempty"`
+	GatePass   bool   `json:"gate_pass,omitempty"`
+	GateWhy    string `json:"gate_why,omitempty"`
+	RolledBack bool   `json:"rolled_back"`
+	Sandbox    bool   `json:"sandbox"`
+	Tokens     int    `json:"tokens"`
+	Model      string `json:"model"`
+	LatencyMS  int64  `json:"latency_ms"`
 }
 
 func fail(msg string, args ...any) {
@@ -116,7 +117,7 @@ func main() {
 	for _, td := range agent.Tools() {
 		tools = append(tools, brain.Tool{Name: td.Name, Description: td.Description, Parameters: json.RawMessage(td.Parameters)})
 	}
-	r := &agent.Runner{Client: brain.New(cfg), Kube: lk}
+	r := &agent.Runner{Client: brain.New(cfg), Kube: lk, Scope: agent.Scope{Namespace: *ns}}
 	userContent := fmt.Sprintf("Diagnose %s %s/%s (rule %s). Find the root cause with read-only tools, then propose_patch. Smallest fix; needs_human when unsure.", *kind, *ns, *name, *fault)
 
 	start := time.Now()
@@ -179,6 +180,16 @@ func main() {
 	res.GateStep = v.Step
 	res.GatePass = v.Passed
 	res.GateWhy = v.Reason
+	// Never leave sandbox residue: a successful apply (gate pass or
+	// verifier verdict) is always followed by rollback to the snapshot,
+	// or by deletion when the object did not exist before.
+	if *sandbox && (v.Passed || v.Step == "verify") {
+		if rbErr := (livekube.Sandbox{Dyn: lk.Dyn}).Rollback(ctx, *kind, *name, v.Snapshot); rbErr != nil {
+			res.GateWhy += " (rollback failed: " + rbErr.Error() + ")"
+		} else {
+			res.RolledBack = true
+		}
+	}
 	code := 0
 	if !v.Passed {
 		code = 2

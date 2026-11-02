@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# f04_no_limits_bursty.sh: inyecta el fallo F04 en el namespace demo.
-# F04 = Deployment SIN resources (ni limits ni requests) con carga
-# de memoria a rafagas: sin techo, el consumo es ilimitado y los
-# reinicios escalan bajo carga.
-# Idempotente: re-ejecutar es seguro (kubectl --context kind-umbra apply).
-# Unico binario externo: kubectl (en PATH). No toca otros namespaces.
+# f04_no_limits_bursty.sh: injects failure F04 into the demo namespace.
+# F04 = Deployment WITHOUT resources (neither limits nor requests) with load
+# bursty memory load: uncapped, consumption is unbounded and
+# restarts escalate under load.
+# Idempotent: re-running is safe (kubectl --context kind-umbra apply).
+# Only external binary: kubectl (in PATH). Touches no other namespaces.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

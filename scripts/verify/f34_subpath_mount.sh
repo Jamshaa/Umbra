@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f34_subpath_mount.sh (verifier): afirma que el contenedor monta un
-# volumen con subPath (anclado a la primera version del ConfigMap).
-# Solo kubectl, solo ns demo. Espera acotada: 30 intentos x 10 s.
+# f34_subpath_mount.sh (verifier): asserts that the container mounts a
+# volume with subPath (pinned to the first version of the ConfigMap).
+# kubectl only, demo ns only. Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

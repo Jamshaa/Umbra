@@ -1,39 +1,39 @@
-# META.md — cómo Umbra usa los modelos de Meta
+# META.md — how Umbra uses Meta models
 
-## Modelo y API
+## Model and API
 
-- **Modelo:** Muse Spark (`muse-spark-1.3`, configurable por `MODEL_NAME`).
-- **API:** Responses API (`POST {MODEL_BASE_URL}/responses`), recomendada por
-  Meta para agentes porque conserva el razonamiento entre llamadas a
-  herramientas vía `previous_response_id`.
-- **Cliente:** `internal/brain/brain.go` (commit `d6fabd4`, ola T1). `tool_choice`
-  es siempre `"auto"`: la lista permitida la impone el código
-  (`internal/agent/tools.go`), nunca el modelo. `reasoning_effort` no se envía
-  jamás: Muse Spark siempre razona y `reasoning_effort: none` devuelve 400.
-- **URL base configurable:** `MODEL_BASE_URL` (por defecto
-  `https://api.meta.ai/v1`) admite un servidor compatible con OpenAI para la
-  variante local (Muse Glimmer); ver ROADMAP.md v0.3.
+- **Model:** Muse Spark (`muse-spark-1.3`, configurable via `MODEL_NAME`).
+- **API:** Responses API (`POST {MODEL_BASE_URL}/responses`), recommended by
+  Meta for agents because it preserves reasoning across tool
+  calls via `previous_response_id`.
+- **Client:** `internal/brain/brain.go` (commit `d6fabd4`, wave T1). `tool_choice`
+  is always `"auto"`: the allowlist is enforced by code
+  (`internal/agent/tools.go`), never the model. `reasoning_effort` is never sent:
+  Muse Spark always reasons and `reasoning_effort: none` returns 400.
+- **Configurable base URL:** `MODEL_BASE_URL` (default
+  `https://api.meta.ai/v1`) accepts an OpenAI-compatible server for the
+  local variant (Muse Glimmer); see ROADMAP.md v0.3.
 
-## Dónde se usa
+## Where it's used
 
-| Fichero | Papel |
+| File | Role |
 |---|---|
-| `internal/brain/brain.go` | Transporte: 1 round-trip, reintentos solo ante 429/5xx/fallos de red, caché por hash, `Usage` (tokens, latencia, response id) por llamada |
-| `internal/agent/loop.go` | Bucle: system prompt anti-inyección, `MaxSteps` 8, presupuesto de tokens, `propose_patch` como única salida |
-| `internal/agent/tools.go` | 8 herramientas: `get_manifest`, `get_events`, `get_pod_status`, `get_logs` (sanitizadas), `get_related`, `get_changes`, `get_impact` + `propose_patch` |
-| `cmd/umbra-agent/main.go` | Wiring vivo: kube real → loop → puertas (`--sandbox` o solo memoria) |
-| `cmd/umbra-bench/main.go` | Modos `model` (puertas puestas) y `model-raw` (puertas quitadas, solo mide) |
+| `internal/brain/brain.go` | Transport: 1 round-trip, retries only on 429/5xx/network failures, hash cache, `Usage` (tokens, latency, response id) per call |
+| `internal/agent/loop.go` | Loop: anti-injection system prompt, `MaxSteps` 8, token budget, `propose_patch` as sole output |
+| `internal/agent/tools.go` | 8 tools: `get_manifest`, `get_events`, `get_pod_status`, `get_logs` (sanitized), `get_related`, `get_changes`, `get_impact` + `propose_patch` |
+| `cmd/umbra-agent/main.go` | Live wiring: real kube → loop → gates (`--sandbox` or memory-only) |
+| `cmd/umbra-bench/main.go` | `model` mode (gates on) and `model-raw` (gates off, measures only) |
 
-## Cuándo el modelo sí hace falta
+## When the model is actually needed
 
-Solo causas ambiguas: CrashLoop (F07), referencias rotas (F16–F18),
-puertos que no coinciden (F20). F01–F06 tienen arreglo determinista y **no
-pasan por el modelo** (`internal/fixes`).
+Only ambiguous causes: CrashLoop (F07), broken references (F16–F18),
+mismatched ports (F20). F01–F06 have a deterministic fix and **never
+go through the model** (`internal/fixes`).
 
-## Tokens por ejecución
+## Tokens per run
 
-Medidos por el propio bench (`tokens_total` en `bench/results/scoreboard.json`).
-Sin medición viva publicada aún: la tabla del README solo publicará cifras
-de `bench/results/*.jsonl`. Regla anti-quema: `MaxTokensPerFinding`,
-caché de turnos idénticos, y si los créditos aprietan se baja a 2
-repeticiones o a menos casos (ver BENCHMARK.md).
+Measured by the bench itself (`tokens_total` in `bench/results/scoreboard.json`).
+No live measurement published yet: the README table will only publish figures
+from `bench/results/*.jsonl`. Anti-burn rule: `MaxTokensPerFinding`,
+identical-turn cache, and if credits run tight drop to 2
+repeats or fewer cases (see BENCHMARK.md).

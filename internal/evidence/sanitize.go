@@ -73,6 +73,16 @@ var (
 	// purely alphanumeric secret without mixed case slips through
 	// unless it rides on a secret key (kvRe covers that path).
 	b64RunRe = regexp.MustCompile(`\b[A-Za-z0-9+/]{32,}={0,2}\b`)
+	// envEntryRe matches one block-style env entry ("- name: FOO" followed
+	// by "value: ..."). The value is redacted only when the sibling name
+	// is secret-like; valueFrom references carry no plaintext and stay.
+	envEntryRe = regexp.MustCompile(`(?m)^[ \t]*-[ \t]*name:[ \t]*["']?[A-Za-z0-9_.-]+["']?[ \t]*\r?\n[ \t]*value:[ \t]*(?:"[^"\n]*"|'[^'\n]*'|[^\n]*?)[ \t]*$`)
+	envNameRe  = regexp.MustCompile(`name:[ \t]*["']?([A-Za-z0-9_.-]+)`)
+	// envJSONRe matches the JSON form ("name":"FOO","value":"..."), the
+	// order Go's map marshal and the API server both emit.
+	envJSONRe = regexp.MustCompile(`"name"[ \t]*:[ \t]*"([A-Za-z0-9_.-]+)"[ \t]*,[ \t]*"value"[ \t]*:[ \t]*"((?:[^"\\]|\\.)*)"`)
+	// envJSONRevRe matches the reversed JSON order ("value" before "name").
+	envJSONRevRe = regexp.MustCompile(`"value"[ \t]*:[ \t]*"((?:[^"\\]|\\.)*)"[ \t]*,[ \t]*"name"[ \t]*:[ \t]*"([A-Za-z0-9_.-]+)"`)
 )
 
 // isSecretKey reports whether a key token names a credential, comparing
@@ -109,6 +119,42 @@ func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
 // looksRandom reports mixed character classes: the b64RunRe match is
 // only redacted when it looks like key material, never for plain hex
 // digests, UUIDs or words.
+// redactEnvEntry redacts the value of one block-style env entry when its
+// sibling name is secret-like. shortcut: flow-style "{name:.., value:..}"
+// maps are not covered; block and JSON forms (the server-emitted shapes)
+// are. Upgrade when a flow-style leak is ever observed.
+func redactEnvEntry(m string) string {
+	nm := envNameRe.FindStringSubmatch(m)
+	if len(nm) < 2 || !isSecretKey(nm[1]) {
+		return m
+	}
+	i := strings.Index(m, "value:")
+	if i < 0 {
+		return m
+	}
+	val := strings.TrimRight(m[i+len("value:"):], " \t\r")
+	return m[:i+len("value:")] + " " + redactValue(strings.TrimSpace(val))
+}
+
+// redactEnvJSON redacts the JSON env value when the sibling name is
+// secret-like. The secret name itself stays: it is an identifier the
+// diagnosis needs, not a credential.
+func redactEnvJSON(re *regexp.Regexp, nameGroup, valGroup int) func(string) string {
+	return func(m string) string {
+		loc := re.FindStringSubmatchIndex(m)
+		if loc == nil {
+			return m
+		}
+		name := m[loc[nameGroup*2]:loc[nameGroup*2+1]]
+		if !isSecretKey(name) {
+			return m
+		}
+		// The group excludes the surrounding quotes, so the JSON string
+		// stays quoted and valid.
+		return m[:loc[valGroup*2]] + Redacted + m[loc[valGroup*2+1]:]
+	}
+}
+
 func looksRandom(s string) bool {
 	var up, lo, dg, sym bool
 	for _, r := range s {
@@ -160,6 +206,12 @@ func Sanitize(s string) string {
 	out = apiKeyRe.ReplaceAllString(out, Redacted)
 	out = jwtRe.ReplaceAllString(out, Redacted)
 	out = bearerRe.ReplaceAllString(out, Redacted)
+	// Structured env entries: redact the value when the sibling name is
+	// secret-like. Short plaintext passwords ride here, not on any
+	// standalone shape above.
+	out = envEntryRe.ReplaceAllStringFunc(out, redactEnvEntry)
+	out = envJSONRe.ReplaceAllStringFunc(out, redactEnvJSON(envJSONRe, 1, 2))
+	out = envJSONRevRe.ReplaceAllStringFunc(out, redactEnvJSON(envJSONRevRe, 2, 1))
 	out = b64RunRe.ReplaceAllStringFunc(out, func(m string) string {
 		if looksRandom(m) {
 			return Redacted

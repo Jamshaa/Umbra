@@ -18,7 +18,7 @@ spec:
           image: demo-app:local
           ports:
             - containerPort: 8080
-          # FALLO: liveness == readiness (la app colgada nunca reinicia).
+          # FAILURE: liveness == readiness (the hung app never restarts).
           livenessProbe: {tcpSocket: {port: 8080}}
           readinessProbe: {tcpSocket: {port: 8080}}
           resources:

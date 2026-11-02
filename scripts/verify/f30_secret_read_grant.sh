@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# f30_secret_read_grant.sh (verifier): afirma que el Role demo F30
-# concede get+list sobre secrets. Solo kubectl, solo ns demo.
-# Espera acotada: 30 intentos x 10 s.
+# f30_secret_read_grant.sh (verifier): asserts that demo Role F30
+# grants get+list on secrets. kubectl only, demo ns only.
+# Bounded wait: 30 tries x 10 s.
 set -eu
 source "$(dirname "$0")/../lib/guard.sh"
 

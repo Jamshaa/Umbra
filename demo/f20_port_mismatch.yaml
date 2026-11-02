@@ -19,10 +19,10 @@ spec:
       containers:
         - name: app
           image: ghcr.io/example/demo-app:v1
-          # F20: las probes apuntan al puerto 9090, pero el contenedor
-          # solo abre 8080 (mismatch probe/contenedor; un Service al
-          # 9090 fallaria igual). Resources sanos para aislar el fallo.
-          # No alinear los puertos.
+          # F20: probes point at port 9090, but the container
+          # only opens 8080 (probe/container mismatch; a Service on
+          # 9090 would fail the same). Healthy resources to isolate the failure.
+          # Do not align the ports.
           ports:
             - containerPort: 8080
           livenessProbe:
