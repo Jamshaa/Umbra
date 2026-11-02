@@ -298,6 +298,9 @@ func dispatch(ctx context.Context, k Kube, name string, args map[string]any) (st
 	}
 	switch name {
 	case "get_manifest":
+		if v.kind == "Secret" {
+			return "", nil, fmt.Errorf("secret manifests are not available to the agent")
+		}
 		obj, err := k.Get(ctx, v.kind, v.name, v.namespace)
 		if err != nil {
 			return "", nil, err

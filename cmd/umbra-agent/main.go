@@ -100,7 +100,14 @@ func main() {
 		fail("%v", err)
 	}
 	// Patch math and the prompt run on the cleaned object (see livekube).
-	base, err := sigsyaml.Marshal(livekube.CleanForPatch(obj))
+	clean := livekube.CleanForPatch(obj)
+	meta, _ := clean["metadata"].(map[string]any)
+	if meta == nil {
+		meta = map[string]any{}
+		clean["metadata"] = meta
+	}
+	meta["namespace"] = livekube.SandboxNamespace
+	base, err := sigsyaml.Marshal(clean)
 	if err != nil {
 		fail("marshal manifest: %v", err)
 	}
@@ -141,9 +148,13 @@ func main() {
 		box = livekube.Sandbox{Dyn: lk.Dyn}
 	}
 	podName := *pod
+	verifyNamespace := *ns
+	if *sandbox {
+		verifyNamespace = livekube.SandboxNamespace
+	}
 	if podName == "" {
 		if sel := templateLabels(obj); len(sel) > 0 {
-			if pods, err := lk.List(ctx, "Pod", *ns, sel); err == nil && len(pods) > 0 {
+			if pods, err := lk.List(ctx, "Pod", verifyNamespace, sel); err == nil && len(pods) > 0 {
 				names := []string{}
 				for _, p := range pods {
 					m, _ := p["metadata"].(map[string]any)
@@ -160,7 +171,7 @@ func main() {
 	}
 	var pst verify.PodStatus
 	if podName != "" {
-		if p, err := lk.Get(ctx, "Pod", podName, *ns); err == nil {
+		if p, err := lk.Get(ctx, "Pod", podName, verifyNamespace); err == nil {
 			pst = podStatusOf(p)
 		}
 	}

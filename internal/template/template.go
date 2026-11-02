@@ -107,12 +107,12 @@ func Evaluate(tpl v1alpha1.ComplianceTemplate, objs []map[string]any) []Violatio
 		}
 		// CronJob concurrencyPolicy is a pod-template-independent field.
 		if kind == "CronJob" && tpl.Spec.Required.ConcurrencyPolicy != "" {
-			if cp, _ := spec["concurrencyPolicy"].(string); cp == "" {
+			if cp, _ := spec["concurrencyPolicy"].(string); cp != tpl.Spec.Required.ConcurrencyPolicy {
 				out = append(out, Violation{
 					Kind: kind, Namespace: ns, Name: name,
 					Field:    "spec.concurrencyPolicy",
 					Expected: tpl.Spec.Required.ConcurrencyPolicy,
-					Actual:   "(absent)",
+					Actual:   cp,
 					Message:  "concurrencyPolicy required by template",
 				})
 			}

@@ -77,10 +77,20 @@ func (r *Runner) Run(ctx context.Context, systemPrompt, userContent string, tool
 		if err := ctx.Err(); err != nil {
 			return outcome, err
 		}
+		if r.Client.MaxTokensPerFinding > 0 && totalTok >= r.Client.MaxTokensPerFinding {
+			outcome.Refused = true
+			outcome.Reason = "token budget exhausted"
+			outcome.Tokens = totalTok
+			return outcome, nil
+		}
 		// Continuations send only the new outputs: the server keeps
 		// prior turns under previous_response_id. Resending everything
 		// would duplicate context and burn tokens.
-		res, err := r.Client.Call(ctx, turn, tools, prevID)
+		maxOutput := 0
+		if r.Client.MaxTokensPerFinding > 0 {
+			maxOutput = r.Client.MaxTokensPerFinding - totalTok
+		}
+		res, err := r.Client.CallWithBudget(ctx, turn, tools, prevID, maxOutput)
 		if err != nil {
 			return outcome, err
 		}
