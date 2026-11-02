@@ -1,6 +1,8 @@
 package template
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -83,7 +85,9 @@ func findingMeta(tplName, kind, name string) metav1.ObjectMeta {
 	}
 	out := strings.Trim(b.String(), "-")
 	if len(out) > 253 {
-		out = out[:253]
+		sum := sha256.Sum256([]byte(raw))
+		suffix := "-" + hex.EncodeToString(sum[:])[:12]
+		out = out[:253-len(suffix)] + suffix
 	}
 	if out == "" {
 		out = "tpl-drift"

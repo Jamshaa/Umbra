@@ -31,6 +31,8 @@ var secretWords = map[string]bool{
 	"credential": true, "credentials": true, "clientsecret": true,
 	"privatekey": true, "passphrase": true, "dbpassword": true,
 	"kubeconfig": true,
+	"data":       true,
+	"stringdata": true,
 }
 
 // LooksLikeKubeconfig reports whether s carries a kubeconfig document

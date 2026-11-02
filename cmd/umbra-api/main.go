@@ -7,6 +7,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,7 +34,15 @@ func main() {
 	}
 	addr := "127.0.0.1:8082"
 	ctrl.Log.Info("serving umbra-api", "addr", addr, "dist", dist)
-	if err := http.ListenAndServe(addr, umbraapi.NewHandler(c, dist)); err != nil {
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           umbraapi.NewHandler(c, dist),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		ctrl.Log.Error(err, "serve")
 		os.Exit(1)
 	}

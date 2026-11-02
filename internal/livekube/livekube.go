@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -217,9 +218,11 @@ func (s Sandbox) Apply(ctx context.Context, doc []byte) (string, error) {
 		snap = string(raw)
 		u.SetResourceVersion(prev.GetResourceVersion())
 		_, err = s.Dyn.Resource(gvr).Namespace(SandboxNamespace).Update(ctx, u, metav1.UpdateOptions{})
-	} else {
+	} else if apierrors.IsNotFound(err) {
 		u.SetResourceVersion("")
 		_, err = s.Dyn.Resource(gvr).Namespace(SandboxNamespace).Create(ctx, u, metav1.CreateOptions{})
+	} else {
+		return "", fmt.Errorf("livekube: sandbox lookup: %w", err)
 	}
 	if err != nil {
 		return "", fmt.Errorf("livekube: sandbox apply: %w", err)
@@ -328,7 +331,11 @@ func (s Sandbox) Rollback(ctx context.Context, kind, name, snapshot string) erro
 	if err != nil {
 		return err
 	}
-	obj["metadata"].(map[string]any)["resourceVersion"] = cur.GetResourceVersion()
+	meta, ok := obj["metadata"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("livekube: rollback snapshot has no metadata")
+	}
+	meta["resourceVersion"] = cur.GetResourceVersion()
 	_, err = res.Update(ctx, &unstructured.Unstructured{Object: obj}, metav1.UpdateOptions{})
 	return err
 }

@@ -28,34 +28,12 @@ rules:
   verbs:
   - patch
   - update
-# Sandbox objects managed by the RemediationPolicy reconciler
-# (see +kubebuilder:rbac markers on RemediationPolicyReconciler).
+# Namespace creation is cluster-scoped; namespaced sandbox objects are
+# restricted by the Role in sandbox-role.yaml.
 - apiGroups:
   - ""
   resources:
   - namespaces
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - networkpolicies
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - resourcequotas
   verbs:
   - get
   - list

@@ -29,20 +29,36 @@ func OpenPR(repoDir string, findingName string, files map[string]string, receipt
 	}
 	branch := "umbra/" + findingName
 	res := &PRResult{Branch: branch}
+	root, err := filepath.Abs(repoDir)
+	if err != nil {
+		return nil, fmt.Errorf("executor: repo path: %w", err)
+	}
+	for rel := range files {
+		full, err := safePath(root, rel)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := os.Stat(full); err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("executor: inspect %s: %w", rel, err)
+		}
+	}
 
 	// 1. Create/reset a clean branch from the current HEAD.
 	if _, err := runner("git", repoDir, "checkout", "-b", branch); err != nil {
 		if _, err2 := runner("git", repoDir, "checkout", branch); err2 != nil {
 			return nil, fmt.Errorf("executor: checkout %s: %w", branch, err)
 		}
-		if _, err := runner("git", repoDir, "reset", "--hard", "HEAD"); err != nil {
-			return nil, fmt.Errorf("executor: reset: %w", err)
-		}
+	}
+	if _, err := runner("git", repoDir, "diff", "--quiet", "HEAD"); err != nil {
+		return nil, fmt.Errorf("executor: repository has local changes")
 	}
 
 	// 2. Write the patched files.
 	for rel, content := range files {
-		full := filepath.Join(repoDir, rel)
+		full, err := safePath(root, rel)
+		if err != nil {
+			return nil, err
+		}
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
 			return nil, fmt.Errorf("executor: mkdir: %w", err)
 		}
@@ -52,9 +68,14 @@ func OpenPR(repoDir string, findingName string, files map[string]string, receipt
 	}
 
 	// 3. Stage + commit.
-	if _, err := runner("git", repoDir, "add", "-A"); err != nil {
+	addArgs := []string{"add", "--"}
+	for rel := range files {
+		addArgs = append(addArgs, rel)
+	}
+	if _, err := runner("git", repoDir, addArgs...); err != nil {
 		return nil, fmt.Errorf("executor: git add: %w", err)
 	}
+
 	msg := "fix(umbra): restore compliance for " + findingName
 	if _, err := runner("git", repoDir, "commit", "-m", msg, "--author", "Umbra <umbra@localhost>"); err != nil {
 		return nil, fmt.Errorf("executor: commit: %w", err)
@@ -89,4 +110,37 @@ func defaultRunner(name, dir string, args ...string) (string, error) {
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	return string(out), err
+}
+
+func safePath(root, rel string) (string, error) {
+	if filepath.IsAbs(rel) {
+		return "", fmt.Errorf("executor: absolute path rejected: %q", rel)
+	}
+	full := filepath.Join(root, filepath.Clean(rel))
+	relative, err := filepath.Rel(root, full)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("executor: path escapes repository: %q", rel)
+	}
+	for dir := filepath.Dir(full); ; dir = filepath.Dir(dir) {
+		if _, err := os.Lstat(dir); err == nil {
+			real, err := filepath.EvalSymlinks(dir)
+			if err != nil {
+				return "", fmt.Errorf("executor: resolve path %q: %w", rel, err)
+			}
+			realRoot, err := filepath.EvalSymlinks(root)
+			if err != nil {
+				return "", fmt.Errorf("executor: resolve repository: %w", err)
+			}
+			realRel, err := filepath.Rel(realRoot, real)
+			if err != nil || realRel == ".." || strings.HasPrefix(realRel, ".."+string(filepath.Separator)) {
+				return "", fmt.Errorf("executor: symlink escapes repository: %q", rel)
+			}
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+	}
+	return full, nil
 }

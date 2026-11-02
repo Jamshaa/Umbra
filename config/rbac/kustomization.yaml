@@ -3,4 +3,7 @@ kind: Kustomization
 resources:
 - role.yaml
 - rolebinding.yaml
+- sandbox-role.yaml
+- sandbox-rolebinding.yaml
+- sandbox-namespace.yaml
 - approver-clusterrole.yaml

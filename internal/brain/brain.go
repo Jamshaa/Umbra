@@ -174,7 +174,7 @@ func New(cfg Config) *Client {
 // requestBody builds the Responses API payload. tool_choice is always
 // "auto": only the tool list constrains the model. reasoning_effort is
 // never sent (the model must always reason; "none" returns 400).
-func (c *Client) requestBody(model string, input []InputItem, tools []Tool, previousResponseID string) ([]byte, error) {
+func (c *Client) requestBody(model string, input []InputItem, tools []Tool, previousResponseID string, maxOutputTokens int) ([]byte, error) {
 	type toolDef struct {
 		Type        string          `json:"type"`
 		Name        string          `json:"name"`
@@ -193,6 +193,9 @@ func (c *Client) requestBody(model string, input []InputItem, tools []Tool, prev
 	}
 	if previousResponseID != "" {
 		body["previous_response_id"] = previousResponseID
+	}
+	if maxOutputTokens > 0 {
+		body["max_output_tokens"] = maxOutputTokens
 	}
 	return json.Marshal(body)
 }
@@ -256,6 +259,15 @@ func transient(err error, status int) bool {
 // Identical calls return the cached result without touching the network.
 // Errors never contain the API key.
 func (c *Client) Call(ctx context.Context, input []InputItem, tools []Tool, previousResponseID string) (StepResult, error) {
+	return c.call(ctx, input, tools, previousResponseID, 0)
+}
+
+// CallWithBudget performs one request with an optional server-side output cap.
+func (c *Client) CallWithBudget(ctx context.Context, input []InputItem, tools []Tool, previousResponseID string, maxOutputTokens int) (StepResult, error) {
+	return c.call(ctx, input, tools, previousResponseID, maxOutputTokens)
+}
+
+func (c *Client) call(ctx context.Context, input []InputItem, tools []Tool, previousResponseID string, maxOutputTokens int) (StepResult, error) {
 	inJSON, err := json.Marshal(input)
 	if err != nil {
 		return StepResult{}, fmt.Errorf("brain: encode input: %w", err)
@@ -270,7 +282,7 @@ func (c *Client) Call(ctx context.Context, input []InputItem, tools []Tool, prev
 			return hit, nil
 		}
 	}
-	body, err := c.requestBody(c.cfg.Model, input, tools, previousResponseID)
+	body, err := c.requestBody(c.cfg.Model, input, tools, previousResponseID, maxOutputTokens)
 	if err != nil {
 		return StepResult{}, err
 	}
