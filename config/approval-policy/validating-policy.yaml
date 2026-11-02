@@ -1,0 +1,51 @@
+# Approval gate: only the umbra.dev/approved annotation may change on a
+# Finding for human writers. Kubernetes RBAC cannot restrict `patch` to
+# annotations, so this policy closes the gap: anyone able to patch a
+# Finding could otherwise rewrite spec.state, spec.proposedPatch or the
+# observed-state annotation and forge an Approved=True condition (see
+# internal/controller/approval.go: still labelled self-declared, but the
+# state would be forged). System actors (manager SA, kube controllers)
+# are exempt; everyone else may only add, change or remove the single
+# approval annotation and must leave labels, finalizers, ownerReferences
+# and the whole spec byte-identical.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: umbra-finding-approval-gate
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["umbra.io"]
+      apiVersions: ["v1alpha1"]
+      resources: ["findings"]
+      operations: ["UPDATE"]
+  validations:
+  - expression: "request.userInfo.username.startsWith('system:') || object.spec == oldObject.spec"
+    message: "findings spec is immutable for human approvers: only the umbra.dev/approved annotation may change"
+    reason: Forbidden
+  - expression: >-
+      request.userInfo.username.startsWith('system:') ||
+      (object.metadata.labels == oldObject.metadata.labels &&
+      (!has(object.metadata.finalizers) && !has(oldObject.metadata.finalizers) || object.metadata.finalizers == oldObject.metadata.finalizers) &&
+      (!has(object.metadata.ownerReferences) && !has(oldObject.metadata.ownerReferences) || object.metadata.ownerReferences == oldObject.metadata.ownerReferences) &&
+      (!has(object.metadata.annotations) ||
+        object.metadata.annotations.all(k,
+          k == 'umbra.dev/approved' ||
+          (has(oldObject.metadata.annotations) && k in oldObject.metadata.annotations &&
+           oldObject.metadata.annotations[k] == object.metadata.annotations[k]))) &&
+      (!has(oldObject.metadata.annotations) ||
+        oldObject.metadata.annotations.all(k,
+          k == 'umbra.dev/approved' ||
+          (has(object.metadata.annotations) && k in object.metadata.annotations &&
+           object.metadata.annotations[k] == oldObject.metadata.annotations[k]))))
+    message: "only the umbra.dev/approved annotation may change on a finding"
+    reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: umbra-finding-approval-gate
+spec:
+  policyName: umbra-finding-approval-gate
+  validationActions: [Deny]
