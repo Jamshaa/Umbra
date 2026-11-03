@@ -15,6 +15,17 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o .build/umbra-manager ./cmd
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o .build/umbra-api ./cmd/umbra-api
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o .build/demo-server ./demo/server
 
+# The API image embeds the Vite bundle. CI checks out a clean tree, so the
+# bundle is not present unless this script builds it explicitly.
+if [ ! -d ui/dist ]; then
+  command -v npm >/dev/null 2>&1 || {
+    echo "build-images: npm is required to build ui/dist" >&2
+    exit 1
+  }
+  npm --prefix ui ci --no-audit --no-fund
+  npm --prefix ui run build
+fi
+
 docker build -f Dockerfile.manager -t umbra-manager:dev .
 docker build -f Dockerfile.umbra-api -t umbra-api:dev .
 docker build -f Dockerfile.demo -t demo-app:local .
