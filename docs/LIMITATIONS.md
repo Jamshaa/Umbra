@@ -1,9 +1,14 @@
 # LIMITATIONS.md — what Umbra doesn't do (nor pretends to)
 
-- **No Helm, no real sandbox traffic.** The sandbox checks that something
-  starts and passes probes, not that it holds load. Anything requiring
-  traffic replay is out of catalog (F04 verifies via limits + stable restarts, not
-  real load).
+- **No Helm, no real sandbox traffic.** The sandbox verifies that the
+  workload starts and passes its check, not that it holds real traffic.
+  Anything requiring traffic replay is out of catalog (F04 verifies via
+  limits + stable restarts, not real load).
+- **Few model cases, reported as counts.** The model is evaluated on a
+  small case set; results are reported as counts (pass/total), never as
+  percentages without their denominator.
+- **No external calls from fonts or UI.** Fonts are self-hosted and the
+  UI only talks to its same-origin API; no external requests are made.
 - **No real production.** Manager/production only proposes; applying is a
   human act (`umbra approve` / annotation). Never auto-apply.
 - **No Prometheus.** Comparing requests against historical usage needs time

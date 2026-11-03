@@ -9,6 +9,40 @@
    - Press Start 2P ONLY at 8px multiples (8/16/24/32) — never body copy
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* Self-hosted pixel fonts (OFL 1.1, see THIRD_PARTY_NOTICES.md): no
+   external font requests, Vite hashes the files under base './'. */
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/press-start-2p-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'VT323';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/vt323-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'DM Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/dm-mono-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'DM Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/dm-mono-500.woff2') format('woff2');
+}
+
 :root {
   /* the palette — 8 tokens, nothing else is allowed in components */
   --bg: #1a1c2c;         /* deep navy — page background            */

@@ -33,6 +33,7 @@ import (
 	"github.com/Jamshaa/Umbra/internal/fixes"
 	"github.com/Jamshaa/Umbra/internal/invariants"
 	"github.com/Jamshaa/Umbra/internal/livekube"
+	"github.com/Jamshaa/Umbra/internal/receipt"
 	"github.com/Jamshaa/Umbra/internal/verify"
 )
 
@@ -241,6 +242,7 @@ func main() {
 	kubeconfig := fs.String("kubeconfig", "", "kubeconfig path for --live")
 	out := fs.String("out", filepath.Join("bench", "results"), "JSONL output dir")
 	sbOut := fs.String("scoreboard-out", filepath.Join("ui", "public", "scoreboard.json"), "scoreboard copy for the UI (empty to skip)")
+	receiptChain := fs.String("receipt-chain", "", "append a signed receipt per live verdict to this chain file (requires --live and UMBRA_RECEIPT_HMAC_KEY)")
 	hpCase := fs.String("hp-case", "", "handpatch: record label, e.g. F36 or X-PROBES")
 	hpBase := fs.String("hp-base", "", "handpatch: base bundle file (default: case fixture)")
 	hpPatch := fs.String("hp-patch", "", "handpatch: after document file (required)")
@@ -320,6 +322,14 @@ func main() {
 			fatalf("%v", err)
 		}
 	}
+	if *receiptChain != "" {
+		if !*live {
+			fatalf("--receipt-chain requires --live")
+		}
+		if os.Getenv("UMBRA_RECEIPT_HMAC_KEY") == "" {
+			fatalf("receipt: UMBRA_RECEIPT_HMAC_KEY is required with --receipt-chain: set it to a fresh random value in this shell only (see SECURITY.md); never store it in a file")
+		}
+	}
 
 	commit := commitSHA()
 	model := ""
@@ -342,6 +352,9 @@ func main() {
 			rec := record{Ts: time.Now().UTC().Format(time.RFC3339), Commit: commit, Model: model,
 				Seed: cat.Seed, Repeat: r, Case: label, Config: "handpatch", Group: "B", Live: *live, Cache: "n/a"}
 			runHandpatch(repo, label, *hpBase, *hpPatch, *hpKind, *hpRule, *hpExtraLive, *hpExtraFile, lk, &rec)
+			if *receiptChain != "" {
+				appendBenchReceipt(*receiptChain, rec, model)
+			}
 			recs = append(recs, rec)
 		}
 	} else {
@@ -353,6 +366,9 @@ func main() {
 				rec := record{Ts: time.Now().UTC().Format(time.RFC3339), Commit: commit, Model: model,
 					Seed: cat.Seed, Repeat: r, Case: c.ID, Config: cfgLabel, Live: *live, Cache: cacheLabel(*mode)}
 				runCase(*mode, repo, c.ID, c.Verifier, c.Trap, lk, client, &rec)
+				if *receiptChain != "" {
+					appendBenchReceipt(*receiptChain, rec, model)
+				}
 				recs = append(recs, rec)
 			}
 		}
@@ -1520,6 +1536,46 @@ func rebuildScoreboard(dir, commit, model string) scoreboard {
 	}
 	sb.Seed, sb.Repeats = seed, repeats
 	return sb
+}
+
+// appendBenchReceipt adds one signed receipt per live verdict. It
+// fails closed without a key (checked at startup); a write failure is
+// fatal so a demo never silently loses its evidence chain.
+func appendBenchReceipt(path string, rec record, model string) {
+	key := []byte(os.Getenv("UMBRA_RECEIPT_HMAC_KEY"))
+	if len(key) == 0 {
+		fatalf("receipt: UMBRA_RECEIPT_HMAC_KEY is required with --receipt-chain")
+	}
+	var chain []string
+	if data, err := os.ReadFile(path); err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.TrimSpace(line) != "" {
+				chain = append(chain, line)
+			}
+		}
+	}
+	prev := "GENESIS"
+	if len(chain) > 0 {
+		prev = receipt.Fingerprint(chain[len(chain)-1])
+	}
+	rec2 := receipt.Build(receipt.Input{
+		FindingID: rec.Case, Rule: rec.Case, RootCause: rec.Reason,
+		Ladder:   []receipt.StepResult{{Step: rec.Config, Pass: rec.Outcome == "pass", Detail: rec.Reason}},
+		Model:    receipt.ModelUse{Model: model, InputTokens: rec.Tokens},
+		PrevHash: prev,
+	})
+	chain = receipt.AppendRegistroSigned(chain, rec2.JSON, key)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		fatalf("mkdir receipt chain: %v", err)
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		fatalf("open receipt chain: %v", err)
+	}
+	defer f.Close()
+	if _, err := fmt.Fprintln(f, chain[len(chain)-1]); err != nil {
+		fatalf("append receipt chain: %v", err)
+	}
 }
 
 func repoRoot() string {

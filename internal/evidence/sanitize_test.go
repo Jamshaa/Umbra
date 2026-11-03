@@ -384,6 +384,26 @@ func TestSanitizeEnvSecrets(t *testing.T) {
 			`{"name":"PORT","value":"8080"}`,
 			`{"name":"PORT","value":"8080"}`,
 		},
+		{
+			"flow secret",
+			`env: [{name: DB_PASSWORD, value: hunter2-hunter2}]`,
+			`env: [{name: DB_PASSWORD, value: <REPLACE-ME>}]`,
+		},
+		{
+			"flow quoted secret",
+			`{name: "api_key", value: "s3cret-pg-pass"}`,
+			`{name: "api_key", value: "<REPLACE-ME>"}`,
+		},
+		{
+			"flow reversed secret",
+			`{value: hunter2-hunter2, name: TOKEN}`,
+			`{value: <REPLACE-ME>, name: TOKEN}`,
+		},
+		{
+			"flow innocent untouched",
+			`{name: PORT, value: 8080}`,
+			`{name: PORT, value: 8080}`,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := Sanitize(tc.in); got != tc.want {
@@ -399,6 +419,10 @@ func TestSanitizeEnvSecrets(t *testing.T) {
 	onceJSON := Sanitize(`{"name":"DB_PASSWORD","value":"hunter2-hunter2"}`)
 	if twice := Sanitize(onceJSON); twice != onceJSON {
 		t.Fatalf("json not idempotent:\n%q\n%q", onceJSON, twice)
+	}
+	onceFlow := Sanitize(`{name: DB_PASSWORD, value: hunter2-hunter2}`)
+	if twice := Sanitize(onceFlow); twice != onceFlow {
+		t.Fatalf("flow not idempotent:\n%q\n%q", onceFlow, twice)
 	}
 }
 

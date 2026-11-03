@@ -44,6 +44,9 @@ func securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("Cache-Control", "no-store")
+		// Self-hosted fonts and same-origin data only; inline styles are
+		// required by the Vite bundle's style injection.
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'")
 		next.ServeHTTP(w, r)
 	})
 }

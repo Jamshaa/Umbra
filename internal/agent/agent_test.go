@@ -196,6 +196,9 @@ func TestHappyPathPropose(t *testing.T) {
 	if p.RawCallID != "call_2" {
 		t.Fatalf("missing raw call id: %+v", p)
 	}
+	if len(out.Records) != 2 || out.Records[0].Name != "get_manifest" || out.Records[1].Name != "propose_patch" {
+		t.Fatalf("tool records missing: %+v", out.Records)
+	}
 	if counter.Get() != 2 {
 		t.Fatalf("want 2 model calls, got %d", counter.Get())
 	}

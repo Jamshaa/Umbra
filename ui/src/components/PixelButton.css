@@ -18,7 +18,8 @@
 }
 
 .pixel-btn:hover:not(:disabled) {
-  background: #324095; /* one step lighter than --panel, flat fill */
+  outline: 3px solid var(--info);
+  outline-offset: -6px;
 }
 
 .pixel-btn:focus-visible {

@@ -44,3 +44,22 @@
   font-size: 12px;
   color: var(--ink);
 }
+
+.header-source {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 8px;
+  border: 2px solid var(--hard-shadow);
+  box-shadow: 2px 2px 0 var(--hard-shadow);
+}
+
+.header-source.is-live {
+  background: var(--ok);
+  color: var(--hard-shadow);
+}
+
+.header-source.is-mock {
+  background: var(--warn);
+  color: var(--hard-shadow);
+}

@@ -240,14 +240,14 @@ type chainLine struct {
 	Payload string `json:"payload"`
 	Prev    string `json:"prev"`
 	// Sig is the optional hex HMAC-SHA256 over prev + "\n" + payload under
-	// an operator-held key. Unsigned lines predate signatures and verify
+	// an operator-held key. Legacy lines without HMAC predate this and verify
 	// with the legacy VerifyChain only.
 	Sig string `json:"sig,omitempty"`
 }
 
 // Sign returns hex HMAC-SHA256 of prev + "\n" + payload under key. The key
 // lives outside the chain (e.g. UMBRA_RECEIPT_HMAC_KEY): whoever can
-// rewrite the file but lacks the key cannot forge a signed chain.
+// rewrite the file but lacks the key cannot forge a tamper-evident chain.
 func Sign(prev, payload string, key []byte) string {
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(prev + "\n" + payload))
@@ -269,7 +269,7 @@ func AppendRegistro(chain []string, payload string) []string {
 	return append(chain, string(raw))
 }
 
-// AppendRegistroSigned appends a keyed line: same link plus an HMAC over
+// AppendRegistroSigned appends a keyed line: same link plus a tamper-evident HMAC over
 // prev + payload, so wholesale rewrites without the key do not verify.
 func AppendRegistroSigned(chain []string, payload string, key []byte) []string {
 	prev := "GENESIS"
@@ -301,11 +301,11 @@ func VerifyChain(chain []string) error {
 }
 
 // VerifyChainSigned checks links and HMACs. Every line must carry a valid
-// signature: an unsigned or re-signed-by-attacker line fails. An empty key
-// is refused outright (fail closed: no key, no signed verification).
+// tamper-evident HMAC: a legacy line without one, or one forged without
+// the key, fails. An empty key is refused outright (fail closed).
 func VerifyChainSigned(chain []string, key []byte) error {
 	if len(key) == 0 {
-		return fmt.Errorf("receipt: signed verification needs a non-empty key")
+		return fmt.Errorf("receipt: tamper-evident verification needs a non-empty key")
 	}
 	prev := "GENESIS"
 	for i, line := range chain {
@@ -317,7 +317,7 @@ func VerifyChainSigned(chain []string, key []byte) error {
 			return fmt.Errorf("receipt: line %d broken link: want prev %q, got %q", i, prev, l.Prev)
 		}
 		if l.Sig == "" || !hmac.Equal([]byte(l.Sig), []byte(Sign(l.Prev, l.Payload, key))) {
-			return fmt.Errorf("receipt: line %d bad signature", i)
+			return fmt.Errorf("receipt: line %d bad HMAC", i)
 		}
 		prev = hash(line)
 	}

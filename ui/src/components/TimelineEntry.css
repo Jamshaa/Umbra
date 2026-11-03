@@ -30,23 +30,30 @@
 .timeline-glyph {
   width: 8px;
   height: 8px;
-  background: var(--info);
-  box-shadow: 2px 2px 0 var(--hard-shadow);
+  color: var(--info);
   flex: none;
+  filter: drop-shadow(2px 2px 0 var(--hard-shadow));
 }
 
 .timeline-entry.success .timeline-glyph {
-  background: var(--ok);
+  color: var(--ok);
 }
 
 .timeline-entry.error .timeline-glyph {
-  background: var(--error);
+  color: var(--error);
 }
 
 .timeline-tool {
   font-family: var(--font-pixel);
   font-size: 8px;
   letter-spacing: 1px;
+}
+
+.timeline-time {
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--info);
+  margin-left: auto;
 }
 
 .timeline-chevron {

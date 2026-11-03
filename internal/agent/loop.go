@@ -21,6 +21,14 @@ never change namespaces or immutable fields. If you are not sure, lower
 confidence and set needs_human=true instead of guessing. Use read-only tools
 to verify your hypothesis before proposing.`
 
+// ToolRecord is one executed tool call with its sanitized-ready result
+// text. The publish path turns these into Finding timeline entries.
+type ToolRecord struct {
+	Name   string
+	Args   string
+	Result string
+}
+
 // Outcome is what a run produces: either a validated proposal for the
 // harness, or a refusal with the reason. Refusal is normal output, not
 // an error: doubt means "propose", never "apply".
@@ -31,6 +39,7 @@ type Outcome struct {
 	Steps    int
 	Tokens   int
 	Calls    []brain.FunctionCall
+	Records  []ToolRecord
 }
 
 // Runner drives the model loop with a brain client and a Kube view.
@@ -157,9 +166,11 @@ func (r *Runner) Run(ctx context.Context, systemPrompt, userContent string, tool
 			}
 			text, proposal, err := dispatch(ctx, r.Kube, r.Scope, c.Name, args)
 			if err != nil {
+				outcome.Records = append(outcome.Records, ToolRecord{Name: c.Name, Args: c.Arguments, Result: errorResult("%v", err)})
 				outputs = append(outputs, brain.ToolOutput(c.CallID, errorResult("%v", err)))
 				continue
 			}
+			outcome.Records = append(outcome.Records, ToolRecord{Name: c.Name, Args: c.Arguments, Result: text})
 			if proposal != nil {
 				proposal.RawCallID = c.CallID
 				proposal.RawArgument = c.Arguments

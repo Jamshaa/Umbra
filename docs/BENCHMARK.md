@@ -49,14 +49,50 @@ go run ./cmd/umbra-bench --mode deterministic --cases F01 --repeats 3 --seed 42
 
 ## Published results
 
-- Deterministic group A (2026-11-01): **18/18, `live: true`** (kind 1.37.0,
-  full ladder per case + rollback). Group T: **12/12, `live: true`**
-  (T1 stays proposed, T2 rejected by dry-run, T3 clean revert,
-  T4 rejects and logs). See `bench/results/`.
-- Traps: T1 also has the static mechanism (allowlist); T4 the unit
-  `TestInjectionLeadsToNeedsHuman` + 5-min live watch ×3.
-- Model rows: **unmeasured yet** (no `MODEL_API_KEY` in this environment;
-  they run with `cache: "off"`).
+Generated from `bench/results/scoreboard.json` by
+`scripts/docs/render_tables.py` (kind 1.37.0 for the live rows; traps
+also have the static mechanism and the T4 unit
+`TestInjectionLeadsToNeedsHuman`):
+
+<!-- umbra:bench-table:start -->
+| Configuración | Grupo | Live | Resultado pass/total (N × R) | Rechazados | Omitidos | Tokens | Commit |
+|---|---|---|---|---|---|---|---|
+| deterministic | A | true | 21/21 (7 × 3) | 0 | 0 | 0 | a0ad509 |
+| deterministic | A | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| deterministic | B | true | 1/1 (1 × 1) | 0 | 3 | 0 | a0ad509 |
+| deterministic | B | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| deterministic | C | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| deterministic | C | false | 3/3 (1 × 3) | 0 | 42 | 0 | a0ad509 |
+| deterministic | T | true | 12/12 (4 × 3) | 0 | 0 | 0 | a0ad509 |
+| deterministic | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | A | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | A | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | B | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | B | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | C | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | C | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | T | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | A | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | A | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | B | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | B | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | C | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | C | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | T | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | A | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | A | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | B | true | 0/4 (4 × 1) | 0 | 0 | 0 | a0ad509 |
+| handpatch | B | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | C | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | C | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | T | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+<!-- umbra:bench-table:end -->
+
+Model rows read «sin medir» until measured with a key
+(they run with `cache: "off"`).
 
 ## Honesty rules
 

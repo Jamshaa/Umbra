@@ -68,30 +68,64 @@ sanitized evidence**, and `MODEL_BASE_URL` points at a local model.
 
 Three rows, same cases, seed 42, 3 repeats (`bench/cases.yaml`):
 
-| Configuration | Shows | Status |
-|---|---|---|
-| Deterministic only (group A) | Coverage without AI | **18/18**, `live: true` (kind 1.37.0) |
-| Traps (group T) | Reject or contain | **12/12**, `live: true` (T1–T4 ×3) |
-| Model with verifiers (groups A+B) | How much AI adds with safety; B is where the model adds what deterministic can't | Unmeasured (no key in this environment) |
-| Model without verifiers | Bad patches that would have applied | Unmeasured |
-
 Groups: **A** = has deterministic fix (F01–F06 and Cron rules);
 **B** = has verifier but the fix is model-only (Service without
 endpoints, HPA without requests, identical probes, minimal RBAC);
 **C** = diagnosis only; **T** = traps (reject or contain). Each
-JSONL result stores `live: true|false`; rows measured so far are
-`live: true` (local kind).
+JSONL result stores `live: true|false`.
 
-Raw data: `bench/results/*.jsonl` (deterministic, 2026-11-01) and
-`bench/results/scoreboard.json`. Method and honesty rules in
-`docs/BENCHMARK.md`. No model figures published until measured.
+Measured results live only in the generated table below (source:
+`bench/results/scoreboard.json`, rendered by
+`scripts/docs/render_tables.py`; do not edit numbers by hand):
+
+<!-- umbra:bench-table:start -->
+| Configuración | Grupo | Live | Resultado pass/total (N × R) | Rechazados | Omitidos | Tokens | Commit |
+|---|---|---|---|---|---|---|---|
+| deterministic | A | true | 21/21 (7 × 3) | 0 | 0 | 0 | a0ad509 |
+| deterministic | A | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| deterministic | B | true | 1/1 (1 × 1) | 0 | 3 | 0 | a0ad509 |
+| deterministic | B | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| deterministic | C | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| deterministic | C | false | 3/3 (1 × 3) | 0 | 42 | 0 | a0ad509 |
+| deterministic | T | true | 12/12 (4 × 3) | 0 | 0 | 0 | a0ad509 |
+| deterministic | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | A | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | A | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | B | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | B | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | C | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | C | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | T | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-gated | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | A | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | A | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | B | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | B | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | C | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | C | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | T | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| model-raw | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | A | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | A | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | B | true | 0/4 (4 × 1) | 0 | 0 | 0 | a0ad509 |
+| handpatch | B | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | C | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | C | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | T | true | sin medir | sin medir | sin medir | sin medir | sin medir |
+| handpatch | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
+<!-- umbra:bench-table:end -->
+
+Raw data: `bench/results/*.jsonl` and `bench/results/scoreboard.json`.
+Method and honesty rules in `docs/BENCHMARK.md`. No model figures
+published until measured; unmeasured rows read «sin medir».
 
 ## Meta usage and limitations
 
 Muse Spark model via Responses API with tool calls; which
 model, where and why in `docs/META.md`. What it doesn't do (Helm, real
 sandbox traffic, real production, Prometheus, full CronJob calendar):
-`docs/LIMITATIONS.md`.
+`docs/LIMITATIONS.md`. How AI is used in development and at runtime:
+[`docs/AI_USE.md`](docs/AI_USE.md).
 
 ## Roadmap and license
 

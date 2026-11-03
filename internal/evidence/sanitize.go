@@ -83,7 +83,12 @@ var (
 	// order Go's map marshal and the API server both emit.
 	envJSONRe = regexp.MustCompile(`"name"[ \t]*:[ \t]*"([A-Za-z0-9_.-]+)"[ \t]*,[ \t]*"value"[ \t]*:[ \t]*"((?:[^"\\]|\\.)*)"`)
 	// envJSONRevRe matches the reversed JSON order ("value" before "name").
-	envJSONRevRe  = regexp.MustCompile(`"value"[ \t]*:[ \t]*"((?:[^"\\]|\\.)*)"[ \t]*,[ \t]*"name"[ \t]*:[ \t]*"([A-Za-z0-9_.-]+)"`)
+	envJSONRevRe = regexp.MustCompile(`"value"[ \t]*:[ \t]*"((?:[^"\\]|\\.)*)"[ \t]*,[ \t]*"name"[ \t]*:[ \t]*"([A-Za-z0-9_.-]+)"`)
+	// envFlowRe matches single-line flow-style entries ("{name: FOO,
+	// value: ...}"), hand-written manifests only: servers never emit
+	// them, but a pasted flow map would otherwise slip through.
+	envFlowRe     = regexp.MustCompile(`\{[ \t]*name:[ \t]*["']?([A-Za-z0-9_.-]+)["']?[ \t]*,[ \t]*value:[ \t]*("[^"\n]*"|'[^'\n]*'|[^\s,}][^,}]*?)[ \t]*\}`)
+	envFlowRevRe  = regexp.MustCompile(`\{[ \t]*value:[ \t]*("[^"\n]*"|'[^'\n]*'|[^\s,}][^,}]*?)[ \t]*,[ \t]*name:[ \t]*["']?([A-Za-z0-9_.-]+)["']?[ \t]*\}`)
 	blockScalarRe = regexp.MustCompile(`^([ \t]*)(?:-[ \t]*)?([A-Za-z0-9_.-]+)[ \t]*:[ \t]*[|>][+-]?[ \t]*$`)
 )
 
@@ -122,9 +127,7 @@ func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
 // only redacted when it looks like key material, never for plain hex
 // digests, UUIDs or words.
 // redactEnvEntry redacts the value of one block-style env entry when its
-// sibling name is secret-like. shortcut: flow-style "{name:.., value:..}"
-// maps are not covered; block and JSON forms (the server-emitted shapes)
-// are. Upgrade when a flow-style leak is ever observed.
+// sibling name is secret-like.
 func redactEnvEntry(m string) string {
 	nm := envNameRe.FindStringSubmatch(m)
 	if len(nm) < 2 || !isSecretKey(nm[1]) {
@@ -248,6 +251,24 @@ func sanitizeJSON(s string) (string, bool) {
 	return sanitized, true
 }
 
+// redactEnvFlow redacts the flow-style value when the sibling name is
+// secret-like. redactValue preserves quoting, so both quoted and bare
+// values stay stable under a second pass.
+func redactEnvFlow(re *regexp.Regexp, nameGroup, valGroup int) func(string) string {
+	return func(m string) string {
+		loc := re.FindStringSubmatchIndex(m)
+		if loc == nil {
+			return m
+		}
+		name := m[loc[nameGroup*2]:loc[nameGroup*2+1]]
+		if !isSecretKey(name) {
+			return m
+		}
+		val := strings.TrimSpace(m[loc[valGroup*2]:loc[valGroup*2+1]])
+		return m[:loc[valGroup*2]] + redactValue(val) + m[loc[valGroup*2+1]:]
+	}
+}
+
 func looksRandom(s string) bool {
 	var up, lo, dg, sym bool
 	for _, r := range s {
@@ -308,6 +329,8 @@ func Sanitize(s string) string {
 	out = envEntryRe.ReplaceAllStringFunc(out, redactEnvEntry)
 	out = envJSONRe.ReplaceAllStringFunc(out, redactEnvJSON(envJSONRe, 1, 2))
 	out = envJSONRevRe.ReplaceAllStringFunc(out, redactEnvJSON(envJSONRevRe, 2, 1))
+	out = envFlowRe.ReplaceAllStringFunc(out, redactEnvFlow(envFlowRe, 1, 2))
+	out = envFlowRevRe.ReplaceAllStringFunc(out, redactEnvFlow(envFlowRevRe, 2, 1))
 	out = redactBlockScalars(out)
 	out = b64RunRe.ReplaceAllStringFunc(out, func(m string) string {
 		if looksRandom(m) {

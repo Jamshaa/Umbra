@@ -19,26 +19,51 @@ spec:
     - apiGroups: ["umbra.io"]
       apiVersions: ["v1alpha1"]
       resources: ["findings"]
-      operations: ["UPDATE", "PATCH"]
+      # UPDATE only: PATCH requests (kubectl annotate/patch) are admitted
+      # as UPDATE operations, and CREATE/DELETE/CONNECT are never matched
+      # here. "PATCH" is not a valid admission operation (see
+      # k8s.io/api/admissionregistration/v1 OperationType) and would make
+      # the API server reject this policy object.
+      operations: ["UPDATE"]
   validations:
   - expression: "request.userInfo.username.startsWith('system:') || object.spec == oldObject.spec"
     message: "findings spec is immutable for human approvers: only the umbra.dev/approved annotation may change"
     reason: Forbidden
+  # One rule per metadata aspect so a denial names the exact cause.
+  # Two-variable map comprehensions bind (key, value) unambiguously.
+  # NOTE: in CEL, reading an absent optional field (labels, finalizers,
+  # annotations) is an error, not null -- every comparison below is
+  # has()-guarded for that reason.
   - expression: >-
       request.userInfo.username.startsWith('system:') ||
-      (object.metadata.labels == oldObject.metadata.labels &&
-      (!has(object.metadata.finalizers) && !has(oldObject.metadata.finalizers) || object.metadata.finalizers == oldObject.metadata.finalizers) &&
-      (!has(object.metadata.ownerReferences) && !has(oldObject.metadata.ownerReferences) || object.metadata.ownerReferences == oldObject.metadata.ownerReferences) &&
+      (has(object.metadata.labels) == has(oldObject.metadata.labels) &&
+       (!has(object.metadata.labels) || object.metadata.labels == oldObject.metadata.labels))
+    message: "only the umbra.dev/approved annotation may change on a finding (labels are immutable here)"
+    reason: Forbidden
+  - expression: >-
+      request.userInfo.username.startsWith('system:') ||
+      (has(object.metadata.finalizers) == has(oldObject.metadata.finalizers) &&
+       (!has(object.metadata.finalizers) || object.metadata.finalizers == oldObject.metadata.finalizers))
+    message: "only the umbra.dev/approved annotation may change on a finding (finalizers are immutable here)"
+    reason: Forbidden
+  - expression: >-
+      request.userInfo.username.startsWith('system:') ||
+      (has(object.metadata.ownerReferences) == has(oldObject.metadata.ownerReferences) &&
+       (!has(object.metadata.ownerReferences) || object.metadata.ownerReferences == oldObject.metadata.ownerReferences))
+    message: "only the umbra.dev/approved annotation may change on a finding (ownerReferences are immutable here)"
+    reason: Forbidden
+  - expression: >-
+      request.userInfo.username.startsWith('system:') ||
       (!has(object.metadata.annotations) ||
-        object.metadata.annotations.all(k,
+        object.metadata.annotations.all(k, v,
           k == 'umbra.dev/approved' ||
           (has(oldObject.metadata.annotations) && k in oldObject.metadata.annotations &&
-           oldObject.metadata.annotations[k] == object.metadata.annotations[k]))) &&
+           oldObject.metadata.annotations[k] == v))) &&
       (!has(oldObject.metadata.annotations) ||
-        oldObject.metadata.annotations.all(k,
+        oldObject.metadata.annotations.all(k, v,
           k == 'umbra.dev/approved' ||
           (has(object.metadata.annotations) && k in object.metadata.annotations &&
-           object.metadata.annotations[k] == oldObject.metadata.annotations[k]))))
+           object.metadata.annotations[k] == v)))
     message: "only the umbra.dev/approved annotation may change on a finding"
     reason: Forbidden
 ---

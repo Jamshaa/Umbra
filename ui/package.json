@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:live": "vite build --mode live",
     "preview": "vite preview",
     "lint": "eslint src/"
   },

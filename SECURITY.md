@@ -112,7 +112,20 @@ Contributors extending Umbra must respect the invariants the README promises:
 * **Deterministic verification, human gate**: "verification" is what deterministic code says (probes pass, no crashloops, RBAC set not expanded) — never what a model claims. Production application is always an explicit, human-approved step (`propose_for_production`), never automatic.
 * **Rollback is a first-class path**: every mutation must be reversible without residue (`kubectl rollout undo` / re-apply-the-previous-manifest), and the harness must prove it (scoreboard column "clean rollback").
 * **No direct execution by the model**: the LLM only returns `tool_calls`; execution is harness-owned, so unauthorized operations fail by construction.
-* **Enforced hardening (audited 2026-11-02)**: approval edits constrained by admission policy ([`config/approval-policy/`](config/approval-policy)) — non-system writers may change only the `umbra.dev/approved` annotation; agent reads confined to the diagnosed namespace (code-enforced, not prompt-enforced); receipt verification requires HMAC signatures (`UMBRA_RECEIPT_HMAC_KEY`); `MODEL_BASE_URL` must be HTTPS or loopback HTTP; Finding text fields capped at 256 KiB with DNS patterns on `targetRef`; bench executes only paths under `scripts/`.
+* **Enforced hardening (audited 2026-11-02)**: approval edits constrained by admission policy ([`config/approval-policy/`](config/approval-policy)) — non-system writers may change only the `umbra.dev/approved` annotation; agent reads confined to the diagnosed namespace (code-enforced, not prompt-enforced); receipt verification requires tamper-evident HMAC (`UMBRA_RECEIPT_HMAC_KEY`); `MODEL_BASE_URL` must be HTTPS or loopback HTTP; Finding text fields capped at 256 KiB with DNS patterns on `targetRef`; bench executes only paths under `scripts/`.
+* **Receipt HMAC semantics**: «Un HMAC con clave simétrica detecta manipulación para quien posee la clave; no es una firma digital ni ofrece no repudio». Generate an ephemeral key per session and never store it:
+
+```powershell
+# PowerShell
+$b = New-Object byte[] 32
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+$env:UMBRA_RECEIPT_HMAC_KEY = ($b | ForEach-Object { $_.ToString('x2') }) -join ''
+```
+
+```bash
+# Bash / Git Bash
+export UMBRA_RECEIPT_HMAC_KEY="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+```
 
 ## 9. Acknowledgments
 

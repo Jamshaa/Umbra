@@ -1,0 +1,25 @@
+/* Pixel sprites: static maps only, existing palette tokens, no motion.
+   'cur' inherits the caller's tone color; gold/occluder reuse --warn/--bg. */
+
+.sprite {
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+}
+
+.sprite .spr {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.sprite .k-cur {
+  fill: currentColor;
+}
+
+.sprite .k-g {
+  fill: var(--warn);
+}
+
+.sprite .k-k {
+  fill: var(--bg);
+}

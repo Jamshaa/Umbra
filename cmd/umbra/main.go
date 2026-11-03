@@ -2,6 +2,8 @@
 //
 //	umbra approve FINDING --as USER   record a human approval gate decision
 //	umbra receipts verify <chain-file> verify a receipt registry chain
+//	umbra scan --namespace NS [--publish] scan a namespace, optionally publish Findings
+//	umbra changes --kind K --name N --namespace NS [--audit-file F] who changed what
 //
 // Approval is an explicit human act: the command only writes the
 // umbra.dev/approved annotation. The reconciler interprets it (see
@@ -30,6 +32,8 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "usage: umbra <command>")
 	fmt.Fprintln(os.Stderr, "  approve FINDING --as USER    record a human approval")
 	fmt.Fprintln(os.Stderr, "  receipts verify <chain-file> verify a receipt registry chain")
+	fmt.Fprintln(os.Stderr, "  scan --namespace NS [--publish] scan workloads and optionally publish Findings")
+	fmt.Fprintln(os.Stderr, "  changes --kind K --name N --namespace NS [--audit-file F] who changed what")
 }
 
 // approve records the human approval on the Finding. It validates the
@@ -71,6 +75,10 @@ func main() {
 		return
 	case "approve":
 		approveMain(os.Args[2:])
+	case "scan":
+		scanMain(os.Args[2:])
+	case "changes":
+		changesMain(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)

@@ -148,6 +148,9 @@ type StepResult struct {
 	ResponseID string
 	Calls      []FunctionCall
 	Usage      Usage
+	// OutputTypes lists every output item type in order (function_call,
+	// message, reasoning, ...), including items that are not calls.
+	OutputTypes []string
 }
 
 // apiResponse mirrors the fields the client reads. Unknown item types
@@ -390,6 +393,7 @@ func (c *Client) doOnce(ctx context.Context, body []byte) (StepResult, bool, err
 	}
 	out := StepResult{ResponseID: parsed.ID}
 	for _, item := range parsed.Output {
+		out.OutputTypes = append(out.OutputTypes, item.Type)
 		if item.Type != "function_call" {
 			continue
 		}

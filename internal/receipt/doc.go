@@ -5,7 +5,7 @@
 // (who changed what) and the PR URL into one JSON document with its
 // SHA256. The append-only chain (AppendRegistro/VerifyChain) links
 // registry lines by previous hash so partial edits, reorders and drops
-// are detected. Signed chains (AppendRegistroSigned/VerifyChainSigned,
+// are detected. Tamper-evident chains (AppendRegistroSigned/VerifyChainSigned,
 // keyed by UMBRA_RECEIPT_HMAC_KEY) authenticate the history; hash links
 // alone are not sufficient because an attacker able to rewrite the file
 // could recompute every link.

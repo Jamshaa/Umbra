@@ -41,8 +41,13 @@ const (
 //
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=create;update;patch,resourceNames=umbra-sandbox
-// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch,resourceNames=deny-all
-// +kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;patch,resourceNames=sandbox-quota
+// Sandbox objects live in config/rbac/sandbox-role.yaml (a namespaced
+// Role, hand-maintained): reads and creates are namespace-scoped there
+// with NO resourceNames (a resourceNames rule denies general list/watch
+// and cannot restrict create), while update/patch/delete are pinned:
+// networking.k8s.io/networkpolicies resourceNames=deny-all and
+// resourcequotas resourceNames=sandbox-quota. Regenerating a flat
+// resourceNames marker here would re-break the informers.
 type RemediationPolicyReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme

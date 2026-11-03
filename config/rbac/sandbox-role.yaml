@@ -4,17 +4,44 @@ metadata:
   name: umbra-sandbox-manager
   namespace: umbra-sandbox
 rules:
-# Mutations are pinned to the sandbox control objects the reconciler owns;
-# this mirrors the kubebuilder markers in remediationpolicy_controller.go.
+# Reads must NOT carry resourceNames: a rule with resourceNames only
+# authorizes requests for one concrete name, so a general list/watch
+# (what informers and future Owns() watches do) is denied. Reads stay
+# namespace-scoped by this Role, which is the confinement boundary.
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs: [get, list, watch]
+- apiGroups:
+  - ""
+  resources:
+  - resourcequotas
+  verbs: [get, list, watch]
+# Creates cannot be name-restricted either (the name is not yet known
+# at authorization time for create), so create is namespace-scoped by
+# the Role alone. Only the two objects the reconciler owns are ever
+# created here.
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs: [create]
+- apiGroups:
+  - ""
+  resources:
+  - resourcequotas
+  verbs: [create]
+# Mutations of existing objects ARE pinned to the owned names.
 - apiGroups:
   - networking.k8s.io
   resources:
   - networkpolicies
   resourceNames: [deny-all]
-  verbs: [get, list, watch, create, update, patch]
+  verbs: [update, patch, delete]
 - apiGroups:
   - ""
   resources:
   - resourcequotas
   resourceNames: [sandbox-quota]
-  verbs: [get, list, watch, create, update, patch]
+  verbs: [update, patch, delete]

@@ -12,6 +12,8 @@
 .env
 .env.*
 !.env.example                 # the only env file allowed is the example
+# Vite mode flag only (VITE_UMBRA_API=live), not a secret:
+!ui/.env.live
 *.key
 *.pem
 *.cer
@@ -121,6 +123,7 @@ ui/public/scoreboard.json
 .kind/
 scratch/
 .build/
+.demo/
 audit-sandbox-dumps/
 
 # ---------- Local-only notes (never commit) ----------

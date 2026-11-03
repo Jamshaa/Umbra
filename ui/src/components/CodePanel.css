@@ -14,8 +14,13 @@
 .code-panel-title {
   font-family: var(--font-pixel);
   font-size: 8px;
-  color: var(--info);
-  margin-bottom: var(--sp-1);
+  color: var(--warn);
+  background: var(--panel);
+  border: 2px solid var(--hard-shadow);
+  box-shadow: 2px 2px 0 var(--hard-shadow);
+  display: inline-block;
+  padding: var(--sp-1);
+  margin-bottom: var(--sp-2);
   letter-spacing: 1px;
 }
 

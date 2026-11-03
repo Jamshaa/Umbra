@@ -26,9 +26,12 @@
 
 ## When the model is actually needed
 
-Only ambiguous causes: CrashLoop (F07), broken references (F16–F18),
-mismatched ports (F20). F01–F06 have a deterministic fix and **never
-go through the model** (`internal/fixes`).
+| Regla | Arreglo determinista | Verificador en Go | Papel del modelo |
+|---|---|---|---|
+| F01–F06 | Sí (`internal/fixes`) | Sí (`VerifyF01`–`VerifyF06`) | Ninguno: no pasan por el modelo |
+| CronDeadline, CronSuspended, CronOverlap, CronTimezone, CronBounds, CronHistory | Sí (`internal/fixes`) | Sí (`VerifyCron*`) | Ninguno |
+| ServiceEndpoints, HPARequests, HPAInvertedBounds, ProbesDistinct, RBACLeastPrivilege | No | Sí (`internal/verify`) | Propone el parche; las puertas y el verificador deciden. Son los únicos casos que el modelo puede pasar por las puertas (grupo B) |
+| F07, F16, F17, F18, F20 | No | No | solo diagnóstico: sin verificador en Go, las puertas fallan cerradas |
 
 ## Tokens per run
 

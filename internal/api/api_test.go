@@ -116,10 +116,11 @@ func TestSecurityHeaders(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(apiScheme(t)).Build()
 	rec := get(t, NewHandler(c, ""), "/api/findings")
 	for k, want := range map[string]string{
-		"X-Content-Type-Options": "nosniff",
-		"X-Frame-Options":        "DENY",
-		"Referrer-Policy":        "no-referrer",
-		"Cache-Control":          "no-store",
+		"X-Content-Type-Options":  "nosniff",
+		"X-Frame-Options":         "DENY",
+		"Referrer-Policy":         "no-referrer",
+		"Cache-Control":           "no-store",
+		"Content-Security-Policy": "default-src 'self'; img-src 'self' data:; connect-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'",
 	} {
 		if got := rec.Header().Get(k); got != want {
 			t.Fatalf("header %s = %q, want %q", k, got, want)

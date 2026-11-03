@@ -14,7 +14,7 @@ func receiptsUsage() {
 	fmt.Fprintln(os.Stderr, "Verifies a receipt registry: one JSON chain line per line,")
 	fmt.Fprintln(os.Stderr, "as written by the registry (see internal/receipt).")
 	fmt.Fprintln(os.Stderr, "UMBRA_RECEIPT_HMAC_KEY is required; every line must carry")
-	fmt.Fprintln(os.Stderr, "a valid HMAC signature (see AppendRegistroSigned).")
+	fmt.Fprintln(os.Stderr, "a valid tamper-evident HMAC (see AppendRegistroSigned).")
 }
 
 // verifyChainFile checks a registry file line by line. Blank lines are
@@ -37,11 +37,11 @@ func verifyChainFile(path string) error {
 	}
 	key := os.Getenv("UMBRA_RECEIPT_HMAC_KEY")
 	if key == "" {
-		return fmt.Errorf("receipt: UMBRA_RECEIPT_HMAC_KEY is required for authenticated verification")
+		return fmt.Errorf("receipt: UMBRA_RECEIPT_HMAC_KEY is required: set it to a fresh random value in this shell only (see SECURITY.md); never store it in a file")
 	}
 	if err := receipt.VerifyChainSigned(chain, []byte(key)); err != nil {
 		return err
 	}
-	fmt.Printf("chain intact: %d signed lines verified\n", len(chain))
+	fmt.Printf("chain intact: %d tamper-evident lines verified\n", len(chain))
 	return nil
 }

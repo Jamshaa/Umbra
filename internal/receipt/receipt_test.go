@@ -164,14 +164,14 @@ func TestChainSigned(t *testing.T) {
 	}
 	l.Payload = "forged"
 	raw, _ := json.Marshal(l)
-	// Keep the rest of the chain linked so only the signature speaks.
+	// Keep the rest of the chain linked so only the HMAC speaks.
 	forged := []string{chain[0], string(raw)}
 	if err := VerifyChainSigned(forged, key); err == nil {
 		t.Fatal("forged payload accepted")
 	}
-	// Unsigned legacy lines fail signed verification.
+	// Legacy lines without HMAC fail tamper-evident verification.
 	if err := VerifyChainSigned(AppendRegistro(nil, "plain"), key); err == nil {
-		t.Fatal("unsigned line accepted by signed verification")
+		t.Fatal("legacy line accepted by tamper-evident verification")
 	}
 }
 

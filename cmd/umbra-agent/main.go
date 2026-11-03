@@ -22,10 +22,15 @@ import (
 
 	sigsyaml "sigs.k8s.io/yaml"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/Jamshaa/Umbra/api/v1alpha1"
 	"github.com/Jamshaa/Umbra/internal/agent"
 	"github.com/Jamshaa/Umbra/internal/brain"
 	"github.com/Jamshaa/Umbra/internal/invariants"
 	"github.com/Jamshaa/Umbra/internal/livekube"
+	"github.com/Jamshaa/Umbra/internal/receipt"
 	"github.com/Jamshaa/Umbra/internal/verify"
 )
 
@@ -50,6 +55,8 @@ type result struct {
 	GateWhy    string `json:"gate_why,omitempty"`
 	RolledBack bool   `json:"rolled_back"`
 	Sandbox    bool   `json:"sandbox"`
+	Publish    string `json:"publish,omitempty"`
+	Receipt    string `json:"receipt,omitempty"`
 	Tokens     int    `json:"tokens"`
 	Model      string `json:"model"`
 	LatencyMS  int64  `json:"latency_ms"`
@@ -71,6 +78,10 @@ func templateLabels(obj map[string]any) map[string]string {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "ping" {
+		pingMain()
+		return
+	}
 	fs := flag.NewFlagSet("diagnose", flag.ContinueOnError)
 	kind := fs.String("kind", "", "object kind (required)")
 	name := fs.String("name", "", "object name (required)")
@@ -79,11 +90,21 @@ func main() {
 	pod := fs.String("pod", "", "pod name for the verifier (default: first pod matching template labels)")
 	kubeconfig := fs.String("kubeconfig", "", "kubeconfig path (default: standard loading rules)")
 	sandbox := fs.Bool("sandbox", false, "apply to umbra-sandbox and dry-run (default: read-only, gates in memory)")
+	publish := fs.Bool("publish", false, "create or update the Finding with state and timeline")
+	receiptChain := fs.String("receipt-chain", "", "append a signed receipt to this chain file (requires UMBRA_RECEIPT_HMAC_KEY)")
 	fs.SetOutput(os.Stderr)
 	_ = fs.Parse(os.Args[1:])
 	if *kind == "" || *name == "" || *ns == "" || *fault == "" {
 		fs.Usage()
 		os.Exit(2)
+	}
+	if *receiptChain != "" && os.Getenv("UMBRA_RECEIPT_HMAC_KEY") == "" {
+		fail("receipt: UMBRA_RECEIPT_HMAC_KEY is required with --receipt-chain: set it to a fresh random value in this shell only (see SECURITY.md); never store it in a file")
+	}
+	if *publish || *receiptChain != "" {
+		if err := requireKindUmbraCtx(*kubeconfig); err != nil {
+			fail("%v", err)
+		}
 	}
 
 	cfg, err := brain.FromEnv()
@@ -130,6 +151,16 @@ func main() {
 	if out.Refused || out.Proposal == nil {
 		res.Refused = true
 		res.Reason = out.Reason
+		finishSideEffects(ctx, *publish, *receiptChain, publishInput{
+			Fault: *fault, Kind: *kind, Namespace: *ns, Name: *name, Model: cfg.Model,
+			Records: out.Records, Refused: true, Reason: out.Reason, Manifest: string(base),
+			Ts: time.Now().Unix(),
+		}, receipt.Input{
+			FindingID: *fault, Kind: *kind, Namespace: *ns, Name: *name, Rule: *fault,
+			RootCause: out.Reason,
+			Ladder:    []receipt.StepResult{{Step: "diagnose", Pass: false, Detail: out.Reason}},
+			Model:     receipt.ModelUse{Model: cfg.Model, InputTokens: out.Tokens},
+		}, &res)
 		printResult(res, 2)
 		return
 	}
@@ -194,7 +225,54 @@ func main() {
 	if !v.Passed {
 		code = 2
 	}
+	{
+		var recOps []receipt.Op
+		for _, o := range ops {
+			recOps = append(recOps, receipt.Op{Op: o.Op, Path: o.Path, Value: o.Value})
+		}
+		var toolCalls []receipt.ToolCall
+		for _, r := range out.Records {
+			toolCalls = append(toolCalls, receipt.ToolCall{Name: r.Name, ArgsHash: receipt.Fingerprint(r.Args)})
+		}
+		finishSideEffects(ctx, *publish, *receiptChain, publishInput{
+			Fault: *fault, Kind: *kind, Namespace: *ns, Name: *name, Model: cfg.Model,
+			Records: out.Records, RootCause: out.Proposal.RootCause, GatePass: v.Passed,
+			Manifest: string(base), Ts: time.Now().Unix(),
+		}, receipt.Input{
+			FindingID: *fault, Kind: *kind, Namespace: *ns, Name: *name, Rule: *fault,
+			RootCause: out.Proposal.RootCause, Ops: recOps,
+			Ladder: []receipt.StepResult{{Step: v.Step, Pass: v.Passed, Detail: v.Reason}},
+			Model:  receipt.ModelUse{Model: cfg.Model, InputTokens: out.Tokens, Tools: toolCalls},
+		}, &res)
+	}
 	printResult(res, code)
+}
+
+// finishSideEffects publishes the Finding and/or appends the signed
+// receipt. Failures are reported in the result, never hidden, and never
+// change the gate verdict or its exit code.
+func finishSideEffects(ctx context.Context, publish bool, chainPath string, pin publishInput, rin receipt.Input, res *result) {
+	if publish {
+		scheme := runtime.NewScheme()
+		if err := v1alpha1.AddToScheme(scheme); err != nil {
+			res.Publish = "publish failed: " + err.Error()
+		} else if cfg, err := ctrl.GetConfig(); err != nil {
+			res.Publish = "publish failed: " + err.Error()
+		} else if c, err := kubeClientFor(cfg, scheme); err != nil {
+			res.Publish = "publish failed: " + err.Error()
+		} else if note, err := publishDiagnosis(ctx, c, pin); err != nil {
+			res.Publish = "publish failed: " + err.Error()
+		} else {
+			res.Publish = note
+		}
+	}
+	if chainPath != "" {
+		if err := appendReceipt(chainPath, rin, []byte(os.Getenv("UMBRA_RECEIPT_HMAC_KEY"))); err != nil {
+			res.Receipt = "receipt failed: " + err.Error()
+		} else {
+			res.Receipt = "appended to " + chainPath
+		}
+	}
 }
 
 func printResult(res result, code int) {
