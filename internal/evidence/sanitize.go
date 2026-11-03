@@ -11,6 +11,7 @@ package evidence
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"regexp"
 	"strings"
 )
@@ -188,6 +189,65 @@ func redactBlockScalars(s string) string {
 	return strings.Join(lines, "")
 }
 
+func sanitizeJSONValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		for key, value := range x {
+			if isSecretKey(key) {
+				x[key] = Redacted
+				continue
+			}
+			x[key] = sanitizeJSONValue(value)
+		}
+		return x
+	case []any:
+		for i, value := range x {
+			x[i] = sanitizeJSONValue(value)
+		}
+		return x
+	case string:
+		var nested any
+		if json.Unmarshal([]byte(x), &nested) == nil {
+			if sanitized, err := marshalJSON(sanitizeJSONValue(nested)); err == nil {
+				return sanitized
+			}
+		}
+		return x
+	default:
+		return v
+	}
+}
+
+func marshalJSON(v any) (string, error) {
+	var b strings.Builder
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(b.String(), "\n"), nil
+}
+
+func sanitizeJSON(s string) (string, bool) {
+	var value any
+	if err := json.Unmarshal([]byte(s), &value); err != nil {
+		return s, false
+	}
+	original, err := marshalJSON(value)
+	if err != nil {
+		return s, false
+	}
+	sanitizedValue := sanitizeJSONValue(value)
+	sanitized, err := marshalJSON(sanitizedValue)
+	if err != nil {
+		return s, false
+	}
+	if original == sanitized {
+		return s, true
+	}
+	return sanitized, true
+}
+
 func looksRandom(s string) bool {
 	var up, lo, dg, sym bool
 	for _, r := range s {
@@ -230,6 +290,9 @@ func Sanitize(s string) string {
 		return Redacted
 	}
 	out := privKeyRe.ReplaceAllString(s, Redacted)
+	if sanitized, ok := sanitizeJSON(out); ok {
+		out = sanitized
+	}
 	// Standalone credential shapes first, so key=value keeps any
 	// trailing non-secret context (e.g. "api_key=<redacted> tail=20").
 	out = awsKeyRe.ReplaceAllString(out, Redacted)

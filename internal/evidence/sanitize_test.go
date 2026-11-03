@@ -302,6 +302,44 @@ func TestSanitizeBlockScalars(t *testing.T) {
 	}
 }
 
+func TestSanitizeNestedJSONSecrets(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		leak string
+	}{
+		{
+			name: "nested object",
+			in:   `{"metadata":{"annotations":{"note":"ok"}}, "config":{"password":"hunter2"}}`,
+			leak: "hunter2",
+		},
+		{
+			name: "json embedded in config value",
+			in:   `{"data":{"config.json":"{\"database\":{\"clientSecret\":\"topsecret\"}}"}}`,
+			leak: "topsecret",
+		},
+		{
+			name: "nested array",
+			in:   `{"items":[{"credentials":{"token":"tok_live_abc123"}}]}`,
+			leak: "tok_live_abc123",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := Sanitize(tc.in)
+			if strings.Contains(out, tc.leak) {
+				t.Fatalf("nested secret leaked: %q -> %q", tc.in, out)
+			}
+			if !strings.Contains(out, Redacted) {
+				t.Fatalf("no placeholder emitted: %q -> %q", tc.in, out)
+			}
+			if out != Sanitize(out) {
+				t.Fatalf("not idempotent: %q -> %q", out, Sanitize(out))
+			}
+		})
+	}
+}
+
 func TestSanitizeEnvSecrets(t *testing.T) {
 	// K8s env entries keep the credential in a generic "value" field with
 	// the secret identity in the sibling "name" field. Only the value is
