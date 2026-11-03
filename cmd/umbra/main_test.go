@@ -79,8 +79,9 @@ func TestApproveCommandName(t *testing.T) {
 
 func TestVerifyChainFile(t *testing.T) {
 	var chain []string
+	t.Setenv("UMBRA_RECEIPT_HMAC_KEY", "test-key")
 	for _, p := range []string{"first", "second", "third"} {
-		chain = receipt.AppendRegistro(chain, p)
+		chain = receipt.AppendRegistroSigned(chain, p, []byte("test-key"))
 	}
 	path := filepath.Join(t.TempDir(), "chain.jsonl")
 	var b strings.Builder
@@ -104,5 +105,9 @@ func TestVerifyChainFile(t *testing.T) {
 	// Missing file is an error, not a panic.
 	if err := verifyChainFile(filepath.Join(t.TempDir(), "nope.jsonl")); err == nil {
 		t.Fatal("missing file accepted")
+	}
+	t.Setenv("UMBRA_RECEIPT_HMAC_KEY", "")
+	if err := verifyChainFile(path); err == nil {
+		t.Fatal("verification without HMAC key accepted")
 	}
 }

@@ -13,15 +13,16 @@ func receiptsUsage() {
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Verifies a receipt registry: one JSON chain line per line,")
 	fmt.Fprintln(os.Stderr, "as written by the registry (see internal/receipt).")
-	fmt.Fprintln(os.Stderr, "With UMBRA_RECEIPT_HMAC_KEY set, every line must carry a")
-	fmt.Fprintln(os.Stderr, "valid HMAC signature (see AppendRegistroSigned).")
+	fmt.Fprintln(os.Stderr, "UMBRA_RECEIPT_HMAC_KEY is required; every line must carry")
+	fmt.Fprintln(os.Stderr, "a valid HMAC signature (see AppendRegistroSigned).")
 }
 
 // verifyChainFile checks a registry file line by line. Blank lines are
 // skipped so trailing newlines don't fail verification. It prints the
 // result in plain language and returns nil only when every link holds.
-// With UMBRA_RECEIPT_HMAC_KEY set, signatures are verified too: a
-// rewritten chain without the key is rejected even if links are intact.
+// Receipt verification fails closed when UMBRA_RECEIPT_HMAC_KEY is absent:
+// hash links alone are not authenticating because an attacker can recompute
+// them after rewriting the file.
 func verifyChainFile(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -34,16 +35,13 @@ func verifyChainFile(path string) error {
 		}
 		chain = append(chain, line)
 	}
-	if key := os.Getenv("UMBRA_RECEIPT_HMAC_KEY"); key != "" {
-		if err := receipt.VerifyChainSigned(chain, []byte(key)); err != nil {
-			return err
-		}
-		fmt.Printf("chain intact: %d signed lines verified\n", len(chain))
-		return nil
+	key := os.Getenv("UMBRA_RECEIPT_HMAC_KEY")
+	if key == "" {
+		return fmt.Errorf("receipt: UMBRA_RECEIPT_HMAC_KEY is required for authenticated verification")
 	}
-	if err := receipt.VerifyChain(chain); err != nil {
+	if err := receipt.VerifyChainSigned(chain, []byte(key)); err != nil {
 		return err
 	}
-	fmt.Printf("chain intact: %d lines verified\n", len(chain))
+	fmt.Printf("chain intact: %d signed lines verified\n", len(chain))
 	return nil
 }

@@ -82,7 +82,8 @@ var (
 	// order Go's map marshal and the API server both emit.
 	envJSONRe = regexp.MustCompile(`"name"[ \t]*:[ \t]*"([A-Za-z0-9_.-]+)"[ \t]*,[ \t]*"value"[ \t]*:[ \t]*"((?:[^"\\]|\\.)*)"`)
 	// envJSONRevRe matches the reversed JSON order ("value" before "name").
-	envJSONRevRe = regexp.MustCompile(`"value"[ \t]*:[ \t]*"((?:[^"\\]|\\.)*)"[ \t]*,[ \t]*"name"[ \t]*:[ \t]*"([A-Za-z0-9_.-]+)"`)
+	envJSONRevRe  = regexp.MustCompile(`"value"[ \t]*:[ \t]*"((?:[^"\\]|\\.)*)"[ \t]*,[ \t]*"name"[ \t]*:[ \t]*"([A-Za-z0-9_.-]+)"`)
+	blockScalarRe = regexp.MustCompile(`^([ \t]*)(?:-[ \t]*)?([A-Za-z0-9_.-]+)[ \t]*:[ \t]*[|>][+-]?[ \t]*$`)
 )
 
 // isSecretKey reports whether a key token names a credential, comparing
@@ -155,6 +156,38 @@ func redactEnvJSON(re *regexp.Regexp, nameGroup, valGroup int) func(string) stri
 	}
 }
 
+// redactBlockScalars removes the indented body of secret-like YAML block
+// scalars. Redacting only the key line otherwise leaves the credential on
+// following indented lines.
+func redactBlockScalars(s string) string {
+	lines := strings.SplitAfter(s, "\n")
+	for i := 0; i < len(lines); i++ {
+		line := strings.TrimSuffix(strings.TrimSuffix(lines[i], "\n"), "\r")
+		match := blockScalarRe.FindStringSubmatch(line)
+		if len(match) < 3 || !isSecretKey(match[2]) {
+			continue
+		}
+		parentIndent := len(match[1])
+		for j := i + 1; j < len(lines); j++ {
+			body := strings.TrimSuffix(strings.TrimSuffix(lines[j], "\n"), "\r")
+			if strings.TrimSpace(body) == "" {
+				lines[j] = strings.Repeat(" ", parentIndent+2) + Redacted + "\n"
+				continue
+			}
+			indent := len(body) - len(strings.TrimLeft(body, " \t"))
+			if indent <= parentIndent {
+				break
+			}
+			ending := ""
+			if strings.HasSuffix(lines[j], "\n") {
+				ending = "\n"
+			}
+			lines[j] = strings.Repeat(" ", parentIndent+2) + Redacted + ending
+		}
+	}
+	return strings.Join(lines, "")
+}
+
 func looksRandom(s string) bool {
 	var up, lo, dg, sym bool
 	for _, r := range s {
@@ -212,6 +245,7 @@ func Sanitize(s string) string {
 	out = envEntryRe.ReplaceAllStringFunc(out, redactEnvEntry)
 	out = envJSONRe.ReplaceAllStringFunc(out, redactEnvJSON(envJSONRe, 1, 2))
 	out = envJSONRevRe.ReplaceAllStringFunc(out, redactEnvJSON(envJSONRevRe, 2, 1))
+	out = redactBlockScalars(out)
 	out = b64RunRe.ReplaceAllStringFunc(out, func(m string) string {
 		if looksRandom(m) {
 			return Redacted

@@ -281,6 +281,27 @@ func TestSanitizeSecretDataKeys(t *testing.T) {
 	}
 }
 
+func TestSanitizeBlockScalars(t *testing.T) {
+	for _, in := range []string{
+		"password: |\n  actual-secret\nnext: safe\n",
+		"data: |-\n  c2VjcmV0LXZhbHVl\nkind: Secret\n",
+		"stringData: >\n  another-secret\n",
+	} {
+		out := Sanitize(in)
+		if strings.Contains(out, "actual-secret") ||
+			strings.Contains(out, "c2VjcmV0LXZhbHVl") ||
+			strings.Contains(out, "another-secret") {
+			t.Fatalf("block scalar secret leaked: %q -> %q", in, out)
+		}
+		if !strings.Contains(out, Redacted) {
+			t.Fatalf("no placeholder emitted: %q -> %q", in, out)
+		}
+		if out != Sanitize(out) {
+			t.Fatalf("not idempotent: %q -> %q", out, Sanitize(out))
+		}
+	}
+}
+
 func TestSanitizeEnvSecrets(t *testing.T) {
 	// K8s env entries keep the credential in a generic "value" field with
 	// the secret identity in the sibling "name" field. Only the value is

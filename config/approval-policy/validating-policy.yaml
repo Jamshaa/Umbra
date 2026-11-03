@@ -19,7 +19,7 @@ spec:
     - apiGroups: ["umbra.io"]
       apiVersions: ["v1alpha1"]
       resources: ["findings"]
-      operations: ["UPDATE"]
+      operations: ["UPDATE", "PATCH"]
   validations:
   - expression: "request.userInfo.username.startsWith('system:') || object.spec == oldObject.spec"
     message: "findings spec is immutable for human approvers: only the umbra.dev/approved annotation may change"
