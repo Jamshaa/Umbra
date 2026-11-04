@@ -251,6 +251,73 @@ func sanitizeJSON(s string) (string, bool) {
 	return sanitized, true
 }
 
+// sanitizeEmbeddedJSON finds complete JSON objects or arrays inside log
+// prefixes such as "event: data: {...}" and sanitizes them structurally.
+// A regex pass can redact the outer "data:" key while leaving nested values
+// untouched, so embedded JSON must be parsed as its own value.
+func sanitizeEmbeddedJSON(s string) string {
+	var out strings.Builder
+	for i := 0; i < len(s); {
+		if s[i] != '{' && s[i] != '[' {
+			out.WriteByte(s[i])
+			i++
+			continue
+		}
+		end := embeddedJSONEnd(s, i)
+		if end <= i {
+			out.WriteByte(s[i])
+			i++
+			continue
+		}
+		candidate := s[i:end]
+		if sanitized, ok := sanitizeJSON(candidate); ok {
+			out.WriteString(sanitized)
+		} else {
+			out.WriteString(candidate)
+		}
+		i = end
+	}
+	return out.String()
+}
+
+func embeddedJSONEnd(s string, start int) int {
+	stack := []byte{s[start]}
+	inString, escaped := false, false
+	for i := start + 1; i < len(s); i++ {
+		c := s[i]
+		if inString {
+			if escaped {
+				escaped = false
+			} else if c == '\\' {
+				escaped = true
+			} else if c == '"' {
+				inString = false
+			}
+			continue
+		}
+		if c == '"' {
+			inString = true
+			continue
+		}
+		if c == '{' || c == '[' {
+			stack = append(stack, c)
+			continue
+		}
+		if c != '}' && c != ']' {
+			continue
+		}
+		if len(stack) == 0 || (c == '}' && stack[len(stack)-1] != '{') ||
+			(c == ']' && stack[len(stack)-1] != '[') {
+			return 0
+		}
+		stack = stack[:len(stack)-1]
+		if len(stack) == 0 {
+			return i + 1
+		}
+	}
+	return 0
+}
+
 // redactEnvFlow redacts the flow-style value when the sibling name is
 // secret-like. redactValue preserves quoting, so both quoted and bare
 // values stay stable under a second pass.
@@ -314,6 +381,7 @@ func Sanitize(s string) string {
 	if sanitized, ok := sanitizeJSON(out); ok {
 		out = sanitized
 	}
+	out = sanitizeEmbeddedJSON(out)
 	// Standalone credential shapes first, so key=value keeps any
 	// trailing non-secret context (e.g. "api_key=<redacted> tail=20").
 	out = awsKeyRe.ReplaceAllString(out, Redacted)
