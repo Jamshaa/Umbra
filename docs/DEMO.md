@@ -19,8 +19,16 @@ npm run build:live --prefix ui
 bash scripts/demo/preflight.sh
 ```
 
-`preflight.sh` se detiene en el primer fallo y dice qué hacer. La UI se
+`preflight.sh` se detiene en el primer fallo y dice qué hacer. Excepción:
+la red es un aviso, no un fallo — escribe la variante en `.demo/network.txt`
+(N1 solo si todas las sondas muestran aislamiento; si no, N0) y termina
+con código 0. En N0 no se dice «aislado» ni «red denegada»: se dice
+«separate sandbox namespace with quota, copy and rollback». La UI se
 sirve con `umbra-api` en `http://127.0.0.1:8082` (distintivo LIVE).
+
+Estado al preparar este guion: sin `MODEL_API_KEY`, sin toolchain Go y
+sin tocar el cluster, el ensayo en vivo queda pendiente. Sin clave, el
+acto A está **BLOQUEADO: no hay demo completa**.
 
 ## Claves efímeras (nunca en disco)
 
@@ -41,18 +49,30 @@ $env:UMBRA_RECEIPT_HMAC_KEY = ($b | ForEach-Object { $_.ToString('x2') }) -join 
 
 «Un HMAC con clave simétrica detecta manipulación para quien posee la clave; no es una firma digital ni ofrece no repudio».
 
-## Guion (tiempos objetivo; la duración exacta permitida no es pública: confírmala)
+## Actos A–G (comandos reales; inventario en `.demo/inventory.txt`)
 
-| Tiempo | Segmento | Qué decir | Qué no mostrar |
-|---|---|---|---|
-| 0:00–0:20 | Contexto | «Un operador que detecta, propone con un modelo, verifica con código y revierte.» Nodos y CRDs en pantalla. | Historial de terminal, rutas personales. |
-| 0:20–0:45 | Inyección y detección | «Inyecto F01 y el escáner publica el hallazgo.» `scripts/injectors/f01_no_limits.sh` + `umbra scan --namespace demo --publish`. | Ninguna clave. |
-| 0:45–1:05 | Quién lo cambió | «Cada cambio queda atribuido.» Cambio con `--as`, `audit-export.sh`, `umbra changes`. La suplantación sale rotulada. | Correos y usuarios reales. |
-| 1:05–1:40 | Puertas (grupo B) | «El correcto pasa; el incorrecto lo rechaza esta puerta, con esta razón.» Handpatch F36 correcto e incorrecto. | — |
-| 1:40–2:15 | Modelo | «El modelo propone; las puertas deciden.» `umbra-agent diagnose` F36 con `--sandbox --publish --receipt-chain`, y `model-raw` para enseñar qué habría pasado sin puertas. Sin clave: omitir y decir «sin medir». | La clave (teclearla con `read -rs`). |
-| 2:15–2:35 | Trampas | «La inyección se contiene o se rechaza.» En modo corto se enseñan los mecanismos estáticos y las filas live pre-medidas de la tabla; `DEMO_TRAPS_LIVE=1` ejecuta los watches completos (~5 min cada uno). | Presentar un replay como vivo. |
-| 2:35–2:50 | Recibo y manipulación | «El recibo es tamper-evident (HMAC).» `umbra receipts verify` + `scripts/demo/tamper.sh`: la copia manipulada falla nombrando la posición; la original pasa. | La clave HMAC. |
-| 2:50–3:00 | UI y cierre | Abrir la UI (distintivo LIVE, hallazgos, scoreboard). Decir en voz alta lo que está «sin medir». | — |
+Conjunto curado en `bench/demo-set.yaml` (todo lo demás: `demo: false`).
+Prohibidos en demo: F17 y F32–F34 (no autocontenidos). Tiempos del
+ensayo: sin medir (ensayo en vivo pendiente; se rellenan desde el log de
+`scripts/demo/rehearse.sh`, fuente «reloj de rehearse.sh» o `latency_ms`).
+
+| Acto | Comandos | Resultado esperado |
+|---|---|---|
+| A (F36 + modelo) | `bash scripts/demo/break.sh f36` · `.build/host/umbra scan --namespace demo --publish` · `.build/host/umbra-agent --kind Service --name f36-no-endpoints --namespace demo --fault F36 --sandbox --publish --receipt-chain .demo/receipts.chain` | tool calls, propuesta, puertas y veredicto `gate_verdict` en la timeline; recibo. Si el parche no pasa, se enseña FAIL con su razón. |
+| B (F02 sin modelo) | `bash scripts/demo/break.sh f02` · `.build/host/umbra-bench --mode deterministic --cases F02 --live --out .demo/bench --scoreboard-out .demo/scoreboard.json` · `bash scripts/demo/heal.sh` | propuesta verificada en sandbox sobre `shop-api` (respaldo F01: `break.sh f01`). |
+| C (atribución) | `kubectl --context kind-umbra --as=alice@example.com -n demo scale deploy/shop-api --replicas=2` · `bash scripts/demo/audit-export.sh` · `.build/host/umbra changes --kind Deployment --name shop-api --namespace demo --audit-file .demo/audit.log` · escalar de vuelta a 1 | el cambio queda atribuido; una cuenta de servicio se presenta como cliente, nunca como persona. |
+| D (puerta + model-raw) | `umbra-bench --mode handpatch --hp-kind Service` con `bench/handpatch/F36/incorrect.yaml` y `correct.yaml` (`--hp-case F36 --hp-rule ServiceEndpoints`) · `.build/host/umbra-bench --mode model-raw --cases F36 --live --out .demo/bench --scoreboard-out .demo/scoreboard.json` | Sin versión «bien»: ningún parche F36 pasa hoy todas las puertas. Medido estático: el malo cae en `allowlist` (`/metadata/labels`), el «correcto» en `invariants` (`spec.selector changed (immutable)`) y un alternativo sin tocar el selector (etiquetas del Deployment) en `allowlist` (`/spec/template/metadata/labels/app`). Se enseñan las razones y model-raw; no se afirma ningún PASS. |
+| E (trampas) | `.build/host/umbra-bench --mode deterministic --cases T2 --live --out .demo/bench --scoreboard-out .demo/scoreboard.json` · `bash scripts/demo/show-saved.sh` | T2 rechazado en dry-run en directo; T1/T3/T4 como «resultado guardado (fecha, commit)». No se ejecutan T1/T3/T4 en directo. |
+| F (recibos) | `.build/host/umbra receipts verify .demo/receipts.chain` · `bash scripts/demo/tamper.sh` | la copia manipulada falla; la original pasa. Tamper evidence (HMAC), not a digital signature. |
+| G (UI) | `npm run build:live --prefix ui` y abrir la UI LIVE | el detalle lee solo `gate_verdict`: «gates: PASSED/FAILED», o «gates: not recorded; state is maintained by the in-cluster operator (not wired in this demo)». Nunca deriva «verified». |
+
+Nota de nombres reales: `umbra-agent` no lleva la palabra `diagnose`
+(parsea flags desde argv[1]); `--repeats` sí existe en `umbra-bench`.
+
+Ensayo: `bash scripts/demo/rehearse.sh --fast` (×2), una pasada final
+con pausas, y una desde estado sucio solo si algo falló. Higiene:
+`source scripts/demo/camera-env.sh` antes de grabar y
+`bash scripts/demo/leakcheck.sh` sobre el log de la pasada final.
 
 ## Consejos de grabación
 
@@ -65,14 +85,16 @@ $env:UMBRA_RECEIPT_HMAC_KEY = ($b | ForEach-Object { $_.ToString('x2') }) -join 
 
 ## Árbol de decisiones
 
-- **Sin clave de modelo:** `--no-model`; el segmento se omite y se dice
-  «sin medir». Nunca inventes tokens ni latencias.
-- **Falla la red:** `--replay`. Imprime el banner fijo
-  `REPLAY — resultados guardados, no una ejecución en vivo` y los
+- **Sin clave de modelo:** acto A BLOQUEADO; no hay demo completa. Se
+  prepara el resto y se dice «sin medir». Nunca inventes tokens ni
+  latencias.
+- **Modo replay:** `bash scripts/demo/run.sh --replay`. Imprime el banner
+  fijo `REPLAY — resultados guardados, no una ejecución en vivo` y los
   resultados guardados. Jamás se presenta como ejecución real.
-- **Falla el cluster:** `bash scripts/demo/reset.sh` y volver a empezar;
-  si el cluster no levanta, `bash scripts/kind/create-cluster.sh` y
-  `bash scripts/demo/up.sh`.
+- **Red N0:** no se afirma aislamiento; se dice «separate sandbox
+  namespace with quota, copy and rollback».
+- **Estado sucio:** `bash scripts/demo/reset.sh` + `bash scripts/demo/heal.sh`
+  y volver a empezar.
 - **Falla una puerta en directo:** es un resultado; enséñalo con su razón
   y sigue. No repitas hasta que salga verde sin decirlo.
 

@@ -1,9 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # ci.yml — lint & test pipeline for the Umbra repository
 #
-# Current state: scaffolding phase. The jobs below are deliberately
-# self-scaling: Python checks only run against what exists, so the workflow
-# stays green while the repo grows its real code (see docs/PLAN.md).
 #
 # Contributors: do not weaken jobs to make red builds green. If a job fails,
 # either fix the commit or make the job's intent more precise — never a
@@ -66,25 +63,6 @@ jobs:
             echo "no Python sources yet (scaffold phase) — nothing to lint"
           fi
 
-  python-tests:
-    name: pytest (only when tests exist)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.10"
-      - name: Install pytest
-        run: pip install "pytest==9.2.0"
-      - name: Run test suite
-        run: |
-          if [ -d tests ] && compgen -G 'tests/**/*.py' > /dev/null; then
-            pytest -q
-          else
-            echo "no test suite yet (scaffold phase) — expected to exist from Day 2 (docs/PLAN.md)"
-          fi
 
   yaml-hygiene:
     name: YAML parse check (manifests & workflows)

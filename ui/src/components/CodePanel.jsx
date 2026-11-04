@@ -1,47 +1,30 @@
-import './CodePanel.css'
+// Code and diff blocks share one look: DM Mono on --panel, no highlighter.
 
-/**
- * Code/YAML panel: 2px solid border (info blue by default, gold with the
- * .warn class), DM Mono @12px, --bg fill. Content can arrive as `code`
- * (string renders inside <pre><code>) or as `children` (e.g. DiffView).
- */
-export default function CodePanel({ title, code, className = '', children }) {
-  return (
-    <figure className={`code-panel ${className}`.trim()}>
-      {title && <figcaption className="code-panel-title">{title}</figcaption>}
-      {code != null ? (
-        <pre>
-          <code>{code}</code>
-        </pre>
-      ) : (
-        children
-      )}
-    </figure>
-  )
+/** Copy text; falls back to execCommand where the async clipboard is missing. */
+export async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    ta.remove()
+  }
 }
 
-/**
- * Sandbox fix diff — hardcoded hard-cut lines: context neutral, removed red,
- * added green. No syntax highlighter dependency for the alpha UI.
- */
+export function diffText(context, removed, added) {
+  return [...context.map((l) => `  ${l}`), ...removed.map((l) => `- ${l}`), ...added.map((l) => `+ ${l}`)].join('\n')
+}
+
 export function DiffView({ context = [], removed = [], added = [] }) {
+  if (removed.length + added.length === 0) return <pre className="code muted">no change proposed</pre>
   return (
-    <div className="diff-view">
-      {context.map((line, i) => (
-        <div key={`c${i}`} className="diff-line">
-          {line}
-        </div>
-      ))}
-      {removed.map((line, i) => (
-        <div key={`r${i}`} className="diff-line del">
-          - {line}
-        </div>
-      ))}
-      {added.map((line, i) => (
-        <div key={`a${i}`} className="diff-line add">
-          + {line}
-        </div>
-      ))}
-    </div>
+    <pre className="code">
+      {context.map((l, i) => <div key={`c${i}`} className="ln">{'  '}{l}</div>)}
+      {removed.map((l, i) => <div key={`r${i}`} className="ln del">- {l}</div>)}
+      {added.map((l, i) => <div key={`a${i}`} className="ln add">+ {l}</div>)}
+    </pre>
   )
 }

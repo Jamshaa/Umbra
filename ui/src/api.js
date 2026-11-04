@@ -9,7 +9,7 @@ import { MOCK_FINDINGS } from './mock.js'
 // {id, severity, state, kind, target, liveYaml, diffRemoved, diffAdded}.
 // Malformed entries are dropped, never rendered. The live call never
 // carries credentials or cluster addresses (same-origin relative URL).
-const LIVE = import.meta.env.VITE_UMBRA_API === 'live'
+export const LIVE = import.meta.env.VITE_UMBRA_API === 'live'
 
 export function normalize(list) {
   if (!Array.isArray(list)) return []

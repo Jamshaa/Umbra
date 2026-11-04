@@ -10,13 +10,6 @@
 # scripts/kind/create-cluster.sh (kindest/node image).
 
 REPO_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || echo .)
-# kind lives outside PATH on Windows (AGENTS.md): %USERPROFILE%\go\bin.
-# Git Bash (or WSL) is required to run the .sh recipes on Windows.
-ifeq ($(OS),Windows_NT)
-KIND_BIN ?= $(USERPROFILE)/go/bin/kind.exe
-else
-KIND_BIN ?= $(HOME)/go/bin/kind
-endif
 
 .PHONY: demo test bench lint ui-build
 

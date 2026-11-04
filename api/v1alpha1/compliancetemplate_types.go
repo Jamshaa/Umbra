@@ -125,7 +125,6 @@ type ComplianceTemplateStatus struct {
 
 //+kubebuilder:rbac:groups=umbra.io,resources=compliancetemplates,verbs=get;list;watch
 //+kubebuilder:rbac:groups=umbra.io,resources=compliancetemplates/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=umbra.io,resources=compliancetemplates/finalizers,verbs=update
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

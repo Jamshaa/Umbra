@@ -67,7 +67,6 @@ type RemediationPolicyStatus struct {
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:rbac:groups=umbra.io,resources=remediationpolicies,verbs=get;list;watch
 // +kubebuilder:rbac:groups=umbra.io,resources=remediationpolicies/status,verbs=update;patch
-// +kubebuilder:rbac:groups=umbra.io,resources=remediationpolicies/finalizers,verbs=update
 
 // RemediationPolicy is the Schema for the remediationpolicies API.
 type RemediationPolicy struct {

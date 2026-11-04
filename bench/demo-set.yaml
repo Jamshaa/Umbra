@@ -1,0 +1,88 @@
+# bench/demo-set.yaml: curated demo acts (CORE). Everything not listed
+# here is demo: false. Commands use real names verified in .demo/inventory.txt
+# (umbra-agent has NO `diagnose` word: flags are parsed from argv[1]).
+acts:
+  - id: A
+    demo: true
+    caso: F36
+    objetivo: "Protagonista con modelo: Muse Spark propone, las puertas deciden; veredicto gate_verdict en la timeline y recibo."
+    preparacion: "bash scripts/demo/heal.sh; export MODEL_API_KEY y UMBRA_RECEIPT_HMAC_KEY solo en la terminal"
+    comandos:
+      - "bash scripts/demo/break.sh f36"
+      - ".build/host/umbra scan --namespace demo --publish"
+      - ".build/host/umbra-agent --kind Service --name f36-no-endpoints --namespace demo --fault F36 --sandbox --publish --receipt-chain .demo/receipts.chain"
+    resultado_esperado: "tool calls visibles, propuesta, gate_step/gate_pass en stdout; timeline con entrada gate_verdict PASS o FAIL con razon (se ensena tal cual); recibo anadido a .demo/receipts.chain"
+    duracion_max: "50s objetivo de video; si el modelo lo supera, toma sin cortes editada con etiqueta timelapse"
+    alternativa: "Sin MODEL_API_KEY: BLOQUEADO, no hay demo completa. Nunca repetir en silencio hasta que salga PASS."
+  - id: B
+    demo: true
+    caso: F02
+    respaldo: F01
+    objetivo: "Caso simple sin modelo sobre shop-api: break + bench determinista en vivo hasta propuesta verificada con recibo."
+    preparacion: "bash scripts/demo/heal.sh"
+    comandos:
+      - "bash scripts/demo/break.sh f02"
+      - ".build/host/umbra-bench --mode deterministic --cases F02 --live --out .demo/bench --scoreboard-out .demo/scoreboard.json"
+    resultado_esperado: "F02 verificado en sandbox (limite corregido), outcome pass en el JSONL de .demo/bench"
+    duracion_max: "20s"
+    alternativa: "bash scripts/demo/break.sh f01 (mismo flujo F01) o resultado guardado etiquetado."
+  - id: C
+    demo: true
+    caso: atribucion
+    objetivo: "Quien cambio shop-api: managedFields + audit; cuenta de servicio = cliente, nunca persona."
+    preparacion: "bash scripts/demo/heal.sh"
+    comandos:
+      - "kubectl --context kind-umbra --as=alice@example.com -n demo scale deploy/shop-api --replicas=2"
+      - "bash scripts/demo/audit-export.sh"
+      - ".build/host/umbra changes --kind Deployment --name shop-api --namespace demo --audit-file .demo/audit.log"
+      - "kubectl --context kind-umbra -n demo scale deploy/shop-api --replicas=1"
+    resultado_esperado: "changes nombra a alice@example.com como impersonado/cliente; ninguna cuenta de servicio presentada como persona"
+    duracion_max: "15s"
+    alternativa: "Sin audit log: mostrar solo managedFields y decirlo."
+  - id: D
+    demo: true
+    caso: F36
+    objetivo: "Parche malo frenado por una puerta con nombre y razon, mas model-raw. Sin version 'bien': medido estatico, ningun parche de F36 pasa hoy todas las puertas."
+    preparacion: "bash scripts/demo/break.sh f36"
+    comandos:
+      - ".build/host/umbra-bench --mode handpatch --hp-case F36 --hp-kind Service --hp-patch bench/handpatch/F36/incorrect.yaml --hp-rule ServiceEndpoints --out .demo/bench --scoreboard-out .demo/scoreboard.json"
+      - ".build/host/umbra-bench --mode handpatch --hp-case F36 --hp-kind Service --hp-patch bench/handpatch/F36/correct.yaml --hp-rule ServiceEndpoints --out .demo/bench --scoreboard-out .demo/scoreboard.json"
+      - ".build/host/umbra-bench --mode model-raw --cases F36 --live --out .demo/bench --scoreboard-out .demo/scoreboard.json"
+    resultado_esperado: "Medido estatico (bench sin cluster): incorrecto FAIL puerta allowlist (must not touch /metadata/labels); el 'correcto' actual FAIL puerta invariants (spec.selector changed (immutable)); alternativo sin tocar selector (etiquetas del Deployment) FAIL allowlist (/spec/template/metadata/labels/app fuera de /spec/selector). Se ensenan las tres razones; no se afirma ningun PASS de handpatch F36. model-raw solo con clave; sin clave se dice sin medir."
+    duracion_max: "20s"
+    alternativa: "Filas guardadas de bench/results etiquetadas."
+  - id: E
+    demo: true
+    caso: T2
+    objetivo: "T2 en directo (rechazo dry-run instantaneo). T1/T3/T4 guardados y etiquetados."
+    preparacion: "ninguna"
+    comandos:
+      - ".build/host/umbra-bench --mode deterministic --cases T2 --live --out .demo/bench --scoreboard-out .demo/scoreboard.json"
+      - "bash scripts/demo/show-saved.sh"
+    resultado_esperado: "T2 rechazado en dry-run; show-saved imprime resultado guardado (fecha, commit) para T1/T3/T4"
+    duracion_max: "20s"
+    alternativa: "Si T2 falla en directo, ensenar su fila guardada etiquetada."
+  - id: F
+    demo: true
+    caso: recibos
+    objetivo: "Cadena de recibos del acto A y deteccion de manipulacion."
+    preparacion: "acto A ejecutado (existe .demo/receipts.chain) y UMBRA_RECEIPT_HMAC_KEY en la terminal"
+    comandos:
+      - ".build/host/umbra receipts verify .demo/receipts.chain"
+      - "bash scripts/demo/tamper.sh"
+    resultado_esperado: "verify pasa; tamper detecta la copia manipulada y la original sigue intacta. Es tamper evidence (HMAC), no firma digital."
+    duracion_max: "20s"
+    alternativa: "Sin cadena del acto A: no se muestra recibo; no se fabrica."
+  - id: G
+    demo: true
+    caso: UI
+    objetivo: "UI LIVE con scoreboard y veredicto gate_verdict; cierre honesto."
+    preparacion: "npm run build:live --prefix ui y umbra-api sirviendo la UI"
+    comandos:
+      - "npm run build:live --prefix ui"
+    resultado_esperado: "distintivo LIVE; panel lee solo gate_verdict (PASSED/FAILED) o el texto not recorded; cifras del scoreboard generado"
+    duracion_max: "20s"
+    alternativa: "UI en mock etiquetada como mock, nunca como live."
+
+demo_false:
+  nota: "Todo caso de bench/cases.yaml y bench/cases-r2.yaml no listado en acts es demo: false. Prohibidos en demo: F17, F32-F34 (no autocontenidos)."

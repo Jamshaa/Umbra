@@ -153,7 +153,6 @@ type FindingStatus struct {
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:rbac:groups=umbra.io,resources=findings,verbs=get;list;watch
 // +kubebuilder:rbac:groups=umbra.io,resources=findings/status,verbs=update;patch
-// +kubebuilder:rbac:groups=umbra.io,resources=findings/finalizers,verbs=update
 
 // Finding is the Schema for the findings API.
 type Finding struct {

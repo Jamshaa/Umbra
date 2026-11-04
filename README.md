@@ -1,5 +1,9 @@
 # Umbra
 
+**Track:** Indie · **Theme:** Build for Your World · **License:** Apache-2.0 ([LICENSE](LICENSE))
+**Built during the event:** [docs/NEW_WORK.md](docs/NEW_WORK.md) · **AI use:** [docs/AI_USE.md](docs/AI_USE.md)
+**Meta model:** Muse Spark (`muse-spark-1.3`) via Responses API — where and why: [docs/META.md](docs/META.md)
+
 > **Self-healing Kubernetes configurations, end to end:
 > detect → diagnose → patch → apply in a sandbox → verify → roll back if anything fails.**
 
@@ -48,7 +52,7 @@ Agent safety: the model never applies anything; `tool_choice: auto` with the
 code-enforced list (`internal/agent/tools.go`); typed patches against
 allowlist; secrets redacted before the prompt (`internal/evidence`); T4
 covers injection; no auto-apply; minimal read-only RBAC. Detail in
-`docs/SECURITY.md` and `docs/META.md`.
+`SECURITY.md` and `docs/META.md`.
 
 ## Quickstart (5 commands)
 

@@ -75,11 +75,11 @@ func TestFromEnv(t *testing.T) {
 	if cfg.BaseURL != "http://localhost:9999" || cfg.Model != "local-model" {
 		t.Fatalf("custom values ignored: %+v", cfg)
 	}
-	t.Setenv("MODEL_BASE_URL", "http://203.0.1.20:1234/")
+	t.Setenv("MODEL_BASE_URL", "http://203.0.113.20:1234/")
 	if _, err := FromEnv(); err == nil {
 		t.Fatal("plaintext non-loopback endpoint must fail")
 	}
-	t.Setenv("MODEL_BASE_URL", "https://203.0.1.20:1234/")
+	t.Setenv("MODEL_BASE_URL", "https://203.0.113.20:1234/")
 	if _, err := FromEnv(); err != nil {
 		t.Fatalf("https endpoint must pass: %v", err)
 	}

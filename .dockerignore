@@ -1,0 +1,8 @@
+# Build context allowlist: the images are FROM scratch and copy only the
+# prebuilt binaries and the UI bundle. Everything else (.git, .env, IDE
+# state, kubeconfigs) never reaches the Docker daemon.
+*
+!.build/umbra-manager
+!.build/umbra-api
+!.build/demo-server
+!ui/dist/

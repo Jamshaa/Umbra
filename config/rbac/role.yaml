@@ -16,13 +16,6 @@ rules:
 - apiGroups:
   - umbra.io
   resources:
-  - findings/finalizers
-  - remediationpolicies/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - umbra.io
-  resources:
   - findings/status
   - remediationpolicies/status
   verbs:
@@ -46,6 +39,5 @@ rules:
   resourceNames:
   - umbra-sandbox
   verbs:
-  - create
   - update
   - patch

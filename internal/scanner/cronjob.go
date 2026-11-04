@@ -120,18 +120,6 @@ func DetectCronOverlap(docs []byte) []v1alpha1.Finding {
 	return out
 }
 
-// DetectCronReplaceCuts: Replace kills the running Job; static analysis
-// cannot know idempotency, so it is a warning, never an error.
-func DetectCronReplaceCuts(docs []byte) []v1alpha1.Finding {
-	var out []v1alpha1.Finding
-	for _, c := range decodeCron(docs) {
-		if strings.EqualFold(c.Spec.ConcurrencyPolicy, "Replace") {
-			out = append(out, cronFinding(c, v1alpha1.FindingCategoryReliability, v1alpha1.FindingSeverityLow))
-		}
-	}
-	return out
-}
-
 // DetectCronMissingTimezone: without timeZone the controller zone (UTC)
 // decides DST behavior.
 func DetectCronMissingTimezone(docs []byte) []v1alpha1.Finding {

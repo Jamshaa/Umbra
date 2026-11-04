@@ -1,4 +1,3 @@
-import './Sprite.css'
 
 // Pixel sprites used by the UI: 8px grids, existing palette tokens only,
 // no motion, no new fonts. Only sprites with a caller live here; add a

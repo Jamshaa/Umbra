@@ -114,15 +114,49 @@ type publishInput struct {
 	Reason    string
 	RootCause string
 	GatePass  bool
+	GateStep  string
+	GateWhy   string
 	Manifest  string
 	Ts        int64
+}
+
+func clamp(s string, n int) string {
+	if len(s) > n {
+		return s[:n]
+	}
+	return s
+}
+
+// gateVerdictEntry is the one timeline entry that records the gate
+// outcome of a published diagnosis (status only, never spec). Sanitized
+// and clamped before the hash is taken, like every other entry.
+func gateVerdictEntry(in publishInput) v1alpha1.TimelineEntry {
+	step := in.GateStep
+	if step == "" {
+		step = "diagnose"
+	}
+	args := clamp(evidence.Sanitize(fmt.Sprintf("rule=%s step=%s", in.Fault, step)), 200)
+	result := "PASS"
+	if in.Refused || !in.GatePass {
+		why := in.GateWhy
+		if why == "" {
+			why = in.Reason
+		}
+		// Sanitize the reason on its own first: embedded after
+		// "FAIL at <step>: " a leading key=value could be consumed
+		// as the value of the step label and escape redaction.
+		result = fmt.Sprintf("FAIL at %s: %s", step, evidence.Sanitize(why))
+	}
+	result = clamp(evidence.Sanitize(result), 500)
+	return controller.NewTimelineEntry("gate_verdict", args, result, in.Model, in.Ts)
 }
 
 // publishDiagnosis creates or updates the Finding for one diagnosis:
 // state walks only valid transitions toward Verified (gate pass),
 // Failed (refusal or gate failure); timeline entries are sanitized,
-// truncated and deduplicated by evidence hash. When the target state
-// is unreachable it reports why and writes nothing.
+// truncated and deduplicated by evidence hash, and written before the
+// spec so a refused state move keeps the evidence. When the target
+// state is unreachable it reports why and writes nothing.
 func publishDiagnosis(ctx context.Context, c client.Client, in publishInput) (string, error) {
 	name := findingNameFor(in.Fault, in.Namespace, in.Name)
 	target := v1alpha1.FindingStateFailed
@@ -167,6 +201,10 @@ func publishDiagnosis(ctx context.Context, c client.Client, in publishInput) (st
 		seen[e.EvidenceHash] = true
 		f.Status.Timeline = append(f.Status.Timeline, e)
 	}
+	if e := gateVerdictEntry(in); !seen[e.EvidenceHash] {
+		seen[e.EvidenceHash] = true
+		f.Status.Timeline = append(f.Status.Timeline, e)
+	}
 	if in.RootCause != "" {
 		f.Spec.Diagnosis = truncate(evidence.Sanitize(in.RootCause))
 	} else if in.Reason != "" {
@@ -178,26 +216,32 @@ func publishDiagnosis(ctx context.Context, c client.Client, in publishInput) (st
 			f.Spec.PrePatchManifest = f.Spec.PrePatchManifest[:262144]
 		}
 	}
+	// Evidence first: the status subresource is written before any spec
+	// write, so a spec denial (the approval VAP refuses spec changes from
+	// non-system users) never loses the timeline. Create drops status on
+	// a real API server, hence the copy.
+	timeline := f.Status.Timeline
 	if created {
 		if err := c.Create(ctx, &f); err != nil {
 			return "", fmt.Errorf("create finding %s: %w", name, err)
 		}
+		f.Status.Timeline = timeline
+	}
+	if err := c.Status().Update(ctx, &f); err != nil {
+		return "", fmt.Errorf("update finding status %s: %w", name, err)
 	}
 	// Walk the state machine stepwise; each intermediate state is a
 	// legal write, the last one is the target.
 	for _, step := range path {
 		f.Spec.State = step
 		if err := c.Update(ctx, &f); err != nil {
-			return "", fmt.Errorf("move finding %s to %s: %w", name, step, err)
+			return "", fmt.Errorf("evidence recorded, but moving finding %s to %s was refused (spec writes need a system: identity): %w", name, step, err)
 		}
 	}
 	if !created && len(path) == 0 {
 		if err := c.Update(ctx, &f); err != nil {
-			return "", fmt.Errorf("update finding %s: %w", name, err)
+			return "", fmt.Errorf("evidence recorded, but updating finding %s spec was refused: %w", name, err)
 		}
-	}
-	if err := c.Status().Update(ctx, &f); err != nil {
-		return "", fmt.Errorf("update finding status %s: %w", name, err)
 	}
 	return fmt.Sprintf("published finding %s (%s -> %s)", name, from, target), nil
 }

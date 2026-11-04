@@ -1,13 +1,8 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   Umbra UI — pixel-art design tokens & global base.
+/* Umbra UI — palette, type and the few primitives every view shares.
 
-   THE DESIGN CONTRACT (do not soften):
-   - dark background + saturated accents; hard palette, no color blends
-   - NO gradients / NO border-radius / NO blur → hard borders + offset shadows
-   - 8px spacing grid: margins, paddings, gaps are multiples of 8
-   - 0ms transitions: state changes render cut, not eased
-   - Press Start 2P ONLY at 8px multiples (8/16/24/32) — never body copy
-   ══════════════════════════════════════════════════════════════════════════ */
+   Contract (ui/README.md): the tokens below are the whole palette; hard
+   2px edges, no border-radius, no blur, no gradients, no easing. Press
+   Start 2P only at 8 or 16px. Spacing on a 4px grid. */
 
 /* Self-hosted pixel fonts (OFL 1.1, see THIRD_PARTY_NOTICES.md): no
    external font requests, Vite hashes the files under base './'. */
@@ -44,146 +39,199 @@
 }
 
 :root {
-  /* the palette — 8 tokens, nothing else is allowed in components */
-  --bg: #1a1c2c;         /* deep navy — page background            */
-  --panel: #29366f;      /* mid blue — cards, panels, buttons      */
-  --ink: #f4f4f4;        /* bone white — primary text              */
-  --error: #ef476f;      /* red — high severity, failures          */
-  --ok: #5fe36c;         /* green — success, verification passed   */
-  --info: #3fa7ff;       /* blue — info, links, in-progress work   */
-  --warn: #ffd23f;       /* gold — warnings, production gate       */
-  --hard-shadow: #0d0e1a;/* near-black — borders & hard shadows    */
+  /* paper — default */
+  --bg: #e9e5d9;
+  --panel: #f5f2ea;
+  --ink: #1d1c19;
+  --muted: #858070;
+  --error: #c4432f;
+  --ok: #3f7a3a;
+  --warn: #a87a14;
+  --info: #2f5b86;
+  --sel: #d9d3c2;
 
-  /* font stacks (Google Fonts CDN, see index.html) */
   --font-pixel: 'Press Start 2P', monospace;
   --font-body: 'VT323', monospace;
   --font-code: 'DM Mono', monospace;
-
-  /* 8px spacing grid */
-  --sp-1: 8px;
-  --sp-2: 16px;
-  --sp-3: 24px;
-  --sp-4: 32px;
-  --sp-6: 48px;
+  color-scheme: light;
 }
 
-/* ── hard reset: nothing round, nothing soft, nothing eased ────────────── */
+/* night — follows the OS unless the toggle pinned a theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='paper']) {
+    --bg: #151513;
+    --panel: #1e1e1b;
+    --ink: #e6e1d3;
+    --muted: #77735f;
+    --error: #e0644d;
+    --ok: #86b46f;
+    --warn: #d4a43c;
+    --info: #79a3cf;
+    --sel: #2c2b26;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='night'] {
+  --bg: #151513;
+  --panel: #1e1e1b;
+  --ink: #e6e1d3;
+  --muted: #77735f;
+  --error: #e0644d;
+  --ok: #86b46f;
+  --warn: #d4a43c;
+  --info: #79a3cf;
+  --sel: #2c2b26;
+  color-scheme: dark;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  border: 0 solid var(--hard-shadow);
-  border-radius: 0; /* belt and suspenders: nothing gets rounded, ever */
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
-  transition: none;
-}
-
-img,
-canvas,
-video {
-  image-rendering: pixelated;
+  border-radius: 0;
 }
 
 html,
 body,
 #root {
-  min-height: 100vh;
+  height: 100%;
 }
 
-/* VT323 at 20px baseline per design (20–22px body) */
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 20px;
-  line-height: 1.25;
-  /* keep the pixels crisp on HiDPI */
+  line-height: 1.2;
   -webkit-font-smoothing: none;
-  font-smooth: never;
 }
 
-/* scanline overlay: 2px hard lines at 5% — the one sanctioned pattern, no
-   color blending involved */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(244, 244, 244, 0.05) 0px,
-    rgba(244, 244, 244, 0.05) 2px,
-    transparent 2px,
-    transparent 4px
-  );
+button,
+input {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
 }
 
-/* selection & keyboard focus are pixel-squared too */
+svg {
+  shape-rendering: crispEdges;
+}
+
 ::selection {
-  background: var(--info);
-  color: var(--hard-shadow);
+  background: var(--ink);
+  color: var(--bg);
 }
 
 :focus-visible {
-  outline: 3px solid var(--info);
+  outline: 2px solid var(--info);
   outline-offset: 2px;
 }
 
-/* squared scrollbars (chromium) */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--panel);
-  border: 2px solid var(--hard-shadow);
+  background: var(--muted);
 }
 
-/* ── shared column headers & helpers ───────────────────────────────────── */
-.column-title {
+/* ── primitives ─────────────────────────────────────────────────────── */
+
+/* pixel label: the only place Press Start 2P appears besides the logo */
+.px {
   font-family: var(--font-pixel);
-  font-size: 8px; /* 8px multiple: crisp */
-  letter-spacing: 1px;
+  font-size: 8px;
+  line-height: 16px;
+  letter-spacing: 0;
+  text-transform: lowercase;
+}
+
+/* button: notched corners (clip-path = the pixel "rounding"), press = 2px drop */
+.btn {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  line-height: 8px;
+  text-transform: lowercase;
+  padding: 8px 12px;
+  cursor: pointer;
   color: var(--ink);
-  border-bottom: 3px solid var(--hard-shadow);
-  padding-bottom: var(--sp-1);
-  margin-bottom: var(--sp-2);
+  background: var(--panel);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 2px, 100% calc(100% - 2px),
+    calc(100% - 2px) 100%, 2px 100%, 0 calc(100% - 2px), 0 2px);
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--sel);
+}
+.btn:active {
+  transform: translateY(2px);
+}
+.btn:disabled {
+  color: var(--muted);
+  box-shadow: inset 0 0 0 2px var(--muted);
+  cursor: default;
+  transform: none;
+}
+.btn.ghost {
+  box-shadow: none;
+  background: none;
+  padding: 8px;
+}
+.btn.ghost:hover {
+  background: var(--sel);
+}
+.btn[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--bg);
 }
 
-.empty-note {
-  color: var(--info);
-  font-size: 18px;
+kbd {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  padding: 2px 4px;
+  box-shadow: inset 0 0 0 1px var(--muted);
 }
 
-/* blinking cursor: the agent "thinking" cue — steps(1) = hard blink */
-.cursor {
+.muted {
+  color: var(--muted);
+}
+
+.sev-high { color: var(--error); }
+.sev-medium { color: var(--warn); }
+.sev-low { color: var(--muted); }
+.st-verified { color: var(--ok); }
+.st-proposed,
+.st-analyzing { color: var(--info); }
+.st-reverted { color: var(--error); }
+.st-detected { color: var(--warn); }
+
+/* severity pip: 8x8, solid for high/medium, hollow for low */
+.pip {
   display: inline-block;
-  width: 10px;
-  height: 18px;
-  background: var(--info);
-  animation: blink 1s steps(1) infinite;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+}
+.pip.sev-low {
+  background: none;
+  box-shadow: inset 0 0 0 2px currentColor;
 }
 
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
+.sprite {
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
 }
+.sprite .k-cur { fill: currentColor; }
+.sprite .k-g { fill: var(--ink); }
+.sprite .k-k { fill: var(--bg); }
 
-/* respect users who need it still */
 @media (prefers-reduced-motion: reduce) {
-  .cursor {
-    animation: none;
-  }
+  .btn:active { transform: none; }
 }

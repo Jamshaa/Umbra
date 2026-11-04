@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,10 +13,14 @@ import (
 	"strings"
 	"testing"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/Jamshaa/Umbra/api/v1alpha1"
 	"github.com/Jamshaa/Umbra/internal/agent"
@@ -55,8 +62,15 @@ func TestPublishDiagnosis(t *testing.T) {
 	if got.Spec.State != v1alpha1.FindingStateVerified {
 		t.Fatalf("state = %q", got.Spec.State)
 	}
-	if len(got.Status.Timeline) != 1 || strings.Contains(got.Status.Timeline[0].Args, "hunter2") {
+	if len(got.Status.Timeline) != 2 || strings.Contains(got.Status.Timeline[0].Args, "hunter2") {
 		t.Fatalf("timeline not sanitized: %+v", got.Status.Timeline)
+	}
+	gv := got.Status.Timeline[1]
+	if gv.Tool != "gate_verdict" || gv.Result != "PASS" || gv.Args != "rule=F36 step=diagnose" || gv.ModelVersion != "muse-test" {
+		t.Fatalf("gate_verdict entry wrong: %+v", gv)
+	}
+	if gv.EvidenceHash == "" || gv.Ts != 123 {
+		t.Fatalf("gate_verdict hash/ts wrong: %+v", gv)
 	}
 	if got.Status.Timeline[0].EvidenceHash == "" {
 		t.Fatal("missing evidence hash")
@@ -69,7 +83,7 @@ func TestPublishDiagnosis(t *testing.T) {
 	if err := c.Get(context.Background(), types.NamespacedName{Name: "f36-demo-svc"}, &again); err != nil {
 		t.Fatal(err)
 	}
-	if len(again.Status.Timeline) != 1 {
+	if len(again.Status.Timeline) != 2 {
 		t.Fatalf("timeline duplicated: %d entries", len(again.Status.Timeline))
 	}
 	// Terminal state: a new attempt cannot move it and writes nothing.
@@ -77,6 +91,43 @@ func TestPublishDiagnosis(t *testing.T) {
 	bad.GatePass = false
 	if _, err := publishDiagnosis(context.Background(), c, bad); err == nil {
 		t.Fatal("terminal state move accepted")
+	}
+}
+
+// TestPublishEvidenceSurvivesSpecDenial mimics the real API server: Create
+// drops status (status subresource) and the approval VAP denies spec
+// writes from non-system users. The timeline must still be persisted.
+func TestPublishEvidenceSurvivesSpecDenial(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(agentScheme(t)).
+		WithStatusSubresource(&v1alpha1.Finding{}).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Create: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+				obj.(*v1alpha1.Finding).Status = v1alpha1.FindingStatus{}
+				return c.Create(ctx, obj, opts...)
+			},
+			Update: func(context.Context, client.WithWatch, client.Object, ...client.UpdateOption) error {
+				return apierrors.NewForbidden(schema.GroupResource{Group: "umbra.io", Resource: "findings"}, "f36-demo-svc", errors.New("denied by umbra-finding-approval-gate"))
+			},
+		}).Build()
+	in := publishInput{
+		Fault: "F36", Kind: "Service", Namespace: "demo", Name: "svc",
+		Model: "muse-test", GatePass: true,
+		Records: []agent.ToolRecord{{Name: "get_manifest", Args: "{}", Result: "ok"}},
+		Ts:      7,
+	}
+	_, err := publishDiagnosis(context.Background(), c, in)
+	if err == nil || !strings.Contains(err.Error(), "evidence recorded") || !apierrors.IsForbidden(err) {
+		t.Fatalf("err = %v, want wrapped forbidden with evidence note", err)
+	}
+	var got v1alpha1.Finding
+	if err := c.Get(context.Background(), types.NamespacedName{Name: "f36-demo-svc"}, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Spec.State != v1alpha1.FindingStateDetected {
+		t.Fatalf("state = %q, want Detected (spec write denied)", got.Spec.State)
+	}
+	if len(got.Status.Timeline) != 2 || got.Status.Timeline[1].Tool != "gate_verdict" {
+		t.Fatalf("timeline lost: %+v", got.Status.Timeline)
 	}
 }
 
@@ -96,10 +147,42 @@ func TestPublishTruncates(t *testing.T) {
 	if err := c.Get(context.Background(), types.NamespacedName{Name: "f07-demo-web"}, &got); err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Status.Timeline) != 1 || len(got.Status.Timeline[0].Result) > maxTimelineField+20 {
-		t.Fatalf("timeline field not truncated: %d", len(got.Status.Timeline[0].Result))
+	if len(got.Status.Timeline) != 2 {
+		t.Fatalf("timeline = %d entries, want record + gate_verdict", len(got.Status.Timeline))
+	}
+	for _, e := range got.Status.Timeline {
+		if len(e.Result) > maxTimelineField+20 {
+			t.Fatalf("timeline field not truncated: %d", len(e.Result))
+		}
 	}
 	var _ = metav1.ObjectMeta{}
+}
+
+func TestGateVerdictEntry(t *testing.T) {
+	pass := gateVerdictEntry(publishInput{Fault: "F36", Model: "muse-test", GatePass: true, GateStep: "ok", Ts: 7})
+	if pass.Tool != "gate_verdict" || pass.Args != "rule=F36 step=ok" || pass.Result != "PASS" || pass.ModelVersion != "muse-test" || pass.Ts != 7 {
+		t.Fatalf("pass entry wrong: %+v", pass)
+	}
+	// Hash covers exactly the stored args+result.
+	sum := sha256.Sum256([]byte(pass.Args + "\n" + pass.Result))
+	if pass.EvidenceHash != hex.EncodeToString(sum[:]) {
+		t.Fatalf("hash = %q", pass.EvidenceHash)
+	}
+	long := strings.Repeat("password=hunter2-hunter2 ", 40)
+	fail := gateVerdictEntry(publishInput{Fault: "F36", GatePass: false, GateStep: "verify", GateWhy: long, Ts: 7})
+	if !strings.HasPrefix(fail.Result, "FAIL at verify: ") {
+		t.Fatalf("fail result = %q", fail.Result)
+	}
+	if strings.Contains(fail.Result, "hunter2") {
+		t.Fatalf("fail result not sanitized: %q", fail.Result)
+	}
+	if len(fail.Args) > 200 || len(fail.Result) > 500 {
+		t.Fatalf("not clamped: args=%d result=%d", len(fail.Args), len(fail.Result))
+	}
+	refused := gateVerdictEntry(publishInput{Fault: "F36", Refused: true, Reason: "needs human"})
+	if refused.Args != "rule=F36 step=diagnose" || refused.Result != "FAIL at diagnose: needs human" {
+		t.Fatalf("refused entry wrong: %+v", refused)
+	}
 }
 
 func TestAppendReceiptChain(t *testing.T) {

@@ -1,5 +1,25 @@
 # LIMITATIONS.md — what Umbra doesn't do (nor pretends to)
 
+- El avance de estado lo hace el operador dentro del cluster; no está cableado en esta demo.
+  `cmd/umbra-agent/publish.go` escribe primero el status (timeline y
+  `gate_verdict`) y después intenta mover `spec.state` paso a paso con
+  `Update`. La VAP (`config/approval-policy/validating-policy.yaml:29`)
+  deniega cambios de spec a usuarios no `system:*`, así que el agente
+  ejecutado con el usuario del host deja el Finding en su estado anterior
+  (`Detected` si es nuevo) pero **con la evidencia persistida**. La
+  denegación no se oculta: `cmd/umbra-agent/main.go` la deja en el JSON
+  de salida como `"publish": "publish failed: evidence recorded, but
+  moving finding <nombre> to Analyzing was refused ..."`, sin cambiar el
+  veredicto ni el código de salida. Cubierto por
+  `TestPublishEvidenceSurvivesSpecDenial` (cliente fake que imita la
+  VAP); no observado aún contra el cluster.
+- **Red del sandbox (N0).** Hay NetworkPolicy deny-all declarada, pero su
+  aplicación depende del CNI; resultado medido: sin medir en esta sesión
+  (cluster no tocado por instrucción del autor), variante N0. En N0 la
+  demo no afirma «aislado» ni «red denegada»: dice «separate sandbox
+  namespace with quota, copy and rollback». `preflight.sh` mide y escribe
+  el resultado literal en `.demo/network.txt`.
+
 - **No Helm, no real sandbox traffic.** The sandbox verifies that the
   workload starts and passes its check, not that it holds real traffic.
   Anything requiring traffic replay is out of catalog (F04 verifies via
