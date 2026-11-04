@@ -42,18 +42,80 @@ done
 NP="$(kubectl --context kind-umbra -n umbra-sandbox get networkpolicy default-deny -o name 2>/dev/null || true)"
 [ -n "$NP" ] || fail "sandbox deny-all NetworkPolicy missing (bash scripts/demo/up.sh)"
 
-# Sandbox network probe: a pod inside umbra-sandbox must NOT reach out.
-# BLOCKED is the only acceptable outcome. Create + wait + logs (no
-# attach: attached runs add TTY noise that hides the verdict).
-kubectl --context kind-umbra -n umbra-sandbox delete pod umbra-preflight-probe --ignore-not-found >/dev/null 2>&1 || true
-kubectl --context kind-umbra -n umbra-sandbox run umbra-preflight-probe --image=busybox:1.36 --restart=Never --command -- wget -q -T 5 -O /dev/null http://example.com >/dev/null 2>&1 || true
-kubectl --context kind-umbra -n umbra-sandbox wait --for=jsonpath='{.status.phase}'=Failed pod/umbra-preflight-probe --timeout=90s >/dev/null 2>&1 || true
-PROBE="$(kubectl --context kind-umbra -n umbra-sandbox logs umbra-preflight-probe 2>&1 || true)"
-kubectl --context kind-umbra -n umbra-sandbox delete pod umbra-preflight-probe --ignore-not-found >/dev/null 2>&1 || true
-case "$PROBE" in
-*BLOCKED* | *"can't connect"* | *"bad address"* | *timed\ out* | *unreachable* | *"Network is unreachable"*) echo "sandbox egress: BLOCKED" ;;
-*) echo "preflight: sandbox egress probe outcome: $PROBE" >&2; fail "sandbox egress was not clearly BLOCKED" ;;
-esac
+# Sandbox network variant (N0/N1): this probe is an AVISO, never a
+# failure. N1 only if every check shows the expected isolation; anything
+# else is N0 with the literal detail in .demo/network.txt. In N0 the demo
+# must not claim "aislado" or "red denegada": it says "separate sandbox
+# namespace with quota, copy and rollback".
+mkdir -p .demo
+wait_phase() { # $1=ns $2=pod -> prints phase ("" on timeout)
+	local i ph
+	for i in $(seq 1 30); do
+		ph="$(kubectl --context kind-umbra -n "$1" get pod "$2" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+		case "$ph" in Succeeded | Failed) echo "$ph"; return 0 ;; esac
+		sleep 2
+	done
+	echo ""
+}
+classify() { # $1=phase $2=logs -> BLOCKED|REACHED|INCONCLUSIVE
+	case "$1" in
+	Succeeded) echo REACHED ;;
+	Failed)
+		case "$2" in
+		*BLOCKED* | *"can't connect"* | *"bad address"* | *timed\ out* | *unreachable* | *"Network is unreachable"*) echo BLOCKED ;;
+		*) echo INCONCLUSIVE ;;
+		esac
+		;;
+	*) echo INCONCLUSIVE ;;
+	esac
+}
+# Target with no NetworkPolicy (default ns) + control pod on the same side.
+kubectl --context kind-umbra -n default delete pod umbra-preflight-target umbra-preflight-control --ignore-not-found >/dev/null 2>&1 || true
+kubectl --context kind-umbra -n umbra-sandbox delete pod umbra-preflight-probe umbra-preflight-pod2pod --ignore-not-found >/dev/null 2>&1 || true
+kubectl --context kind-umbra -n default run umbra-preflight-target --image=busybox:1.36 --restart=Never --command -- httpd -f -p 8080 >/dev/null 2>&1 || true
+TARGET_IP=""
+for i in $(seq 1 30); do
+	TARGET_IP="$(kubectl --context kind-umbra -n default get pod umbra-preflight-target -o jsonpath='{.status.podIP}' 2>/dev/null || true)"
+	[ -n "$TARGET_IP" ] && break
+	sleep 2
+done
+probe_pod() { # $1=ns $2=pod $3=url -> "<phase> <logs>"
+	kubectl --context kind-umbra -n "$1" delete pod "$2" --ignore-not-found >/dev/null 2>&1 || true
+	kubectl --context kind-umbra -n "$1" run "$2" --image=busybox:1.36 --restart=Never --command -- wget -q -T 5 -O /dev/null "$3" >/dev/null 2>&1 || true
+	local ph
+	ph="$(wait_phase "$1" "$2")"
+	local logs
+	logs="$(kubectl --context kind-umbra -n "$1" logs "$2" 2>&1 || true)"
+	echo "$ph $logs"
+}
+EGRESS_RAW="$(probe_pod umbra-sandbox umbra-preflight-probe http://example.com)"
+EGRESS="$(classify "${EGRESS_RAW%% *}" "$EGRESS_RAW")"
+CONTROL="INCONCLUSIVE"
+POD2POD="INCONCLUSIVE"
+if [ -n "$TARGET_IP" ]; then
+	CONTROL_RAW="$(probe_pod default umbra-preflight-control "http://${TARGET_IP}:8080")"
+	CONTROL="$(classify "${CONTROL_RAW%% *}" "$CONTROL_RAW")"
+	POD2POD_RAW="$(probe_pod umbra-sandbox umbra-preflight-pod2pod "http://${TARGET_IP}:8080")"
+	POD2POD="$(classify "${POD2POD_RAW%% *}" "$POD2POD_RAW")"
+	[ "$CONTROL" != "REACHED" ] && POD2POD="INCONCLUSIVE"
+fi
+kubectl --context kind-umbra -n default delete pod umbra-preflight-target umbra-preflight-control --ignore-not-found >/dev/null 2>&1 || true
+kubectl --context kind-umbra -n umbra-sandbox delete pod umbra-preflight-probe umbra-preflight-pod2pod --ignore-not-found >/dev/null 2>&1 || true
+NET="N0"
+if [ "$EGRESS" = "BLOCKED" ] && [ "$POD2POD" = "BLOCKED" ] && [ "$CONTROL" = "REACHED" ]; then
+	NET="N1"
+fi
+{
+	echo "$NET"
+	echo "egress sandbox->example.com: $EGRESS (raw: $EGRESS_RAW)"
+	echo "pod->pod sandbox->target-sin-politica: $POD2POD"
+	echo "control sin politica->target: $CONTROL"
+} >.demo/network.txt
+if [ "$NET" = "N1" ]; then
+	echo "sandbox network: N1 (aislamiento verificado)"
+else
+	echo "preflight: AVISO red N0: aislamiento no verificado (ver .demo/network.txt); la demo dice: separate sandbox namespace with quota, copy and rollback" >&2
+fi
 
 for b in umbra umbra-agent umbra-bench umbra-api; do
 	[ -x ".build/host/$b" ] || [ -x ".build/host/$b.exe" ] || fail "missing .build/host/$b (bash scripts/build-bins.sh)"

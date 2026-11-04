@@ -80,7 +80,7 @@ if [ "$NO_MODEL" = 1 ] || [ -z "${MODEL_API_KEY:-}" ]; then
 else
 	step "1:40 Modelo: diagnose F36 + model-raw"
 	run bash scripts/injectors/f36_service_no_endpoints.sh
-	run "$HOST/umbra-agent$EXE" diagnose --kind Service --name f36-no-endpoints --namespace demo --fault F36 --sandbox --publish --receipt-chain .demo/receipts.chain
+	run "$HOST/umbra-agent$EXE" --kind Service --name f36-no-endpoints --namespace demo --fault F36 --sandbox --publish --receipt-chain .demo/receipts.chain
 	run "$HOST/umbra-bench$EXE" --mode model-raw --cases F36 --live --out .demo/bench --scoreboard-out .demo/scoreboard.json
 fi
 
