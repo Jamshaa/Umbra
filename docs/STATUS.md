@@ -14,7 +14,7 @@ links here and doesn't repeat claims.
 | F01–F06 + Cron + graph verifiers | Yes | Yes | F01–F06 via sandbox (see generated bench table below) |
 | F01–F06, Cron fixes | Yes | Yes (Fix→Verify chained) | F01–F06 applied in sandbox and reverted |
 | Gate ladder + closed fail | Yes | Yes | Yes: dry-run + apply + rollback in `umbra-sandbox` per case |
-| Isolated sandbox (deny-all) | Yes (`config/sandbox/`) | — | Yes: BLOCKED inside, REACHED outside |
+| Isolated sandbox (deny-all) | Yes (`config/sandbox/`) | — | N0: sin medir en esta sesión (cluster no tocado por instrucción del autor); la afirmación previa «BLOCKED inside, REACHED outside» queda sin verificar hasta medir con preflight (ver LIMITATIONS.md) |
 | Sanitizer + T4 | Yes | Yes (incl. injection) | T4 loop needs key |
 | Chained receipt + `receipts verify` | Yes | Yes | No |
 | Self-declared approval + `umbra-approver` | Yes | Yes | No (no live audit) |
@@ -86,6 +86,7 @@ Source: `bench/results/scoreboard.json`, rendered by
 <!-- umbra:bench-table:end -->
 
 ## Naming notes
+- El avance de estado lo hace el operador dentro del cluster; no está cableado en esta demo. Observado en código, no en ejecución: `diagnose --publish` intenta mover `spec.state` (`cmd/umbra-agent/publish.go:225-230`), la VAP lo deniega a no `system:*`, y la salida JSON dice `publish failed: move finding <nombre> to Analyzing: …` sin persistir esa timeline (detalle en LIMITATIONS.md).
 - `model-raw` = bench **evaluation** mode (what would have applied without
   gates). Not the operator shadow mode (no existe: report-only shadow
   mode doesn't exist).

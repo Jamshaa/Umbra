@@ -1,5 +1,9 @@
 # Umbra
 
+**Track:** Indie · **Theme:** Build for Your World · **License:** Apache-2.0 ([LICENSE](LICENSE))
+**Built during the event:** [docs/NEW_WORK.md](docs/NEW_WORK.md) · **AI use:** [docs/AI_USE.md](docs/AI_USE.md)
+**Meta model:** Muse Spark (`muse-spark-1.3`) via Responses API — where and why: [docs/META.md](docs/META.md)
+
 > **Self-healing Kubernetes configurations, end to end:
 > detect → diagnose → patch → apply in a sandbox → verify → roll back if anything fails.**
 
