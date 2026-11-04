@@ -154,6 +154,7 @@ func main() {
 		finishSideEffects(ctx, *publish, *receiptChain, publishInput{
 			Fault: *fault, Kind: *kind, Namespace: *ns, Name: *name, Model: cfg.Model,
 			Records: out.Records, Refused: true, Reason: out.Reason, Manifest: string(base),
+			GateStep: "diagnose", GateWhy: out.Reason,
 			Ts: time.Now().Unix(),
 		}, receipt.Input{
 			FindingID: *fault, Kind: *kind, Namespace: *ns, Name: *name, Rule: *fault,
@@ -237,6 +238,7 @@ func main() {
 		finishSideEffects(ctx, *publish, *receiptChain, publishInput{
 			Fault: *fault, Kind: *kind, Namespace: *ns, Name: *name, Model: cfg.Model,
 			Records: out.Records, RootCause: out.Proposal.RootCause, GatePass: v.Passed,
+			GateStep: v.Step, GateWhy: v.Reason,
 			Manifest: string(base), Ts: time.Now().Unix(),
 		}, receipt.Input{
 			FindingID: *fault, Kind: *kind, Namespace: *ns, Name: *name, Rule: *fault,

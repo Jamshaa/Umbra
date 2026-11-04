@@ -114,8 +114,41 @@ type publishInput struct {
 	Reason    string
 	RootCause string
 	GatePass  bool
+	GateStep  string
+	GateWhy   string
 	Manifest  string
 	Ts        int64
+}
+
+func clamp(s string, n int) string {
+	if len(s) > n {
+		return s[:n]
+	}
+	return s
+}
+
+// gateVerdictEntry is the one timeline entry that records the gate
+// outcome of a published diagnosis (status only, never spec). Sanitized
+// and clamped before the hash is taken, like every other entry.
+func gateVerdictEntry(in publishInput) v1alpha1.TimelineEntry {
+	step := in.GateStep
+	if step == "" {
+		step = "diagnose"
+	}
+	args := clamp(evidence.Sanitize(fmt.Sprintf("rule=%s step=%s", in.Fault, step)), 200)
+	result := "PASS"
+	if in.Refused || !in.GatePass {
+		why := in.GateWhy
+		if why == "" {
+			why = in.Reason
+		}
+		// Sanitize the reason on its own first: embedded after
+		// "FAIL at <step>: " a leading key=value could be consumed
+		// as the value of the step label and escape redaction.
+		result = fmt.Sprintf("FAIL at %s: %s", step, evidence.Sanitize(why))
+	}
+	result = clamp(evidence.Sanitize(result), 500)
+	return controller.NewTimelineEntry("gate_verdict", args, result, in.Model, in.Ts)
 }
 
 // publishDiagnosis creates or updates the Finding for one diagnosis:
@@ -164,6 +197,10 @@ func publishDiagnosis(ctx context.Context, c client.Client, in publishInput) (st
 		if seen[e.EvidenceHash] {
 			continue
 		}
+		seen[e.EvidenceHash] = true
+		f.Status.Timeline = append(f.Status.Timeline, e)
+	}
+	if e := gateVerdictEntry(in); !seen[e.EvidenceHash] {
 		seen[e.EvidenceHash] = true
 		f.Status.Timeline = append(f.Status.Timeline, e)
 	}
