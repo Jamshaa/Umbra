@@ -69,7 +69,25 @@ export default function App() {
     verified: findings.filter((f) => f.state === 'verified').length,
   }
   const countFor = (s) => (s === 'all' ? findings.length : findings.filter((f) => f.severity === s).length)
-  const verified = selected?.state === 'verified'
+  // Gate verdict comes ONLY from the newest gate_verdict timeline entry
+  // written by diagnose --publish. Never derived from state or diffs.
+  const gateEntry = selected?.timeline
+    ? [...selected.timeline].reverse().find((e) => e.tool === 'gate_verdict')
+    : undefined
+  let gateNote = 'gates: not recorded; state is maintained by the in-cluster operator (not wired in this demo)'
+  let gateOk = false
+  if (gateEntry) {
+    if (gateEntry.result === 'PASS' || gateEntry.result.startsWith('PASS')) {
+      gateNote = 'gates: PASSED'
+      gateOk = true
+    } else if (gateEntry.result.startsWith('FAIL at ')) {
+      const rest = gateEntry.result.slice('FAIL at '.length)
+      const step = rest.split(':')[0]
+      gateNote = `gates: FAILED at ${step} — ${rest.slice(step.length + 1).trim()}`
+    } else {
+      gateNote = `gates: ${gateEntry.result}`
+    }
+  }
   // The id flows into a shell command the human pastes into a terminal:
   // allow only DNS-safe characters so a hostile API cannot inject flags
   // or chained commands. Invalid ids get no copy button, loudly.
@@ -171,9 +189,9 @@ export default function App() {
                     propose endpoint (the API is read-only by design), so
                     approval is a kubectl command the human runs. The copy
                     button only copies text; it never approves anything. */}
-                <code className={'gate-note ' + (verified ? 'is-ok' : 'is-pending')}>
-                  <Sprite name={verified ? 'check' : 'chev'} scale={1} />{' '}
-                  {verified ? 'verification PASSED ✓ — awaiting human approval' : 'verification pending'}
+                <code className={'gate-note ' + (gateOk ? 'is-ok' : 'is-pending')}>
+                  <Sprite name={gateOk ? 'check' : 'chev'} scale={1} />{' '}
+                  {gateNote}
                 </code>
               </div>
               <div className="gate-row">
