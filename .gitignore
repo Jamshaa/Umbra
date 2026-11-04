@@ -11,7 +11,8 @@
 # Anything matching these patterns stays local, forever.
 .env
 .env.*
-!.env.example                 # the only env file allowed is the example
+# the only env file allowed is the example:
+!.env.example
 # Vite mode flag only (VITE_UMBRA_API=live), not a secret:
 !ui/.env.live
 *.key
@@ -39,10 +40,31 @@ kube-config*
 credentials.json
 docker-credentials*
 .dockercfg
-.docker/                      # local docker client config (registry logins)
+# local docker client config (registry logins):
+.docker/
 **/vault-token*
 **/*token.json
 **/*refresh-token*
+# package-manager and CLI credential files:
+.npmrc
+.yarnrc.yml
+.pypirc
+.netrc
+_netrc
+.git-credentials
+.envrc
+*.kubeconfig
+*.jks
+*.keystore
+*.ovpn
+*.gpg
+*.asc
+.gnupg/
+.aws/
+.azure/
+.gcloud/
+gcloud/
+.terraform/
 
 # Manifests and configs that commonly embed private endpoints / CA bundles.
 # Anything you actually want to publish MUST be reviewed by hand and never
@@ -112,7 +134,12 @@ htmlcov/
 Thumbs.db
 desktop.ini
 .opencode/
-.pixel-agents/          # local pixel-agents board state (task JSON, patches)
+# local Claude Code settings/memory:
+.claude/
+# local pixel-agents board state (task JSON, patches) — never commit:
+.pixel-agents/
+# token-optimizer MCP local state:
+.token-optimizer/
 node_modules/
 ui/dist/
 

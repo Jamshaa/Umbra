@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import './Scoreboard.css'
-import PixelButton from './PixelButton.jsx'
 
 function pickRows(json) {
   if (!json || typeof json !== 'object' || !Array.isArray(json.rows)) return null
@@ -78,23 +76,23 @@ export default function Scoreboard() {
   }, [tick])
 
   return (
-    <section className="scoreboard">
-      <div className="scoreboard-head">
-        <h2 className="column-title">SCOREBOARD</h2>
-        <PixelButton size="sm" onClick={() => setTick((t) => t + 1)}>Reload</PixelButton>
-      </div>
+    <section className="board" aria-labelledby="board-h">
+      <header className="sec-head">
+        <h2 id="board-h" className="px">bench</h2>
+        <button type="button" className="btn ghost" onClick={() => setTick((t) => t + 1)}>reload</button>
+      </header>
       {rows === null ? (
-        <p className="empty-note">no measurements — run make bench</p>
+        <p className="muted">no measurements — run make bench</p>
       ) : (
-        <div className="scoreboard-scroll">
-          <table className="scoreboard-table">
+        <div className="board-scroll">
+          <table>
             <thead>
               <tr>
                 <th scope="col">config</th>
                 <th scope="col">group</th>
                 <th scope="col">mode</th>
                 <th scope="col">result</th>
-                <th scope="col">blocks</th>
+                <th scope="col"><span className="sr">blocks</span></th>
                 <th scope="col">commit</th>
               </tr>
             </thead>
@@ -103,14 +101,10 @@ export default function Scoreboard() {
                 <tr key={r.key}>
                   <td>{r.config}</td>
                   <td>{r.group}</td>
-                  <td>
-                    <span className={`mode-chip ${r.live ? 'is-live' : 'is-static'}`}>
-                      {r.live ? 'live' : 'static'}
-                    </span>
-                  </td>
-                  <td className="scoreboard-score">{r.pass}/{r.total}</td>
+                  <td className={r.live ? 'st-verified' : 'muted'}>{r.live ? 'live' : 'static'}</td>
+                  <td>{r.pass}/{r.total}</td>
                   <td><Blocks pass={r.pass} total={r.total} fail={r.fail} /></td>
-                  <td className="scoreboard-commit">{r.commit}</td>
+                  <td className="muted code-font">{r.commit}</td>
                 </tr>
               ))}
             </tbody>

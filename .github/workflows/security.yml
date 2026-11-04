@@ -62,8 +62,8 @@ jobs:
       - name: Fail on tracked files matching prohibited globs
         run: |
           set -euo pipefail
-          forbidden='(^|/)\.env(\..*)?$|(^|/)kubeconfig(\..*)?$|(^|/).+-credentials\.(yaml|yml|json)$|\.pem$|\.key$|\.p12$|\.pfx$|\.kdbx$|(^|/)id_(rsa|ed25519|ecdsa)(\..*)?$|(^|/)(gitleaks|trufflehog)-report\.(json|txt)$|\.tfstate(\..*)?$'
-          offenders=$(git ls-files | grep -E -i "$forbidden" | grep -v '^\.env\.example$' || true)
+          forbidden='(^|/)\.env(\..*)?$|(^|/)kubeconfig(\..*)?$|(^|/).+-credentials\.(yaml|yml|json)$|\.pem$|\.key$|\.p12$|\.pfx$|\.kdbx$|(^|/)id_(rsa|ed25519|ecdsa)(\..*)?$|(^|/)(gitleaks|trufflehog)-report\.(json|txt)$|\.tfstate(\..*)?$|(^|/)\.(npmrc|netrc|pypirc|git-credentials|envrc)$|\.(jks|keystore|ovpn|kubeconfig)$|^\.(pixel-agents|opencode|claude|idea|vscode|token-optimizer)/|(^|/)\.(aws|azure|gnupg|kube|docker)/'
+          offenders=$(git ls-files | grep -E -i "$forbidden" | grep -v -x -F -e '.env.example' -e 'ui/.env.live' || true)
           if [ -n "$offenders" ]; then
             echo "::error::Prohibited file(s) tracked in git (SECURITY.md §4):"
             echo "$offenders"

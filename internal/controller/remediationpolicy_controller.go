@@ -40,7 +40,9 @@ const (
 // manager reads namespaces cluster-wide but mutates ONLY umbra-sandbox.
 //
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=namespaces,verbs=create;update;patch,resourceNames=umbra-sandbox
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=update;patch,resourceNames=umbra-sandbox
+// (no create: RBAC cannot pin create by name; config/rbac/sandbox-namespace.yaml
+// pre-creates the namespace.)
 // Sandbox objects live in config/rbac/sandbox-role.yaml (a namespaced
 // Role, hand-maintained): reads and creates are namespace-scoped there
 // with NO resourceNames (a resourceNames rule denies general list/watch

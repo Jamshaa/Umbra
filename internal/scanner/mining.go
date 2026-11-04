@@ -95,24 +95,6 @@ func MineTemplate(docs []byte) (TemplateStats, v1alpha1.ComplianceTemplate) {
 	return stats, tpl
 }
 
-// GroupByCause clusters findings by image/template label: one bad base
-// image or template explains many findings; fix once.
-func GroupByCause(findings []v1alpha1.Finding, labels func(v1alpha1.Finding) string) map[string][]v1alpha1.Finding {
-	out := map[string][]v1alpha1.Finding{}
-	for _, f := range findings {
-		k := "unknown"
-		if labels != nil {
-			if l := labels(f); l != "" {
-				k = l
-			}
-		} else {
-			k = string(f.Spec.Category) + "/" + f.Spec.TargetRef.Kind
-		}
-		out[k] = append(out[k], f)
-	}
-	return out
-}
-
 // ImpactScore grades a finding 0-100 by dependency neighbourhood size:
 // Services selecting it, volumes, bindings. Deterministic, no AI.
 func ImpactScore(services, configMaps, secrets, pvcs, bindings int, kind string) int {

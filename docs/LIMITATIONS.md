@@ -1,16 +1,18 @@
 # LIMITATIONS.md — what Umbra doesn't do (nor pretends to)
 
 - El avance de estado lo hace el operador dentro del cluster; no está cableado en esta demo.
-  Observado en código, no en ejecución: `cmd/umbra-agent/publish.go:225-230`
-  sí intenta mover `spec.state` paso a paso con `Update`, y la VAP
-  (`config/approval-policy/validating-policy.yaml:29`) lo deniega a
-  usuarios no `system:*`. La denegación no se ignora: devuelve error,
-  `publishDiagnosis` aborta antes de escribir el status
-  (`publish.go:236`), y `cmd/umbra-agent/main.go` lo deja en el JSON de
-  salida como `"publish": "publish failed: move finding <nombre> to
-  Analyzing: <error de admisión>"`, sin cambiar el veredicto ni el código
-  de salida. El Finding creado queda en `Detected` y la timeline de esa
-  publicación no se persiste.
+  `cmd/umbra-agent/publish.go` escribe primero el status (timeline y
+  `gate_verdict`) y después intenta mover `spec.state` paso a paso con
+  `Update`. La VAP (`config/approval-policy/validating-policy.yaml:29`)
+  deniega cambios de spec a usuarios no `system:*`, así que el agente
+  ejecutado con el usuario del host deja el Finding en su estado anterior
+  (`Detected` si es nuevo) pero **con la evidencia persistida**. La
+  denegación no se oculta: `cmd/umbra-agent/main.go` la deja en el JSON
+  de salida como `"publish": "publish failed: evidence recorded, but
+  moving finding <nombre> to Analyzing was refused ..."`, sin cambiar el
+  veredicto ni el código de salida. Cubierto por
+  `TestPublishEvidenceSurvivesSpecDenial` (cliente fake que imita la
+  VAP); no observado aún contra el cluster.
 - **Red del sandbox (N0).** Hay NetworkPolicy deny-all declarada, pero su
   aplicación depende del CNI; resultado medido: sin medir en esta sesión
   (cluster no tocado por instrucción del autor), variante N0. En N0 la

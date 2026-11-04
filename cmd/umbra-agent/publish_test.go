@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,10 +13,14 @@ import (
 	"strings"
 	"testing"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/Jamshaa/Umbra/api/v1alpha1"
 	"github.com/Jamshaa/Umbra/internal/agent"
@@ -86,6 +91,43 @@ func TestPublishDiagnosis(t *testing.T) {
 	bad.GatePass = false
 	if _, err := publishDiagnosis(context.Background(), c, bad); err == nil {
 		t.Fatal("terminal state move accepted")
+	}
+}
+
+// TestPublishEvidenceSurvivesSpecDenial mimics the real API server: Create
+// drops status (status subresource) and the approval VAP denies spec
+// writes from non-system users. The timeline must still be persisted.
+func TestPublishEvidenceSurvivesSpecDenial(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(agentScheme(t)).
+		WithStatusSubresource(&v1alpha1.Finding{}).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Create: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+				obj.(*v1alpha1.Finding).Status = v1alpha1.FindingStatus{}
+				return c.Create(ctx, obj, opts...)
+			},
+			Update: func(context.Context, client.WithWatch, client.Object, ...client.UpdateOption) error {
+				return apierrors.NewForbidden(schema.GroupResource{Group: "umbra.io", Resource: "findings"}, "f36-demo-svc", errors.New("denied by umbra-finding-approval-gate"))
+			},
+		}).Build()
+	in := publishInput{
+		Fault: "F36", Kind: "Service", Namespace: "demo", Name: "svc",
+		Model: "muse-test", GatePass: true,
+		Records: []agent.ToolRecord{{Name: "get_manifest", Args: "{}", Result: "ok"}},
+		Ts:      7,
+	}
+	_, err := publishDiagnosis(context.Background(), c, in)
+	if err == nil || !strings.Contains(err.Error(), "evidence recorded") || !apierrors.IsForbidden(err) {
+		t.Fatalf("err = %v, want wrapped forbidden with evidence note", err)
+	}
+	var got v1alpha1.Finding
+	if err := c.Get(context.Background(), types.NamespacedName{Name: "f36-demo-svc"}, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Spec.State != v1alpha1.FindingStateDetected {
+		t.Fatalf("state = %q, want Detected (spec write denied)", got.Spec.State)
+	}
+	if len(got.Status.Timeline) != 2 || got.Status.Timeline[1].Tool != "gate_verdict" {
+		t.Fatalf("timeline lost: %+v", got.Status.Timeline)
 	}
 }
 

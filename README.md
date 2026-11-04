@@ -52,7 +52,7 @@ Agent safety: the model never applies anything; `tool_choice: auto` with the
 code-enforced list (`internal/agent/tools.go`); typed patches against
 allowlist; secrets redacted before the prompt (`internal/evidence`); T4
 covers injection; no auto-apply; minimal read-only RBAC. Detail in
-`docs/SECURITY.md` and `docs/META.md`.
+`SECURITY.md` and `docs/META.md`.
 
 ## Quickstart (5 commands)
 

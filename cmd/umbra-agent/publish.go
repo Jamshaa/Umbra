@@ -154,8 +154,9 @@ func gateVerdictEntry(in publishInput) v1alpha1.TimelineEntry {
 // publishDiagnosis creates or updates the Finding for one diagnosis:
 // state walks only valid transitions toward Verified (gate pass),
 // Failed (refusal or gate failure); timeline entries are sanitized,
-// truncated and deduplicated by evidence hash. When the target state
-// is unreachable it reports why and writes nothing.
+// truncated and deduplicated by evidence hash, and written before the
+// spec so a refused state move keeps the evidence. When the target
+// state is unreachable it reports why and writes nothing.
 func publishDiagnosis(ctx context.Context, c client.Client, in publishInput) (string, error) {
 	name := findingNameFor(in.Fault, in.Namespace, in.Name)
 	target := v1alpha1.FindingStateFailed
@@ -215,26 +216,32 @@ func publishDiagnosis(ctx context.Context, c client.Client, in publishInput) (st
 			f.Spec.PrePatchManifest = f.Spec.PrePatchManifest[:262144]
 		}
 	}
+	// Evidence first: the status subresource is written before any spec
+	// write, so a spec denial (the approval VAP refuses spec changes from
+	// non-system users) never loses the timeline. Create drops status on
+	// a real API server, hence the copy.
+	timeline := f.Status.Timeline
 	if created {
 		if err := c.Create(ctx, &f); err != nil {
 			return "", fmt.Errorf("create finding %s: %w", name, err)
 		}
+		f.Status.Timeline = timeline
+	}
+	if err := c.Status().Update(ctx, &f); err != nil {
+		return "", fmt.Errorf("update finding status %s: %w", name, err)
 	}
 	// Walk the state machine stepwise; each intermediate state is a
 	// legal write, the last one is the target.
 	for _, step := range path {
 		f.Spec.State = step
 		if err := c.Update(ctx, &f); err != nil {
-			return "", fmt.Errorf("move finding %s to %s: %w", name, step, err)
+			return "", fmt.Errorf("evidence recorded, but moving finding %s to %s was refused (spec writes need a system: identity): %w", name, step, err)
 		}
 	}
 	if !created && len(path) == 0 {
 		if err := c.Update(ctx, &f); err != nil {
-			return "", fmt.Errorf("update finding %s: %w", name, err)
+			return "", fmt.Errorf("evidence recorded, but updating finding %s spec was refused: %w", name, err)
 		}
-	}
-	if err := c.Status().Update(ctx, &f); err != nil {
-		return "", fmt.Errorf("update finding status %s: %w", name, err)
 	}
 	return fmt.Sprintf("published finding %s (%s -> %s)", name, from, target), nil
 }

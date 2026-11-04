@@ -2,8 +2,8 @@
 
 Pixel-art interface for the Umbra remediation operator: findings, sandbox
 diffs, agent tool-call timeline. React 19 + Vite 7, **no component library**,
-**no Tailwind** — plain CSS modules-by-file driven by the design tokens in
-[`src/styles/base.css`](src/styles/base.css).
+**no Tailwind** — two plain CSS files: tokens and primitives in
+[`src/styles/base.css`](src/styles/base.css), layout in [`src/App.css`](src/App.css).
 
 ## Run
 
@@ -52,27 +52,42 @@ real value (see [SECURITY.md](../SECURITY.md) §4).
 
 ## Design contract (do not soften)
 
-- Palette: exactly the 8 tokens in `base.css`. No gradients, no blur, no
-  `border-radius`, transitions of 0 ms.
-- Hard shadows: `4px 4px 0 var(--hard-shadow)`; pressed state =
-  `translate(2px, 2px)` + `2px` shadow.
-- 8px spacing grid for margins/padding/gaps (`--sp-*`).
-- Fonts: **Press Start 2P** only at 8px multiples (labels/buttons — never
-  body copy), **VT323** 20–22px for body, **DM Mono** 12–14px for code/YAML.
-- Scanline overlay: 2px lines @ 5% opacity (the one sanctioned transparency
-  pattern), blinking cursor via `steps(1)`.
+- Palette: the 9 tokens in `base.css` (`--bg --panel --ink --muted --sel`
+  plus `--error --ok --warn --info` as status colours only), in two themes:
+  **paper** (default) and **night**. The OS preference picks one; the `t`
+  key / header button pins it (stored in `localStorage`, optional).
+- Edges, not boxes: 2px solid or dotted rules separate sections; no
+  shadows, no blur, no gradients, no `border-radius`, no transitions.
+  Buttons get 2px pixel-notched corners (`clip-path`) and drop 2px when
+  pressed.
+- Spacing on a 4px grid.
+- Fonts: **Press Start 2P** only at 8px (labels, buttons) and 16px (logo),
+  always lowercase; **VT323** 20px body, 40px subject; **DM Mono** 12–13px
+  for ids, code, YAML and commands.
+- Sprites are 1-bit SVG paths (`Sprite.jsx`, `crispEdges`), tinted by
+  `currentColor`.
 
 ## Layout
 
-Three columns (stack vertically under 900px):
+Three columns (stack under 1000px), bench table and key legend below:
 
 | Column | Content | Source |
 |---|---|---|
-| FINDINGS | severity-filtered finding cards, SCAN button | CRD list (mocked) |
-| DETAIL | live manifest + sandbox diff + gate note (PASS/pending text; the Approve button was removed — no propose endpoint exists yet) | CRD status (mocked) |
-| AGENT TIMELINE | collapsible tool-call feed with status-colored rails | WebSocket (mocked) |
+| findings | filter (id, target, kind, state), severity filter, sort by severity or id, finding rows | `/api/findings` or mock |
+| detail | subject, fix/manifest tabs with copy and save, link to the finding, gate verdict, approval command | finding + its `gate_verdict` timeline entry |
+| agent | tool-call timeline (mock is labelled "simulation") | finding timeline or mock |
 
-The production gate is a text note (PASS/pending), not a button: there is
-no propose endpoint yet — the API is read-only by design — so a button
-would promise an action that cannot run. It returns with the backend
-that backs it.
+Keys: `j`/`k` or arrows move, `/` filters, `Esc` clears the filter then
+leaves it, `1`/`2` switch tabs, `c` copies the approval command, `s` flips
+the sort, `r` rescans, `t` flips the theme. The legend hides on touch
+screens. The selected finding lives in the URL hash (`#F03`), so a link
+opens on it and survives rescans.
+
+The top bar shows the time of the last scan. In live builds `auto`
+rescans every 15s. The tab title carries the high-severity count.
+
+The production gate is display-only: the API is read-only by design, so
+approval is a `kubectl annotate` command the human copies and runs,
+labelled "human step · not executed by umbra". The verdict, and the
+"proposed by <model>" line under it, come only from the newest
+`gate_verdict` timeline entry; with no model recorded the line is omitted.
