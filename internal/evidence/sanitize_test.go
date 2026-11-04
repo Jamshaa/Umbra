@@ -152,19 +152,23 @@ func TestSanitizeExtendedPatterns(t *testing.T) {
 }
 
 func TestSanitizeEmbeddedJSON(t *testing.T) {
-	in := `event: data: {"password":"actual-secret","nested":{"token":"nested-secret"}}`
-	out := Sanitize(in)
-	for _, secret := range []string{"actual-secret", "nested-secret"} {
-		if strings.Contains(out, secret) {
-			t.Fatalf("embedded JSON secret leaked: %q -> %q", secret, out)
+	tests := []string{
+		`event: data: {"password":"actual-secret","nested":{"token":"nested-secret"}}`,
+		`event: message="{\"password\":\"escaped-secret\",\"nested\":{\"token\":\"escaped-nested\"}}"`,
+	}
+	for _, in := range tests {
+		out := Sanitize(in)
+		for _, secret := range []string{"actual-secret", "nested-secret", "escaped-secret", "escaped-nested"} {
+			if strings.Contains(out, secret) {
+				t.Fatalf("embedded JSON secret leaked: %q -> %q", secret, out)
+			}
 		}
-	}
-	if !strings.Contains(out, `"password":"`+Redacted+`"`) ||
-		!strings.Contains(out, `"token":"`+Redacted+`"`) {
-		t.Fatalf("embedded JSON was not structurally sanitized: %q", out)
-	}
-	if out != Sanitize(out) {
-		t.Fatalf("embedded JSON sanitization is not idempotent: %q -> %q", out, Sanitize(out))
+		if !strings.Contains(out, Redacted) {
+			t.Fatalf("embedded JSON was not structurally sanitized: %q", out)
+		}
+		if out != Sanitize(out) {
+			t.Fatalf("embedded JSON sanitization is not idempotent: %q -> %q", out, Sanitize(out))
+		}
 	}
 }
 

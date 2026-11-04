@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -258,26 +259,92 @@ func sanitizeJSON(s string) (string, bool) {
 func sanitizeEmbeddedJSON(s string) string {
 	var out strings.Builder
 	for i := 0; i < len(s); {
+		if (s[i] == '\\') && i+1 < len(s) && (s[i+1] == '{' || s[i+1] == '[') {
+			end := escapedEmbeddedJSONEnd(s, i+1)
+			if end > i+1 {
+				raw := s[i+1 : end]
+				decoded, err := strconv.Unquote(`"` + raw + `"`)
+				if err == nil {
+					if sanitized, ok := sanitizeJSON(decoded); ok {
+						quoted := strconv.Quote(sanitized)
+						out.WriteString(quoted[1 : len(quoted)-1])
+						i = end
+						continue
+					}
+				}
+			}
+		}
 		if s[i] != '{' && s[i] != '[' {
 			out.WriteByte(s[i])
 			i++
 			continue
 		}
 		end := embeddedJSONEnd(s, i)
+		escaped := false
+		if end <= i {
+			end = escapedEmbeddedJSONEnd(s, i)
+			escaped = end > i
+		}
 		if end <= i {
 			out.WriteByte(s[i])
 			i++
 			continue
 		}
 		candidate := s[i:end]
-		if sanitized, ok := sanitizeJSON(candidate); ok {
+		if escaped {
+			if decoded, err := strconv.Unquote(`"` + candidate + `"`); err == nil {
+				if sanitized, ok := sanitizeJSON(decoded); ok {
+					quoted := strconv.Quote(sanitized)
+					out.WriteString(quoted[1 : len(quoted)-1])
+					i = end
+					continue
+				}
+			}
+		} else if sanitized, ok := sanitizeJSON(candidate); ok {
 			out.WriteString(sanitized)
-		} else {
-			out.WriteString(candidate)
+			i = end
+			continue
 		}
+		out.WriteString(candidate)
 		i = end
 	}
 	return out.String()
+}
+
+func escapedEmbeddedJSONEnd(s string, start int) int {
+	stack := []byte{s[start]}
+	inString := false
+	for i := start + 1; i < len(s); i++ {
+		c := s[i]
+		if c == '\\' && i+1 < len(s) && s[i+1] == '"' {
+			inString = !inString
+			i++
+			continue
+		}
+		if c == '"' {
+			inString = !inString
+			continue
+		}
+		if inString {
+			continue
+		}
+		if c == '{' || c == '[' {
+			stack = append(stack, c)
+			continue
+		}
+		if c != '}' && c != ']' {
+			continue
+		}
+		if len(stack) == 0 || (c == '}' && stack[len(stack)-1] != '{') ||
+			(c == ']' && stack[len(stack)-1] != '[') {
+			return 0
+		}
+		stack = stack[:len(stack)-1]
+		if len(stack) == 0 {
+			return i + 1
+		}
+	}
+	return 0
 }
 
 func embeddedJSONEnd(s string, start int) int {
