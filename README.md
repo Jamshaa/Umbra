@@ -1,86 +1,56 @@
 # Umbra
 
-**Track:** Indie · **Theme:** Build for Your World · **License:** Apache-2.0 ([LICENSE](LICENSE))
-**Built during the event:** [docs/NEW_WORK.md](docs/NEW_WORK.md) · **AI use:** [docs/AI_USE.md](docs/AI_USE.md)
-**Meta model:** Muse Spark (`muse-spark-1.3`) via Responses API — where and why: [docs/META.md](docs/META.md)
+**Indie · Build for Your World · Apache-2.0 ([LICENSE](LICENSE))**
+Built during the event: [docs/NEW_WORK.md](docs/NEW_WORK.md) · AI use: [docs/AI_USE.md](docs/AI_USE.md) · Model: [docs/META.md](docs/META.md)
 
-> **Self-healing Kubernetes configurations, end to end:
-> detect → diagnose → patch → apply in a sandbox → verify → roll back if anything fails.**
+> Self-healing Kubernetes configs, end to end:
+> detect → diagnose → patch → verify in sandbox → roll back on failure.
 
-**Status: pre-release.** No fix reaches production without a deterministic test; no manual change goes unattributed.
+**Status: pre-release.** Nothing reaches production without a deterministic test.
+Function-by-function status: [docs/STATUS.md](docs/STATUS.md). Demo: [docs/DEMO.md](docs/DEMO.md).
 
-> Function-by-function status (implemented / unit / live): [`docs/STATUS.md`](docs/STATUS.md). This README claims nothing that table doesn't back.
+## What it does
 
-> UI screenshot: pending the first recorded demo (see `docs/DEMO.md`).
+- Scanner reports a misconfiguration with attribution (who changed what).
+- Agent (Muse Spark via Responses API) proposes a typed patch, never applies it.
+- Sandbox dry-runs the patch: pass → human approves, fail → snapshot rollback.
 
-## The problem
-
-Platform teams live with misconfiguration: 78% of Red Hat
-respondents reported config failures in the last year. The
-real flow is always the same: something breaks, the first question is
-"what changed just before?", and the manual fix that follows leaves no
-auditable trace. Umbra fits that day-to-day: the finding arrives with who
-changed it, the proposal with its test, and the apply with receipt and rollback.
-
-## What sets it apart
-
-| Tool | Does | Doesn't do (Umbra does) |
-|---|---|---|
-| K8sGPT | Scans and explains; alpha, limited auto-remediation | Test the patch before applying |
-| HolmesGPT | Read-only investigation | Propose + verify + receipt |
-| Aurora | Opens PRs only after human approval | Deterministic gates and snapshot rollback |
-
-Thesis: the model proposes, code verifies, a human approves, and everything leaves
-a receipt. Honest split: **the operator holds state and
-gates; the agent proposes**. Not an autonomous operator: with
-no agent proposal there is nothing to verify, and with no gates nothing reaches
-production.
+Unlike K8sGPT / HolmesGPT (explain only) or Aurora (PRs only), Umbra tests
+the patch before applying and leaves a receipt. The model proposes,
+code verifies, a human approves.
 
 ## How it works
 
 ```
-Scanner ──▶ Agent (Muse Spark, Responses API) ──▶ Sandbox (umbra-sandbox)
-  │                │ read-only + propose_patch            │ dry-run + apply
-  │                ▼                                     ▼
-  │         allowlist + invariantes               Verificador determinista
-  │                │                                pass ▶ propose (human approves)
-  │                │                                fail ▶ rollback via snapshot
+Scanner → Agent (read-only + propose_patch) → Sandbox (dry-run + apply)
+  │              │ allowlist + invariants              │ pass → propose (human approves)
+  │              │                                     │ fail → rollback via snapshot
   └── finding with attribution (audit log / managedFields)
 ```
 
-Agent safety: the model never applies anything; `tool_choice: auto` with the
-code-enforced list (`internal/agent/tools.go`); typed patches against
-allowlist; secrets redacted before the prompt (`internal/evidence`); T4
-covers injection; no auto-apply; minimal read-only RBAC. Detail in
-`SECURITY.md` and `docs/META.md`.
+Safety: code-enforced tool list (`internal/agent/tools.go`), typed patches
+against an allowlist, secrets redacted before the prompt (`internal/evidence`),
+no auto-apply, minimal read-only RBAC. Details: `SECURITY.md`, `docs/META.md`.
 
-## Quickstart (5 commands)
+## Quickstart
 
 ```bash
-bash scripts/kind/create-cluster.sh   # 1. cluster umbra + audit log
+bash scripts/kind/create-cluster.sh   # 1. kind cluster + audit log
 bash scripts/build-images.sh          # 2. kind-only images
 kubectl apply -k config/crd           # 3. CRDs
-make bench                             # 4. deterministic scoreboard row
+make bench                            # 4. deterministic scoreboard row
 cd ui && npm ci && npm run build      # 5. UI
 ```
 
-Or `make demo` for everything at once. Requires `MODEL_API_KEY` in env only
-for model modes; **nothing leaves except the model call, with
-sanitized evidence**, and `MODEL_BASE_URL` points at a local model.
+Or `make demo` for everything at once. `MODEL_API_KEY` is only needed for
+model modes; evidence sent to the model is sanitized.
 
 ## Benchmark
 
-Three rows, same cases, seed 42, 3 repeats (`bench/cases.yaml`):
-
-Groups: **A** = has deterministic fix (F01–F06 and Cron rules);
-**B** = has verifier but the fix is model-only (Service without
-endpoints, HPA without requests, identical probes, minimal RBAC);
-**C** = diagnosis only; **T** = traps (reject or contain). Each
-JSONL result stores `live: true|false`.
-
-Measured results live only in the generated table below (source:
-`bench/results/scoreboard.json`, rendered by
-`scripts/docs/render_tables.py`; do not edit numbers by hand):
+Seed 42, 3 repeats (`bench/cases.yaml`). Groups: **A** = deterministic fix,
+**B** = model-only fix, **C** = diagnosis only, **T** = traps.
+`live` marks kind-verified rows. Method: `docs/BENCHMARK.md`.
+Table below is generated from `bench/results/scoreboard.json` — do not edit by hand.
 
 <!-- umbra:bench-table:start -->
 | Configuración | Grupo | Live | Resultado pass/total (N × R) | Rechazados | Omitidos | Tokens | Commit |
@@ -119,21 +89,9 @@ Measured results live only in the generated table below (source:
 | handpatch | T | false | sin medir | sin medir | sin medir | sin medir | sin medir |
 <!-- umbra:bench-table:end -->
 
-Raw data: `bench/results/*.jsonl` and `bench/results/scoreboard.json`.
-Method and honesty rules in `docs/BENCHMARK.md`. No model figures
-published until measured; unmeasured rows read «sin medir».
+Raw data: `bench/results/*.jsonl`, `bench/results/scoreboard.json`.
 
-## Meta usage and limitations
+## Docs
 
-Muse Spark model via Responses API with tool calls; which
-model, where and why in `docs/META.md`. What it doesn't do (Helm, real
-sandbox traffic, real production, Prometheus, full CronJob calendar):
-`docs/LIMITATIONS.md`. How AI is used in development and at runtime:
-[`docs/AI_USE.md`](docs/AI_USE.md).
-
-## Roadmap and license
-
-Product roadmap (unbuilt, labeled): `ROADMAP.md`
-(v0.2 Helm/GitOps, v0.3 local model + SIEM, v0.4 CronJob/GPU + vCluster,
-v1.0 HA + multi-cluster). License [Apache-2.0](LICENSE). Conduct:
-[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [CONTRIBUTING.md](CONTRIBUTING.md).
+Limits: [docs/LIMITATIONS.md](docs/LIMITATIONS.md) · Roadmap: [ROADMAP.md](ROADMAP.md) ·
+Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
